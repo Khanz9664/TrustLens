@@ -152,6 +152,21 @@ Properties to log:
 
 ---
 
+### Issue #35: Add Weights & Biases (W&B) integration for TrustReport logging
+**Label:** `enhancement`, `integrations`
+**Description:**
+W&B is a primary experiment tracker. Users currently have to manually flatten reports or use `to_dict()` and `wandb.log()`. A first-class integration would handle metrics, metadata, and plots automatically.
+
+**Task:**
+Implement `trustlens.integrations.wandb.log_trust_report(report)`:
+- Logs metrics via `wandb.log()`
+- Logs reliability diagram via `wandb.Image()`
+- Automatically initializes a run if one doesn't exist.
+
+**Difficulty:** Intermediate
+
+---
+
 ## Beginner Issues (1–15)
 
 ---
@@ -505,15 +520,8 @@ Add `prediction_flip_analysis(model, X, n_perturbations=50, sigma_range=(0.01, 1
 
 ---
 
-### Issue #35
-**Title:** Add W&B (Weights & Biases) integration
-**Label:** `enhancement`, `integrations`
-**Description:**
-Add `trustlens.integrations.wandb.log_trust_report(report)`:
-- Logs metrics via `wandb.log()`
-- Logs reliability diagram via `wandb.Image()`
-
-**Difficulty:** Intermediate
+### Issue #35 [PUBLISHED]
+*This issue has been moved to the active GitHub tracker.*
 
 ---
 

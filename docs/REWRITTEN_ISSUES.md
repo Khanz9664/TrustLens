@@ -81,6 +81,13 @@
 
 ---
 
+### Issue #35: Add Weights & Biases (W&B) integration — track Trust Scores across experiments
+**Problem:** W&B is a primary experiment tracker. Users currently have to manually flatten reports or use `to_dict()` and `wandb.log()`. A first-class integration would handle metrics, metadata, and plots automatically.
+**Your task:** Implement `trustlens.integrations.wandb.log_trust_report(report)` to log scalar scores and plot artifacts.
+**Difficulty:** Intermediate
+
+---
+
 ## Issue #1 [PUBLISHED]
 *This issue has been moved to the active GitHub tracker.*
 
@@ -192,6 +199,11 @@ ece = expected_calibration_error(y_true, y_prob_multiclass)
 ---
 
 ## Issue #34 [PUBLISHED]
+*This issue has been moved to the active GitHub tracker.*
+
+---
+
+## Issue #35 [PUBLISHED]
 *This issue has been moved to the active GitHub tracker.*
 
 ---
