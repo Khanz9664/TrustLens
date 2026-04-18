@@ -123,13 +123,88 @@ class TrustReport:
             print(f"- {dim.capitalize() + ' Score':<18}: {score:5.1f}/100")
 
         for module_name, module_data in self.results.items():
-            print(f"\n{module_name.title()} Analysis")
-            self._print_module(module_data, indent=0, verbose=verbose)
+            import io
+            from contextlib import redirect_stdout
+
+            f = io.StringIO()
+            with redirect_stdout(f):
+                self._print_module(module_data, indent=0, verbose=verbose)
+            out = f.getvalue().strip()
+            if out:
+                print(f"\n{module_name.title()} Analysis")
+                print(out)
 
         print("\nConclusion:")
         conclusion = self._generate_conclusion()
         print(conclusion)
         print()
+
+    def _generate_text_report(self, verbose: bool = False) -> str:
+        """
+        Generate a clean, human-readable text report without ANSI colors.
+        Mirroring the structure of show().
+        """
+        lines = []
+        lines.append("TrustLens Analysis Report")
+        lines.append(f"Timestamp : {self.metadata['timestamp']}")
+        lines.append(f"Model     : {self.metadata['model_class']}")
+        lines.append(f"Samples   : {self.metadata['n_samples']:,}")
+        lines.append(f"Classes   : {self.metadata['n_classes']}")
+
+        ts = self.trust_score
+        lines.append(f"\nTRUST SCORE: {ts.score}/100 [{ts.grade}]")
+        lines.append(f"Assessment : {ts.verdict}")
+
+        lines.append("\nKey Observations:")
+        insights = self._generate_insights()
+        if not insights:
+            lines.append("- No critical issues found.")
+        else:
+            for insight in insights:
+                lines.append(f"- {insight}")
+
+        lines.append("\nDimension Breakdown:")
+        for dim, score in ts.sub_scores.items():
+            lines.append(f"- {dim.capitalize() + ' Score':<18}: {score:5.1f}/100")
+
+        for module_name, module_data in self.results.items():
+            line_buf: list[str] = []
+            self._get_module_text_lines(module_data, line_buf, indent=0, verbose=verbose)
+            if line_buf:
+                lines.append(f"\n{module_name.title()} Analysis")
+                lines.extend(line_buf)
+
+        lines.append("\nConclusion:")
+        lines.append(self._generate_conclusion())
+        return "\n".join(lines)
+
+    def _get_module_text_lines(
+        self, data: Any, buf: list[str], indent: int = 0, verbose: bool = False
+    ) -> None:
+        """Helper for _generate_text_report to recursively collect lines."""
+        prefix = " " * indent
+        if isinstance(data, dict):
+            for key, value in data.items():
+                if isinstance(key, str) and key.startswith("__") and key.endswith("__"):
+                    continue
+                display_key = str(key).replace("_", " ").title()
+
+                if isinstance(value, dict):
+                    if verbose:
+                        buf.append(f"{prefix}- {display_key}:")
+                        self._get_module_text_lines(value, buf, indent + 2, verbose)
+                elif isinstance(value, (list, np.ndarray, tuple)):
+                    if verbose:
+                        buf.append(
+                            f"{prefix}- {display_key}: [data structure of size {len(value)}]"
+                        )
+                elif isinstance(value, float):
+                    buf.append(f"{prefix}- {display_key}: {value:.4f}")
+                else:
+                    buf.append(f"{prefix}- {display_key}: {value}")
+        else:
+            if verbose:
+                buf.append(f"{prefix}- {data}")
 
     def _generate_conclusion(self) -> str:
         """Generate a short 1-2 line conclusion based on the scores."""
@@ -184,9 +259,9 @@ class TrustReport:
                     if verbose:
                         print(f"{prefix}- {display_key}:")
                         self._print_module(value, indent + 2, verbose)
-                elif isinstance(value, (list, np.ndarray)):
+                elif isinstance(value, (list, np.ndarray, tuple)):
                     if verbose:
-                        print(f"{prefix}- {display_key}: [array of length {len(value)}]")
+                        print(f"{prefix}- {display_key}: [data structure of size {len(value)}]")
                 elif isinstance(value, float):
                     print(f"{prefix}- {display_key}: {value:.4f}")
                 else:
@@ -393,24 +468,50 @@ class TrustReport:
     # save()
     # ------------------------------------------------------------------
 
-    def save(self, directory: str = "trust_report") -> Path:
+    def save(self, path: str = "trust_report", **kwargs) -> Path:
         """
-        Save the full report to ``directory``.
+        Save the analysis report.
 
-        Outputs: ``report.json``, ``metadata.json``, ``trust_score.json``,
-        per-module PNG plots, and ``summary_plot.png``.
+        If ``path`` ends with '.json' or '.txt', saves a single file.
+        Otherwise, treats ``path`` as a directory and saves a full report
+        bundle (JSON, metadata, plots).
 
         Parameters
         ----------
-        directory : str
-          Target output directory path.
+        path : str
+          Target file path (e.g., "report.json") or directory path.
+        **kwargs : Any
+          Backward compatibility for ``directory`` argument.
 
         Returns
         -------
         Path
-          Resolved path to the saved report directory.
+          Resolved path to the saved file or directory.
         """
-        out_dir = Path(directory).resolve()
+        if "directory" in kwargs:
+            path = kwargs.pop("directory")
+
+        p = Path(path).resolve()
+
+        # 1. Single-file JSON export
+        if path.lower().endswith(".json"):
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(
+                json.dumps(self._to_serializable(self.results), indent=2),
+                encoding="utf-8",
+            )
+            logger.info("Report JSON saved to: %s", p)
+            return p
+
+        # 2. Single-file TXT export
+        if path.lower().endswith(".txt"):
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(self._generate_text_report(), encoding="utf-8")
+            logger.info("Report TXT saved to: %s", p)
+            return p
+
+        # 3. Directory bundle export (Original behavior)
+        out_dir = p
         out_dir.mkdir(parents=True, exist_ok=True)
 
         # Serialize metrics
@@ -457,7 +558,7 @@ class TrustReport:
         except Exception as exc:
             logger.warning("Plot generation skipped: %s", exc)
 
-        logger.info("Report saved to: %s", out_dir)
+        logger.info("Report bundle saved to: %s", out_dir)
         return out_dir
 
     # ------------------------------------------------------------------

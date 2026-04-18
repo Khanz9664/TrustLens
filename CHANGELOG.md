@@ -10,7 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Nothing yet — all current work is in v0.1.2.
+- `report.save()` now supports direct export to single `.json` and `.txt` files.
+- Human-readable text report generation without ANSI colors.
 
 ---
 

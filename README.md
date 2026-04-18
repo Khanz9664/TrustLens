@@ -82,6 +82,21 @@ print(report.trust_score)
 report.show()
 ```
 
+### Save Reports
+
+```python
+# Export to JSON (perfect for pipelines and logging)
+report.save("report.json")
+
+# Export to human-readable TXT
+report.save("report.txt")
+
+# Export full bundle (JSON + Plots) to a directory
+report.save("my_trust_report")
+```
+
+JSON is optimized for machine-to-machine logging (NumPy-free, clean keys), while TXT provides a shareable, non-ANSI version of the console summary.
+
 **Output:**
 
 ```
