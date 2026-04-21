@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Prevented crashes in `describe_array` for empty inputs
+- Corrected bin count computation in `reliability_curve()` to use exact binning logic
 
 ### Improved
 - Added progress messages in `analyze()` for better runtime visibility
