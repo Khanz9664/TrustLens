@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Improved
+- Enhanced `utils.py` with input validation and edge-case handling
+- Added comprehensive test suite for utility functions
+
+### Fixed
+- Prevented crashes in `describe_array` for empty inputs
+
+### Improved
 - Added progress messages in `analyze()` for better runtime visibility
 
 ### Added
