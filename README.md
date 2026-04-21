@@ -176,6 +176,17 @@ trustlens/
 
 ---
 
+## Contributors
+
+Thanks goes to these wonderful people:
+
+<!-- ALL-CONTRIBUTORS-LIST:START -->
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+
+This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification.
+
+---
+
 ## 🛠 Contributing
 
 TrustLens is a production-grade tool, and our community is already exploring and contributing new features. We welcome developers of all levels!
@@ -188,10 +199,6 @@ TrustLens is a production-grade tool, and our community is already exploring and
 - Issue #19: HTML Report generation.
 - Issue #35: Weights & Biases (W&B) integration.
 - Issue #51: `trustlens analyze` CLI support.
-
-### 🔴 Advanced
-- Issue #36: Grad-CAM for Vision Transformers (ViT).
-- Issue #44: TrustLens Web Dashboard (FastAPI + HTMX).
 
 **Comment on an issue and I will guide you!** I am committed to making this a welcoming home for first-time open-source contributors. 🚀
 
