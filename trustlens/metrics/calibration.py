@@ -26,7 +26,6 @@ from __future__ import annotations
 
 import numpy as np
 
-
 # ---------------------------------------------------------------------------
 # Brier Score
 # ---------------------------------------------------------------------------
@@ -216,21 +215,26 @@ def reliability_curve(
         bin_edges = np.linspace(0.0, 1.0, n_bins + 1)
     elif strategy == "quantile":
         bin_edges = np.quantile(y_prob, np.linspace(0.0, 1.0, n_bins + 1))
+        # Collapse duplicate edges that arise when many samples share the
+        # same value (like a majority-class predictor at 0.0 or 1.0).
         bin_edges = np.unique(bin_edges)
     else:
         raise ValueError(f"Unknown strategy '{strategy}'. Use 'uniform' or 'quantile'.")
 
-    bin_idx = np.digitize(y_prob, bin_edges[1:-1])
-    active = np.unique(bin_idx)
-    active = active[np.bincount(bin_idx, minlength=len(bin_edges) - 1)[active] > 0]
+    n_bins_actual = len(bin_edges) - 1
+    bin_idx = np.clip(np.digitize(y_prob, bin_edges[1:-1]), 0, n_bins_actual - 1)
 
-    counts = np.bincount(bin_idx, minlength=len(bin_edges) - 1)[active]
+    counts = np.bincount(bin_idx, minlength=n_bins_actual)
+    prob_sum = np.bincount(bin_idx, weights=y_prob, minlength=n_bins_actual)
+    true_sum = np.bincount(bin_idx, weights=y_true, minlength=n_bins_actual)
 
-    prob_sum = np.bincount(bin_idx, weights=y_prob, minlength=len(bin_edges) - 1)[active]
-    true_sum = np.bincount(bin_idx, weights=y_true, minlength=len(bin_edges) - 1)[active]
+    active = counts > 0
+    with np.errstate(divide="ignore", invalid="ignore"):
+        frac_pos = np.where(active, true_sum / counts, 0.0)
+        mean_pred = np.where(active, prob_sum / counts, 0.0)
 
     return (
-        true_sum / counts,
-        prob_sum / counts,
-        counts.astype(int),
+        frac_pos[active],
+        mean_pred[active],
+        counts[active].astype(int),
     )
