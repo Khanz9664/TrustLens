@@ -217,6 +217,29 @@ Expand the `Examples` section with a 10-line runnable code snippet using `make_c
 
 ---
 
+### Issue #6
+**Title:** Add `n_samples` per bin to `reliability_curve()` output
+**Label:** `good first issue`, `metrics`
+**Description:**
+The current `reliability_curve()` returns `(frac_pos, mean_pred, bin_counts)`.
+The `bin_counts` computation is approximate. Refactor it to use exact binning logic from `expected_calibration_error`.
+
+**Expected output:** Same tuple, but `bin_counts[i]` exactly equals samples in bin `i`.
+**Difficulty:** Beginner
+
+---
+
+### Issue #8
+**Title:** Add Python 3.13 to CI matrix
+**Label:** `good first issue`, `ci`
+**Description:**
+Add Python 3.13 to the GitHub Actions CI matrix in `.github/workflows/ci.yml`.
+Ensure all tests pass or document known issues.
+
+**Difficulty:** Beginner
+
+---
+
 ## Beginner Issues (0–15)
 
 ---
@@ -258,15 +281,8 @@ Add `tests/test_version.py` that asserts:
 
 ---
 
-### Issue #6
-**Title:** Add `n_samples` per bin to `reliability_curve()` output
-**Label:** `good first issue`, `metrics`
-**Description:**
-The current `reliability_curve()` returns `(frac_pos, mean_pred, bin_counts)`.
-The `bin_counts` computation is approximate. Refactor it to use exact binning logic from `expected_calibration_error`.
-
-**Expected output:** Same tuple, but `bin_counts[i]` exactly equals samples in bin `i`.
-**Difficulty:** Beginner
+### Issue #6 [PUBLISHED]
+*This issue has been moved to the active GitHub tracker.*
 
 ---
 
@@ -275,14 +291,8 @@ The `bin_counts` computation is approximate. Refactor it to use exact binning lo
 
 ---
 
-### Issue #8
-**Title:** Add Python 3.13 to CI matrix
-**Label:** `good first issue`, `ci`
-**Description:**
-Add Python 3.13 to the GitHub Actions CI matrix in `.github/workflows/ci.yml`.
-Ensure all tests pass or document known issues.
-
-**Difficulty:** Beginner
+### Issue #8 [PUBLISHED]
+*This issue has been moved to the active GitHub tracker.*
 
 ---
 
