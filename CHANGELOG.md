@@ -9,9 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Standardized GitHub contribution infrastructure:
+  - Pull Request template with integrated checklists.
+  - Structured YAML Issue templates for Bug Reports and Feature Requests.
+  - Dedicated `good-first-issue` template and `config.yml` for triage.
+- Overhauled `CONTRIBUTING.md` with a command-driven "First Contribution Guide" and difficulty labeling system.
+- Comprehensive test suite in `tests/test_utils.py` covering edge cases for all utility functions.
+
 ### Improved
-- Enhanced `utils.py` with input validation and edge-case handling
-- Added comprehensive test suite for utility functions
+- Enhanced `utils.py` with robust input validation and NumPy-aware numeric type checking.
 
 ### Fixed
 - Prevented crashes in `describe_array` for empty inputs

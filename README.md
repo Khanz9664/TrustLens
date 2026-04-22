@@ -19,7 +19,8 @@ Calibration · Failure Analysis · Bias Detection · Explainability — in one f
 <br/>
 
 ⭐ **Star the repo to support the project!**
-🛠 **[Open Issues](https://github.com/Khanz9664/TrustLens/issues) available for contributors**
+
+🛠 **Actively looking for contributors - beginner-friendly issues available**
 
 <br/>
 

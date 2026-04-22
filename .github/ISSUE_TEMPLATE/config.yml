@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 GitHub Discussions
+    url: https://github.com/Khanz9664/TrustLens/discussions
+    about: Ask questions, share ideas, and engage with the community.
+  - name: 📖 Documentation
+    url: https://github.com/Khanz9664/TrustLens/wiki
+    about: Read the official documentation and guides.

@@ -1,64 +1,81 @@
 # Contributing to TrustLens
 
-## 🚀 First Contribution (Start Here)
+## 🚀 First Contribution Guide
 
-We love welcoming new contributors! Whether you're a seasoned engineer or just starting out, there's a place for you here. We have many small "quick-win" tasks that take only 10–20 minutes to complete.
+Welcome! We're excited to have you here. This guide will help you get started with your first contribution in minutes.
 
-Look for issues labeled:
-- `beginner`
-- `good first issue`
-- `hacktoberfest`
+### 1. Find an Issue
+Browse our [open issues](https://github.com/Khanz9664/TrustLens/issues). Look for the `good first issue` 🟢 label for beginner-friendly tasks.
 
-### Quick Start in 5 Steps:
+### 2. Set Up Your Environment
+Run these commands to set up your local development environment:
 
-1. **Fork** the repository to your own GitHub account.
-2. **Clone** your fork locally: `git clone https://github.com/<YOUR_USERNAME>/trustlens.git`.
-3. **Create a branch** for your changes: `git checkout -b my-new-feature`.
-4. **Make your changes** (even small ones like fixing a typo are great!).
-5. **Open a Pull Request (PR)**
-Don’t worry if something feels unclear - just open a PR and we’ll help you refine it 👍
+```bash
+# Fork the repo on GitHub, then clone your fork:
+git clone https://github.com/YOUR_USERNAME/TrustLens.git
+cd TrustLens
 
----
+# Set up a virtual environment:
+python -m venv .venv
+source .venv/bin/activate  # Linux/macOS
+# .venv\Scripts\activate  # Windows
 
-## 🎯 Choose Your Contribution Level
+# Install in editable mode with dev dependencies:
+pip install -e ".[dev]"
 
-Pick a path that matches your interest and experience:
+# Install pre-commit hooks:
+pre-commit install
+```
 
-🟢 **Beginner**:
-- Fix typos or improve documentation.
-- Add logging to existing functions.
-- Improve error messages for better clarity.
+### 3. Create a Branch
+Always create a new branch for your work:
 
-🟡 **Intermediate**:
-- Enhance CLI arguments or outputs.
-- Integrate with new ML frameworks or logging tools.
-- Implement a standard metric from our roadmap.
+```bash
+git checkout -b feat/my-new-feature
+```
 
-🔵 **Advanced**:
-- Implement new XAI algorithms (e.g., specific Grad-CAM variants).
-- Add complex representation metrics.
-- Optimize performance for large-scale datasets.
+### 4. Make Changes & Verify
+After making your changes, verify everything works:
 
----
+```bash
+# Run the test suite:
+make test
 
-## 🤝 New Contributors Welcome
+# Run linting and formatting:
+pre-commit run --all-files
+```
 
-👉 Want to get started right now? Check out open issues labeled `good first issue`.
-Browse issues here: https://github.com/Khanz9664/TrustLens/issues
-
-We are committed to making TrustLens a friendly and supportive community:
-- **We actively support first-time contributors**: Don't worry if you're new to Git or Open Source.
-- **You won’t break anything**: All changes are reviewed, and our automated tests will catch any issues.
-- **Maintainers will guide you**: If you're stuck, just ask in your PR or an issue.
-- **Fast PR reviews**: We aim to review all contributions within 48 hours.
+### 5. Open a Pull Request
+Push your branch and open a PR on GitHub. Don't worry about being perfect—we're here to help!
 
 ---
 
-Thank you for your interest in TrustLens!
-We welcome contributions from researchers, engineers, and data scientists of all skill levels.
+## 🧩 How to Pick an Issue
 
-> **First time contributing to open source?**
-> Check out [How to Contribute to Open Source](https://opensource.guide/how-to-contribute/) — we're beginner-friendly!
+We use labels to help you find the right task for your experience level:
+
+- 🟢 **Beginner**: Small fixes (typos, docs, simple logging). Label: `good first issue`.
+- 🟡 **Intermediate**: New metrics, CLI improvements, integrations. Label: `intermediate`.
+- 🔵 **Advanced**: Core algorithm changes, performance optimization. Label: `advanced`.
+
+---
+
+## 🤝 Need Help?
+
+If you get stuck or have questions:
+- **Comment on the issue**: We'll respond as soon as we can.
+- **Join Discussions**: Ask general questions in our [GitHub Discussions](https://github.com/Khanz9664/TrustLens/discussions).
+- **Draft PR**: Open a Draft PR if you want early feedback on your code.
+
+---
+
+## ✅ Quick PR Checklist
+
+Before submitting your PR, ensure:
+- [ ] Tests pass (`make test`)
+- [ ] Pre-commit hooks pass (`pre-commit run --all-files`)
+- [ ] `CHANGELOG.md` is updated
+- [ ] Linked issue is mentioned (e.g., `Fixes #123`)
 
 ---
 
@@ -78,7 +95,7 @@ We welcome contributions from researchers, engineers, and data scientists of all
 
 ## 1. Development Setup
 
-This is only needed if you're making code changes. For small doc fixes, you can edit directly on GitHub.
+This is only needed if you're making code changes. For small documentation fixes, you can edit directly on GitHub.
 
 ### Prerequisites
 
@@ -330,14 +347,6 @@ pytest --cov=trustlens     # run with coverage
 ```
 
 ---
-
-## ⚡ Quick PR Checklist
-
-Before submitting your PR, please ensure:
-- **Code runs**: The logic works as expected.
-- **Tests pass**: All existing and new tests pass locally.
-- **Clear commit message**: Use meaningful titles.
-- **Linked issue**: Mention the issue your PR addresses.
 
 ## 8. Pull Request Guidelines
 
