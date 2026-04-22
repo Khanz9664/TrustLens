@@ -199,6 +199,13 @@ trustlens/
         <sub><b>WeiGuang-2099</b></sub>
       </a>
     </td>
+    <td align="center">
+      <a href="https://github.com/CrepuscularIRIS">
+        <img src="https://github.com/CrepuscularIRIS.png" width="100px;" style="border-radius:50%;"/>
+        <br />
+        <sub><b>CrepuscularIRIS</b></sub>
+      </a>
+    </td>
   </tr>
 </table>
 
