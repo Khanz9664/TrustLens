@@ -25,7 +25,6 @@ References
 from __future__ import annotations
 
 import numpy as np
-from sklearn.calibration import calibration_curve as _sk_calibration_curve
 
 # ---------------------------------------------------------------------------
 # Brier Score
@@ -209,24 +208,33 @@ def reliability_curve(
     --------
     >>> frac_pos, mean_pred, counts = reliability_curve(y_true, y_prob)
     """
-    frac_pos, mean_pred = _sk_calibration_curve(y_true, y_prob, n_bins=n_bins, strategy=strategy)
+    y_true = np.asarray(y_true, dtype=float)
+    y_prob = np.asarray(y_prob, dtype=float)
 
-    # Reconstruct bin counts for bar chart rendering
-    bin_edges = np.linspace(0.0, 1.0, n_bins + 1)
-    bin_counts: np.ndarray = np.zeros(len(frac_pos), dtype=int)
-    for i, mp in enumerate(mean_pred):
-        # Find which bin this mean_pred belongs to
-        idx = np.searchsorted(bin_edges[1:], mp, side="right")
-        b_idx = int(min(int(idx), len(bin_counts) - 1))
-        bin_counts[i] = int(
-            np.sum(
-                (np.asarray(y_prob) >= bin_edges[b_idx])
-                & (
-                    np.asarray(y_prob) < bin_edges[b_idx + 1]
-                    if b_idx + 1 < len(bin_edges)
-                    else True
-                )
-            )
-        )
+    if strategy == "uniform":
+        bin_edges = np.linspace(0.0, 1.0, n_bins + 1)
+    elif strategy == "quantile":
+        bin_edges = np.quantile(y_prob, np.linspace(0.0, 1.0, n_bins + 1))
+        # Collapse duplicate edges that arise when many samples share the
+        # same value (like a majority-class predictor at 0.0 or 1.0).
+        bin_edges = np.unique(bin_edges)
+    else:
+        raise ValueError(f"Unknown strategy '{strategy}'. Use 'uniform' or 'quantile'.")
 
-    return frac_pos, mean_pred, bin_counts
+    n_bins_actual = len(bin_edges) - 1
+    bin_idx = np.clip(np.digitize(y_prob, bin_edges[1:-1]), 0, n_bins_actual - 1)
+
+    counts = np.bincount(bin_idx, minlength=n_bins_actual)
+    prob_sum = np.bincount(bin_idx, weights=y_prob, minlength=n_bins_actual)
+    true_sum = np.bincount(bin_idx, weights=y_true, minlength=n_bins_actual)
+
+    active = counts > 0
+    with np.errstate(divide="ignore", invalid="ignore"):
+        frac_pos = np.where(active, true_sum / counts, 0.0)
+        mean_pred = np.where(active, prob_sum / counts, 0.0)
+
+    return (
+        frac_pos[active],
+        mean_pred[active],
+        counts[active].astype(int),
+    )

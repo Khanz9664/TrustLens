@@ -192,6 +192,13 @@ trustlens/
         <sub><b>jayssSmm</b></sub>
       </a>
     </td>
+    <td align="center">
+      <a href="https://github.com/WeiGuang-2099">
+        <img src="https://github.com/WeiGuang-2099.png" width="100px;" style="border-radius:50%;"/>
+        <br />
+        <sub><b>WeiGuang-2099</b></sub>
+      </a>
+    </td>
   </tr>
 </table>
 
