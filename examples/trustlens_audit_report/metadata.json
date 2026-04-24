@@ -1,6 +1,6 @@
 {
   "trustlens_version": "0.1.2",
-  "timestamp": "2026-04-16T13:23:04.795070+00:00",
+  "timestamp": "2026-04-24T06:30:28.466197+00:00",
   "n_samples": 600,
   "n_classes": 2,
   "model_class": "RandomForestClassifier",

@@ -164,24 +164,24 @@
     "subgroup_performance": {
       "age_group": {
         "18-30": {
-          "n_samples": 175,
-          "accuracy": 0.9257,
-          "f1": 0.8772
+          "n_samples": 181,
+          "accuracy": 0.9171,
+          "f1": 0.8686
         },
         "31-50": {
-          "n_samples": 218,
-          "accuracy": 0.9495,
-          "f1": 0.9095
+          "n_samples": 202,
+          "accuracy": 0.9406,
+          "f1": 0.9065
         },
         "51+": {
-          "n_samples": 207,
-          "accuracy": 0.9227,
-          "f1": 0.8864
+          "n_samples": 217,
+          "accuracy": 0.9401,
+          "f1": 0.8974
         },
         "__summary__": {
-          "performance_gap": 0.0268,
+          "performance_gap": 0.0235,
           "best_group": "31-50",
-          "worst_group": "51+"
+          "worst_group": "18-30"
         }
       }
     }

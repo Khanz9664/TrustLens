@@ -39,6 +39,23 @@ from trustlens.report import TrustReport
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
+# Pipeline Module Registry
+#
+# STABLE (allowed in the pipeline):
+#   calibration, failure, bias, representation
+#
+# EXPERIMENTAL (do NOT import or wire into this file):
+#   explainability (gradcam, faithfulness) — requires PyTorch
+#   metrics.faithfulness — wrapper over explainability
+#
+# Before adding a new module to the pipeline:
+#   1. Confirm it meets promotion criteria in docs/EXPERIMENTAL.md
+#   2. Ensure it has no heavy required dependencies (use try/except)
+#   3. Add it to _ALL_MODULES below and write a dispatch block
+#   4. Get maintainer approval via PR review
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 

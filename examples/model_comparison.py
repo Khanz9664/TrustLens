@@ -1,13 +1,13 @@
 """
-examples/cnn_vs_vit_trustlens.py.
-==================================
+examples/model_comparison.py.
+==============================
 TrustLens Showdown: Gradient Boosting vs Logistic Regression
 
 This script demonstrates the killer insight behind TrustLens:
 Sometimes the more accurate model is the less trustworthy one.
 
 Run with:
-  python examples/cnn_vs_vit_trustlens.py
+  python examples/model_comparison.py
 
 Expected runtime: ~15 seconds
 """

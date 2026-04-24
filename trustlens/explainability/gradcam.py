@@ -1,3 +1,7 @@
+# NOTE:
+# This module is under active development and is not part of the public API.
+# Do not import into production pipelines until stabilized.
+
 """
 trustlens.explainability.gradcam.
 =================================

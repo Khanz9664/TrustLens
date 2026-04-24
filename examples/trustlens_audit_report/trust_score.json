@@ -5,7 +5,7 @@
   "sub_scores": {
     "calibration": 95.3,
     "failure": 35.3,
-    "bias": 89.8
+    "bias": 90.0
   },
   "weights_used": {
     "calibration": 0.389,
@@ -15,6 +15,6 @@
   "breakdown": {
     "calibration": 37.06,
     "failure": 11.75,
-    "bias": 24.95
+    "bias": 25.0
   }
 }

@@ -79,6 +79,14 @@ Before submitting your PR, ensure:
 
 ---
 
+## ⚗️ Experimental Features
+
+Some modules (e.g., `explainability/`) are under active development and are **not part of the stable API**. Before working on or importing these modules, please read the guidelines:
+
+→ [**docs/EXPERIMENTAL.md**](docs/EXPERIMENTAL.md) — rules, promotion criteria, and what "experimental" means.
+
+---
+
 ## Table of Contents
 
 1. [Development Setup](#development-setup)
@@ -153,7 +161,7 @@ trustlens/
   failure.py      ← misclassification, confidence gap
   bias.py        ← imbalance, subgroup performance
   representation.py  ← silhouette, CKA
- explainability/
+ explainability/          # [Experimental] requires PyTorch
   gradcam.py      ← Grad-CAM (PyTorch)
   faithfulness.py   ← pixel deletion/insertion tests
  visualization/

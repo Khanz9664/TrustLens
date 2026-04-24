@@ -6,7 +6,7 @@
 ### Your model has 92% accuracy. **That's not enough.**
 
 **The open-source Python library that answers the questions accuracy never does.**
-Calibration · Failure Analysis · Bias Detection · Explainability — in one function call.
+Calibration · Failure Analysis · Bias Detection · Representation Analysis — in one function call.
 
 <br/>
 
@@ -165,12 +165,15 @@ TrustLens is built as a modular, extensible framework:
 ```
 trustlens/
 ├── metrics/           # Brier, ECE, Confidence Gap, Subgroup Bias
-├── explainability/    # Faithfulness, Grad-CAM, Eigen-CAM
 ├── visualization/     # Dashboarding, Reliability Curves, Embedding Plots
+├── explainability/    # [Experimental] Grad-CAM, Faithfulness tests (requires PyTorch)
+├── plugins/           # Extensible plugin system for custom metrics
 ├── api.py             # zero-friction entry points
 ├── report.py          # Serialisation and human-readable exports
 └── trust_score.py     # Weighted trust consensus
 ```
+
+> Modules marked `[Experimental]` are functional but not part of the core pipeline. See [`docs/EXPERIMENTAL.md`](docs/EXPERIMENTAL.md) for details.
 
 ---
 

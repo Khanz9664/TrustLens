@@ -240,6 +240,20 @@ Ensure all tests pass or document known issues.
 
 ---
 
+### Issue #11
+**Title:** Add `__all__` to remaining modules
+**Label:** `good first issue`, `code quality`
+**Description:**
+Add `__all__` lists to:
+- `trustlens/metrics/calibration.py`
+- `trustlens/metrics/failure.py`
+- `trustlens/metrics/bias.py`
+- `trustlens/metrics/representation.py`
+
+**Difficulty:** Beginner
+
+---
+
 ## Beginner Issues (0–15)
 
 ---
@@ -312,17 +326,8 @@ Generate with: `pip-compile setup.cfg --extra dev -o requirements-dev.txt`
 
 ---
 
-### Issue #11
-**Title:** Add `__all__` to remaining modules
-**Label:** `good first issue`, `code quality`
-**Description:**
-Add `__all__` lists to:
-- `trustlens/metrics/calibration.py`
-- `trustlens/metrics/failure.py`
-- `trustlens/metrics/bias.py`
-- `trustlens/metrics/representation.py`
-
-**Difficulty:** Beginner
+### Issue #11 [PUBLISHED]
+*This issue has been moved to the active GitHub tracker.*
 
 ---
 

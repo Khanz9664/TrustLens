@@ -7,8 +7,6 @@ trustworthiness of machine learning models beyond standard metrics.
 Core capabilities include:
 - Calibration analysis (Brier Score, ECE, reliability diagrams)
 - Failure analysis (misclassifications, confidence gaps)
-- Explainability (Grad-CAM, Eigen-CAM)
-- Faithfulness testing (pixel deletion/insertion)
 - Bias detection (subgroup performance, class imbalance)
 - Representation analysis (embedding geometry, CKA)
 - Trust Score (0–100 composite reliability metric)
