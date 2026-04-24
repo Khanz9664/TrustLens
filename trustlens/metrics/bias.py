@@ -19,7 +19,7 @@ from __future__ import annotations
 from typing import Optional
 
 import numpy as np
-from sklearn.metrics import accuracy_score, f1_score, recall_score, confusion_matrix
+from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, recall_score
 
 
 def class_imbalance_report(y_true: np.ndarray) -> dict:
