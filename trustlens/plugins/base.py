@@ -28,7 +28,7 @@ class BasePlugin(ABC):
     description : str
       Human-readable description displayed in the plugin registry listing.
     version : str
-      Plugin version string. Default ``"0.1.2"``.
+      Plugin version string. Default ``"0.2.0"``.
 
     Examples
     --------
@@ -42,7 +42,7 @@ class BasePlugin(ABC):
 
     name: str = ""
     description: str = ""
-    version: str = "0.1.2"
+    version: str = "0.2.0"
 
     # ------------------------------------------------------------------
     # Abstract interface

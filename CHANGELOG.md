@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.2.0] — 2026-04-24
+
 ### Added
 - Extended CI test matrix to include Python 3.13 (closes #29). Thanks @CrepuscularIRIS
 - Standardized GitHub contribution infrastructure:
@@ -19,13 +23,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive test suite in `tests/test_utils.py` covering edge cases for all utility functions.
 - `report.save()` now supports direct export to single `.json` and `.txt` files.
 - Human-readable text report generation without ANSI colors.
+- `docs/EXPERIMENTAL.md` — contributor-facing guide for experimental module governance.
 
 ### Improved
 - Enhanced `utils.py` with robust input validation and NumPy-aware numeric type checking.
 - Added progress messages in `analyze()` for better runtime visibility. Thanks @jayssSmm
+- Codebase stabilization: isolated experimental modules (`explainability/`, `metrics/faithfulness.py`) from the production pipeline with clear `# NOTE:` headers and documentation.
+- Cleaned public API surface — `__init__.py` docstring now reflects only production-ready capabilities.
+- Updated README architecture tree to distinguish stable vs experimental modules.
+- Replaced misleading `pyproject.toml` keyword `"explainability"` with `"model trust"`.
+- Renamed `examples/cnn_vs_vit_trustlens.py` → `examples/model_comparison.py` to match actual content (sklearn models, not deep learning).
+- Added actionable Pipeline Module Registry guard in `api.py` to prevent accidental re-exposure of experimental code.
 
 ### Fixed
-- Prevented crashes in `describe_array` for empty inputs
+- Prevented crashes in `describe_array` for empty inputs.
 - Corrected bin count computation in `reliability_curve()` to use exact binning logic. Thanks @WeiGuang-2099
 
 ---
@@ -77,7 +88,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI workflow (linting, testing, and formatting)
 - Complete documentation: README (with logo), CONTRIBUTING, ROADMAP, this CHANGELOG
 
-[Unreleased]: https://github.com/Khanz9664/TrustLens/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/Khanz9664/TrustLens/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Khanz9664/TrustLens/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/Khanz9664/TrustLens/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Khanz9664/TrustLens/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Khanz9664/TrustLens/releases/tag/v0.1.0

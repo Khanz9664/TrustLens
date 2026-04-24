@@ -18,7 +18,7 @@ from trustlens.plugins.registry import PluginRegistry
 class DummyPlugin(BasePlugin):
     name = "dummy"
     description = "A test plugin that does nothing."
-    version = "0.1.2"
+    version = "0.2.0"
 
     def run(self, model, X, y_true, y_pred, y_prob, **kwargs):
         return {"dummy_metric": 42.0}
