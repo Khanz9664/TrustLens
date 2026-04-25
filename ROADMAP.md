@@ -5,11 +5,38 @@
 
 ---
 
+## Current State (v0.2.0)
+
+- Stable ML evaluation pipeline (calibration, failure, bias, representation)
+- Experimental modules isolated (explainability, faithfulness)
+- Strong contributor infrastructure in place
+
+## Status Legend
+
+- [x] Completed (production-ready, part of analyze pipeline)
+- [~] In progress / Experimental (not part of core `analyze()` pipeline)
+- [ ] Planned
+
+---
+
+## Active Work (Now)
+
+These are high-priority items currently being developed or targeted for the next release.
+
+- [~] **Equalized Odds** (Issue #25) — *[OPEN]*
+- [~] **UMAP/t-SNE Visualization** (Issue #22) — *[OPEN]*
+- [~] **HTML Report Export** (Issue #19) — *[OPEN]*
+
+---
+
 ## Phase 1: MVP — *The Foundation*
 
 **Target: v0.1.2**
 
 The minimal set of features required to be genuinely useful to practitioners.
+
+Note: As of v0.2.0, TrustLens focuses on classical ML evaluation.
+Deep learning explainability features are under experimental development and not part of the core pipeline.
 
 ### Deliverables
 - [x] Core `analyze()` API with module dispatch
@@ -18,8 +45,8 @@ The minimal set of features required to be genuinely useful to practitioners.
 - [x] **Failure Analysis**: misclassification summary, confidence gap histogram
 - [x] **Bias Detection**: class imbalance report, subgroup accuracy/F1
 - [x] **Representation Analysis**: silhouette separability, CKA metric
-- [x] **Explainability**: Grad-CAM with PyTorch support
-- [x] **Faithfulness**: pixel deletion + insertion tests (AUPC)
+- [~] **Explainability**: Grad-CAM with PyTorch support — *[ASSIGNED: Maintainer]*
+- [~] **Faithfulness**: pixel deletion + insertion tests (AUPC) — *[OPEN]*
 - [x] Plugin system (BasePlugin + PluginRegistry)
 - [x] Full test suite (>80% coverage)
 - [x] Professional README (with logo), CONTRIBUTING, quickstart examples
@@ -29,40 +56,31 @@ The minimal set of features required to be genuinely useful to practitioners.
 
 ## Phase 2: Core Expansion — *Going Deeper*
 
-**Target: v0.2.0**
+**Target: v0.2.x (ongoing)**
 
-Expanding each module with the next most-requested features.
+> **Focus:** High-impact ML features that integrate directly into the `analyze()` pipeline.
 
-### Calibration
-- [ ] Maximum Calibration Error (MCE)
-- [ ] Temperature Scaling calibrator (with `calibrate()` function)
-- [ ] Overconfidence/underconfidence statistics
-- [ ] Multi-class ECE (label-wise decomposition)
+### High Priority
+- [~] **Equalized Odds** (Issue #25) — [OPEN]
+- [~] **UMAP/t-SNE Visualization** (Issue #22) — [OPEN]
+- [~] **HTML Report Export** (Issue #19) — [OPEN]
+- [ ] **Maximum Calibration Error (MCE)** (Issue #1)
+- [ ] **Temperature Scaling** (Issue #18)
+- [ ] **Jupyter Rich Display** (`_repr_html_`) (Issue #24)
 
-### Failure Analysis
-- [ ] Per-class PR curves and optimal threshold analysis
-- [ ] `TrustReport.critical_failures()` — top-N highest-confidence mistakes
-- [ ] Prediction flip analysis (how much perturbation changes prediction)
-
-### Bias Detection
-- [ ] Equalized odds and demographic parity metrics
-- [ ] Text-based sensitive feature parsing
-- [ ] Subgroup ECE (calibration per group)
-
-### Representation Analysis
-- [ ] UMAP/t-SNE visualization of embeddings per class
-- [ ] Intrinsic dimensionality estimation
-- [ ] Linear probing accuracy per embedding layer
-
-### Explainability
-- [ ] Eigen-CAM (gradient-free, faster inference)
-- [ ] Integrated Gradients (IG) for tabular models
-- [ ] SHAP wrapper integration (optional dependency)
-
-### UX
-- [x] Progress bars via `tqdm`
-- [/] HTML report export (`report.save()` includes assets; standalone `to_html` pending)
-- [x] Jupyter notebook display (rich `_repr_html_`)
+### Nice to Have
+- [ ] **Multi-class ECE** (label-wise decomposition)
+- [ ] **Subgroup ECE** (calibration per demographic group)
+- [ ] **Critical Failures** table for `TrustReport`
+- [ ] **Per-class PR curves** and optimal threshold analysis
+- [ ] **Prediction Flip Analysis** (robustness check)
+- [ ] **Eigen-CAM** (gradient-free explainability)
+- [ ] **Integrated Gradients (IG)** for tabular models
+- [ ] **SHAP Wrapper** (optional dependency)
+- [ ] **Intrinsic Dimensionality** estimation for embeddings
+- [ ] **Linear Probing** accuracy per layer
+- [ ] **Progress Bars** via `tqdm` (Issue #28)
+- [ ] **Text-based Sensitive Feature Parsing**
 
 ---
 

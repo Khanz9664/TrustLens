@@ -49,7 +49,7 @@ TrustLens makes those failures visible — before they reach production.
 
 ---
 
-### 🎯 Who This Is For
+### Who This Is For
 
 - **ML Engineers** building mission-critical production systems.
 - **Data Scientists** who need to justify model decisions to stakeholders.
@@ -73,7 +73,7 @@ Output includes Trust Score, calibration curves, bias metrics, and failure analy
 
 ---
 
-## 🚀 Quickstart
+## Quickstart
 
 ### 1. Install
 ```bash
@@ -158,7 +158,7 @@ Connect to MLflow or W&B to track Trust Score decay across training runs and aut
 
 ---
 
-## 🏗 Architecture
+## Architecture
 
 TrustLens is built as a modular, extensible framework:
 
@@ -177,7 +177,7 @@ trustlens/
 
 ---
 
-## 🌟 Contributors
+## Contributors
 
 <table>
   <tr>
@@ -209,14 +209,23 @@ trustlens/
         <sub><b>CrepuscularIRIS</b></sub>
       </a>
     </td>
+    <td align="center">
+      <a href="https://github.com/komoike-oss28-ui">
+        <img src="https://github.com/komoike-oss28-ui.png" width="100px;" style="border-radius:50%;"/>
+        <br />
+        <sub><b>komoike-oss28-ui</b></sub>
+      </a>
+    </td>
   </tr>
 </table>
 
 Want to see your name here? Check out `good first issue` 👇
 
+https://github.com/Khanz9664/TrustLens/issues
+
 ---
 
-## 🛠 Contributing
+## Contributing
 
 TrustLens is a production-grade tool, and our community is already exploring and contributing new features. We welcome developers of all levels!
 
@@ -235,7 +244,7 @@ TrustLens is a production-grade tool, and our community is already exploring and
 
 ---
 
-## 🛣 Roadmap Teaser
+## Roadmap Teaser
 We are actively building features that make TrustLens the standard for model reliability:
 -  **CLI Support**: `trustlens analyze --dataset iris`
 -  **Integration**: First-class support for **MLflow** and **W&B**.

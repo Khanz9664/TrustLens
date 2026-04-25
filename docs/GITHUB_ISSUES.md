@@ -254,6 +254,17 @@ Add `__all__` lists to:
 
 ---
 
+### Issue #14
+**Title:** Add `SECURITY.md` file
+**Label:** `good first issue`, `community`
+**Description:**
+Create `SECURITY.md` documenting how to report security vulnerabilities responsibly.
+Follow GitHub's recommended security policy template.
+
+**Difficulty:** Beginner
+
+---
+
 ## Beginner Issues (0–15)
 
 ---
@@ -349,14 +360,8 @@ Create a runnable example that:
 
 ---
 
-### Issue #14
-**Title:** Add `SECURITY.md` file
-**Label:** `good first issue`, `community`
-**Description:**
-Create `SECURITY.md` documenting how to report security vulnerabilities responsibly.
-Follow GitHub's recommended security policy template.
-
-**Difficulty:** Beginner
+### Issue #14 [PUBLISHED]
+*This issue has been moved to the active GitHub tracker.*
 
 ---
 
