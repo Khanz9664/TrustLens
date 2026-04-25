@@ -46,7 +46,7 @@ The community currently optimizes for accuracy. A TrustLens leaderboard creates 
 
 ---
 
-## 3. 🤗 Hugging Face Integration
+## 3. Hugging Face Integration
 
 **Concept:** TrustLens metrics as native HF `evaluate` modules.
 

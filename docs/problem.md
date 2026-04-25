@@ -1,0 +1,25 @@
+# The Problem Nobody Ships Around
+
+You trained a model. It hits **92% accuracy** on your validation set. You ship it.
+
+Three months later:
+
+* A minority-class user gets consistently wrong predictions.
+* The model is **90% confident on its worst mistakes**.
+* A regulator asks *"why did it make that decision?"* — and you have no answer.
+
+Sound familiar? You're not alone.
+
+**Accuracy tells you how often your model is right.**
+
+**It tells you nothing about *when* it fails, *why* it fails, or *who* it fails.**
+
+TrustLens makes those failures visible — before they reach production. Beyond standard metrics, machine learning practitioners need to understand the "certainty of failure" and the distribution of errors across subgroups.
+
+### Why standard metrics fall short
+Most ML pipelines rely on Accuracy, F1, or RMSE. While useful, these metrics are aggregate scores that hide systematic flaws:
+- **Miscalibration**: A model saying "I'm 99% sure" when it's only right 60% of the time.
+- **Silent Bias**: High overall accuracy that masks significant performance drops for minority classes.
+- **Representation Fragility**: Latent spaces where classes are so closely packed that slight noise causes classification flips.
+
+TrustLens was built to surface these issues through a unified, modular analysis pipeline. Learn how these issues are measured in [Features & Modules](features.md).

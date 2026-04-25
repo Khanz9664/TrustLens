@@ -1,11 +1,11 @@
 # Contributing to TrustLens
 
-## 🚀 First Contribution Guide
+## First Contribution Guide
 
 Welcome! We're excited to have you here. This guide will help you get started with your first contribution in minutes.
 
 ### 1. Find an Issue
-Browse our [open issues](https://github.com/Khanz9664/TrustLens/issues). Look for the `good first issue` 🟢 label for beginner-friendly tasks.
+Browse our [open issues](https://github.com/Khanz9664/TrustLens/issues). Look for the `good first issue` label for beginner-friendly tasks.
 
 ### 2. Set Up Your Environment
 Run these commands to set up your local development environment:
@@ -50,7 +50,7 @@ Push your branch and open a PR on GitHub. Don't worry about being perfect—we'r
 
 ---
 
-## 🧩 How to Pick an Issue
+## How to Pick an Issue
 
 We use labels to help you find the right task for your experience level:
 
@@ -60,7 +60,7 @@ We use labels to help you find the right task for your experience level:
 
 ---
 
-## 🤝 Need Help?
+## Need Help?
 
 If you get stuck or have questions:
 - **Comment on the issue**: We'll respond as soon as we can.
@@ -69,7 +69,7 @@ If you get stuck or have questions:
 
 ---
 
-## ✅ Quick PR Checklist
+## Quick PR Checklist
 
 Before submitting your PR, ensure:
 - [ ] Tests pass (`make test`)
@@ -79,11 +79,18 @@ Before submitting your PR, ensure:
 
 ---
 
-## ⚗️ Experimental Features
+## Experimental Features
 
 Some modules (e.g., `explainability/`) are under active development and are **not part of the stable API**. Before working on or importing these modules, please read the guidelines:
 
 → [**docs/EXPERIMENTAL.md**](docs/EXPERIMENTAL.md) — rules, promotion criteria, and what "experimental" means.
+
+---
+
+## Code of Conduct
+
+As a contributor, you are expected to respect and follow our code of conduct to ensure a welcoming environment for everyone.
+→ [**CODE_OF_CONDUCT.md**](CODE_OF_CONDUCT.md)
 
 ---
 
