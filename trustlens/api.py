@@ -19,6 +19,7 @@ import numpy as np
 
 from trustlens.metrics.bias import (
     class_imbalance_report,
+    equalized_odds,
     subgroup_performance,
 )
 from trustlens.metrics.calibration import (
@@ -238,6 +239,31 @@ def analyze(
             results["bias"]["subgroup_performance"] = subgroup_performance(
                 y_true, y_pred, sensitive_features
             )
+            # Equalized odds requires a binary target (0, 1) and features with >1 subgroup
+            is_binary = set(np.unique(y_true)).issubset({0, 1})
+            meaningful_features = {
+                k: v for k, v in sensitive_features.items()
+                if len(np.unique(v)) > 1
+            }
+            
+            if is_binary and meaningful_features:
+                try:
+                    results["bias"]["equalized_odds"] = equalized_odds(
+                        y_true, y_pred, meaningful_features
+                    )
+                except Exception as e:
+                    logger.warning("Skipped equalized_odds computation: %s", e)
+                    results["bias"]["equalized_odds"] = {
+                        "status": "skipped",
+                        "reason": "computation_error",
+                        "details": str(e)[:200],
+                    }
+            else:
+                results["bias"]["equalized_odds"] = {
+                    "status": "skipped",
+                    "reason": "invalid_input",
+                    "details": "requires binary target and multi-group sensitive features",
+                }
 
     # ------------------------------------------------------------------
     # 6. Representation analysis module

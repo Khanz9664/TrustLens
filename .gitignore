@@ -56,6 +56,12 @@ trust_report/
 !docs/assets/*.png
 !assets/*.png
 
+# Local demo outputs
+demo.py
+demo_output_*/
+demo_output_*
+demo_plots_*
+
 # OS
 .DS_Store
 Thumbs.db
