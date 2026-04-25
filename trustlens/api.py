@@ -242,10 +242,9 @@ def analyze(
             # Equalized odds requires a binary target (0, 1) and features with >1 subgroup
             is_binary = set(np.unique(y_true)).issubset({0, 1})
             meaningful_features = {
-                k: v for k, v in sensitive_features.items()
-                if len(np.unique(v)) > 1
+                k: v for k, v in sensitive_features.items() if len(np.unique(v)) > 1
             }
-            
+
             if is_binary and meaningful_features:
                 try:
                     results["bias"]["equalized_odds"] = equalized_odds(
