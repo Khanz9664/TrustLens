@@ -126,8 +126,8 @@ class TestCalibrationScore:
 
     def test_missing_keys_uses_defaults(self):
         score = _calibration_score({})
-        # Defaults: BS=0.5, ECE=0.5 → composite=0.5 → score=50
-        assert score == pytest.approx(50.0, abs=1e-6)
+        # Defaults: BS=0.5, ECE=0.5 → composite=1.25 → clip(1.0) → score=0.0
+        assert score == pytest.approx(0.0, abs=1e-6)
 
 
 class TestFailureScore:

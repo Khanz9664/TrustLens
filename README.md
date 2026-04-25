@@ -5,8 +5,10 @@
 
 ### Your model has 92% accuracy. **That's not enough.**
 
-**The open-source Python library that answers the questions accuracy never does.**
-Calibration · Failure Analysis · Bias Detection · Representation Analysis — in one function call.
+**The open-source Python library that transforms model metrics into actionable deployment decisions.**
+TrustLens bridges the gap between model evaluation and deployment decision-making by evaluating reliability, robustness, and fairness in one function call.
+
+
 
 <br/>
 
@@ -28,6 +30,20 @@ Calibration · Failure Analysis · Bias Detection · Representation Analysis —
 [**Get Started**](#quickstart) · [**Docs**](docs/index.md) · [**Live Demo**](examples/trustlens_demo.ipynb) · [**PyPI**](https://pypi.org/project/trustlens) · [**Discussions**](https://github.com/Khanz9664/TrustLens/discussions)
 
 </div>
+
+---
+
+## What TrustLens Does
+TrustLens is a **decision-support system** designed to answer the hardest question in ML: *"Should I deploy this model?"*
+
+Unlike standard metric libraries, TrustLens provides a cohesive diagnostic layer that evaluates:
+- **Reliability (Calibration)**: Are the model's probabilities trust-worthy?
+- **Robustness (Failure)**: Where and why does the model fail?
+- **Fairness (Bias)**: Are errors disproportionately affecting certain groups?
+
+The results are synthesized into a **Trust Score** and an actionable **deployment verdict**, enabling practitioners to move from simple metric evaluation to informed deployment decisions.
+
+
 
 ---
 
@@ -55,21 +71,46 @@ pip install trustlens
 ```python
 from trustlens import analyze
 
-report = analyze(
-    model,          # sklearn, XGBoost, LightGBM
-    X_val,          # features
-    y_val,          # ground truth
-    y_prob=proba,   # predicted probabilities
-)
+report = analyze(model, X_test, y_test, y_prob)
 report.show()
-report.summary_plot() # Show the dashboard
 ```
 
-### 3. Save & Export
+**Real Output Snippet:**
+```text
+TRUST SCORE: 88/100 [B]
+Assessment : High Trust - ready for controlled deployment
+
+Score Explanation:
+  - Dominant Issue  : Calibration (-12.0)
+  - Secondary Issue : Fairness (-0.0)
+```
+
+### 3. Compare Models
+```python
+from trustlens import compare
+
+# Compare multiple candidates and get a recommendation
+compare([report_rf, report_logistic])
+```
+
+### 4. Save & Export
+
 ```python
 report.save("report.json") # For CI/CD
 report.save("report.txt")  # For humans
 ```
+
+---
+
+## Understanding the Output
+TrustLens provides a multi-layered diagnostic report:
+- **Trust Score**: A weighted combination (configurable, default ~40/40/20) of Calibration, Failure, and Bias. Includes **automatic penalties** for critical risks.
+- **Failure Score**: Reflects **confidence-weighted errors**, not raw error rate. It identifies if errors are concentrated in high-certainty zones.
+- **Calibration**: Measures probability reliability via Expected Calibration Error (ECE).
+- **Fairness Margin**: Quantifies distance from the acceptable disparity threshold (0.10).
+- **Pattern Detection**: Alerts you to behaviors like **Calibration Drift** (unreliable probabilities) or **Confidently Wrong** (high-certainty mistakes).
+
+
 
 ---
 

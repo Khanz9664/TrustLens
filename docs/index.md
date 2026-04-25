@@ -1,6 +1,7 @@
 # TrustLens Documentation
 
-Welcome to the TrustLens documentation. This guide serves as the central hub for learning how to audit your machine learning models for reliability, calibration, bias, and more.
+Welcome to the TrustLens documentation. This guide serves as the central hub for our **decision-support system**, designed to audit machine learning models for reliability, calibration, bias, and deployment safety.
+
 
 ## Start Here
 
@@ -18,8 +19,9 @@ If you are new to TrustLens, we recommend following this path to get up to speed
 ## Deep Dive
 
 * [Features & Modules](features.md) — Deep dive into Calibration, Failure, Bias, and Representation.
-* [Real-World Use Cases](use_cases.md) — Medical AI, Fraud Detection, and Hiring.
-* [Architecture](architecture.md) — Modular design and internal logic.
+* [Real-World Use Cases](use_cases.md) — From medical AI tohead-to-head model comparison.
+* [Architecture](architecture.md) — Modular design, interpretation layers, and scoring logic.
+
 
 ## Development
 

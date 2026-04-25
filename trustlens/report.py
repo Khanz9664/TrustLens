@@ -65,6 +65,55 @@ class TrustReport:
         from trustlens.trust_score import compute_trust_score
 
         self.trust_score = compute_trust_score(results)
+        self._patterns: list[str] = []
+        self._compute_patterns()
+
+    @property
+    def patterns(self) -> list[str]:
+        """Detected behavioral patterns (e.g. 'Confidently Wrong')."""
+        return self._patterns
+
+    def _compute_patterns(self) -> None:
+        """Derive patterns directly from metrics."""
+        failure_score = self.trust_score.sub_scores.get("failure", 100.0)
+        ece = self.results.get("calibration", {}).get("ece", 0.0)
+        conf_gap = self.results.get("failure", {}).get("confidence_gap", {}).get("gap", 0.0)
+        
+        # High-confidence errors mean avg confidence of mistakes is high
+        avg_err_conf = self.results.get("failure", {}).get("confidence_gap", {}).get("incorrect_confidence_mean", 0.0)
+
+        # 1. Confidently Wrong
+        if (failure_score < 40 or avg_err_conf > 0.65) and conf_gap < 0.1:
+            self._patterns.append("Confidently Wrong")
+        
+        # 2. Safe Failures
+        if (failure_score < 60 and avg_err_conf < 0.5 and conf_gap > 0.15):
+            self._patterns.append("Safe Failures")
+            
+        # 3. Calibration Drift
+        if ece > 0.1 or (failure_score > 70 and ece > 0.08):
+            self._patterns.append("Calibration Drift")
+
+
+    def _format_score_explanation(self) -> list[str]:
+        """Rank and format top penalties for explanation."""
+        penalties = self.trust_score.penalties_applied
+        if not penalties:
+            return []
+            
+        # Sort by magnitude descending
+        sorted_p = sorted(penalties.items(), key=lambda x: x[1], reverse=True)
+        top_p = sorted_p[:3]
+        
+        lines = ["Score Explanation:"]
+        labels = ["Dominant Issue", "Secondary Issue", "Minor Impact"]
+        
+        for i, (name, val) in enumerate(top_p):
+            if val > 0:
+                label = labels[i] if i < len(labels) else "Other Impact"
+                lines.append(f"  - {label:<16}: {name} (-{val:.1f})")
+        return lines
+
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -82,6 +131,22 @@ class TrustReport:
             "model_class": type(self.model).__name__,
             "modules_run": list(self.results.keys()),
         }
+
+
+    def _print_score_methodology(self) -> None:
+        """Display the mathematical composition and notes section."""
+        ts = self.trust_score
+        print("\n[ SCORE METHODOLOGY ]")
+        weights_str = " + ".join(
+            [f"{k.capitalize()} ({int(v * 100)}%)" for k, v in ts.weights_used.items()]
+        )
+        print(f"  Formula     : {weights_str}")
+        print("  Definitions :")
+        print("    - Failure Score     : Reflects confidence-weighted errors, not raw error rate.")
+        print("    - Calibration       : Measures probability reliability via Expected Calibration Error (ECE).")
+        print("    - Fairness Margin   : Distance from the acceptable disparity threshold (0.10).")
+        print("    - Penalties         : Deductions applied for critical diagnostic risks.")
+
 
     def _max_confidence(self) -> np.ndarray:
         """Return per-sample max predicted confidence."""
@@ -110,6 +175,23 @@ class TrustReport:
         print(f"\nTRUST SCORE: {ts.score}/100 [{ts.grade}]")
         print(f"Assessment : {ts.verdict}")
 
+        if getattr(ts, "penalties_applied", None):
+            print("\nScore Summary:")
+            print(f"  Base Score        : {ts.base_score}")
+            penalties_str = ", ".join([f"{k} (-{v})" for k, v in ts.penalties_applied.items()])
+            print(
+                f"  Penalties Applied : -{sum(ts.penalties_applied.values()):.1f} [{penalties_str}]"
+            )
+            print(f"  Final Score       : {ts.score}")
+
+
+        explanation = self._format_score_explanation()
+        if explanation:
+            print()
+            for line in explanation:
+                print(line)
+
+
         # Print Key Observations/Insights
         print("\nKey Observations:")
         insights = self._generate_insights()
@@ -121,6 +203,7 @@ class TrustReport:
         print("\nDimension Breakdown:")
         for dim, score in ts.sub_scores.items():
             print(f"- {dim.capitalize() + ' Score':<18}: {score:5.1f}/100")
+
 
         for module_name, module_data in self.results.items():
             import io
@@ -134,10 +217,14 @@ class TrustReport:
                 print(f"\n{module_name.title()} Analysis")
                 print(out)
 
-        print("\nConclusion:")
         conclusion = self._generate_conclusion()
-        print(conclusion)
+        print(f"\nConclusion:\n{conclusion}")
+        
+        # Methodology section at the end
+        self._print_score_methodology()
         print()
+
+
 
     def _generate_text_report(self, verbose: bool = False) -> str:
         """
@@ -154,6 +241,19 @@ class TrustReport:
         ts = self.trust_score
         lines.append(f"\nTRUST SCORE: {ts.score}/100 [{ts.grade}]")
         lines.append(f"Assessment : {ts.verdict}")
+        if getattr(ts, "penalties_applied", None):
+            lines.append("\nScore Summary:")
+            lines.append(f"  Base Score        : {ts.base_score}")
+            penalties_str = ", ".join([f"{k} (-{v})" for k, v in ts.penalties_applied.items()])
+            lines.append(
+                f"  Penalties Applied : -{sum(ts.penalties_applied.values()):.1f} [{penalties_str}]"
+            )
+            lines.append(f"  Final Score       : {ts.score}")
+        explanation = self._format_score_explanation()
+        if explanation:
+            lines.append("")
+            lines.extend(explanation)
+
 
         lines.append("\nKey Observations:")
         insights = self._generate_insights()
@@ -174,9 +274,23 @@ class TrustReport:
                 lines.append(f"\n{module_name.title()} Analysis")
                 lines.extend(line_buf)
 
-        lines.append("\nConclusion:")
-        lines.append(self._generate_conclusion())
+        lines.append(f"\nConclusion:\n{self._generate_conclusion()}")
+
+        # Text methodology lines
+        lines.append("\n[ SCORE METHODOLOGY ]")
+        weights_str = " + ".join(
+            [f"{k.capitalize()} ({int(v * 100)}%)" for k, v in ts.weights_used.items()]
+        )
+        lines.append(f"  Formula     : {weights_str}")
+        lines.append("  Definitions :")
+        lines.append("    - Failure Score     : Reflects confidence-weighted errors, not raw error rate.")
+        lines.append("    - Calibration       : Measures probability reliability via Expected Calibration Error (ECE).")
+        lines.append("    - Fairness Margin   : Distance from the acceptable disparity threshold (0.10).")
+        lines.append("    - Penalties         : Deductions applied for critical diagnostic risks.")
         return "\n".join(lines)
+
+
+
 
     def _get_module_text_lines(
         self, data: Any, buf: list[str], indent: int = 0, verbose: bool = False
@@ -208,6 +322,43 @@ class TrustReport:
 
     def _generate_conclusion(self) -> str:
         """Generate a short 1-2 line conclusion based on the scores."""
+        failure_score = self.trust_score.sub_scores.get("failure", 100.0)
+        ece = self.results.get("calibration", {}).get("ece", 0.0)
+        conf_gap = self.results.get("failure", {}).get("confidence_gap", {}).get("gap", 0.0)
+
+        # Cross-dimension pattern check
+        is_confidently_wrong = failure_score < 50 and ece > 0.15 and conf_gap < 0.05
+
+        # Fairness risk check
+        bias_has_severe_violation = False
+        bias_module = self.results.get("bias", {})
+        for feat_data in bias_module.get("subgroup_performance", {}).values():
+            if feat_data.get("__summary__", {}).get("performance_gap", 0.0) > 0.15:
+                bias_has_severe_violation = True
+                break
+        if not bias_has_severe_violation:
+            for val in bias_module.get("equalized_odds", {}).values():
+                if not isinstance(val, dict):
+                    continue
+                summary = val.get("__summary__", {})
+                if (
+                    summary.get("tpr_violation") == "severe"
+                    or summary.get("fpr_violation") == "severe"
+                ):
+                    bias_has_severe_violation = True
+                    break
+
+        if is_confidently_wrong:
+            return (
+                "Model exhibits 'confidently wrong' behavior and high failure risk. Do not deploy."
+            )
+        if failure_score < 40:
+            return "Model shows high failure risk and is not ready for deployment."
+        if bias_has_severe_violation:
+            return "Model exhibits severe fairness violations and is not ready for deployment."
+        if ece > 0.1:
+            return "Model requires calibration before deployment."
+
         grade = self.trust_score.grade
         if grade == "A":
             return "Model demonstrates strong reliability across all measured dimensions. Ready for production."
@@ -220,31 +371,172 @@ class TrustReport:
 
     def _generate_insights(self) -> list[str]:
         """Generate plain-text insights based on results."""
-        insights = []
-        if "calibration" in self.results:
-            ece = self.results["calibration"].get("ece", 0.0)
-            if ece > 0.1:
-                insights.append("Calibration needs improvement (ECE > 0.1).")
+        insight_list = []
 
-        if "failure" in self.results:
-            conf_gap = self.results["failure"].get("confidence_gap", {}).get("gap", 0.0)
-            if conf_gap < 0.05:
-                insights.append(
-                    "Model is overconfident on incorrect predictions (low confidence gap)."
+        def add_insight(msg: str, priority: int):
+            insight_list.append((priority, msg))
+
+        # Surfaced Patterns
+        if self.patterns:
+            pattern_lines = [f"  - {p}" for p in self.patterns]
+            pattern_msg = "Patterns Detected:\n" + "\n".join(pattern_lines)
+            add_insight(pattern_msg, 2)
+
+
+        # Core signals
+        ece = self.results.get("calibration", {}).get("ece", 0.0)
+        failure_score = self.trust_score.sub_scores.get("failure", 100.0)
+        conf_gap = self.results.get("failure", {}).get("confidence_gap", {}).get("gap", 0.0)
+        silhouette = (
+            self.results.get("representation", {})
+            .get("separability", {})
+            .get("silhouette_score", 0.0)
+        )
+
+        # Legacy pattern checks removed. Patterns are now sourced from self.patterns.
+        is_confidently_wrong = "Confidently Wrong" in self.patterns
+
+
+        # Pattern: Generalization Risk
+        if silhouette < 0 and failure_score < 50:
+            add_insight(
+                "⚠ Warning: Poor latent representation correlates with high failure risk.\n    → The network struggles to differentiate classes; investigate feature quality.",
+                2,
+            )
+
+        cal_score = self.trust_score.sub_scores.get("calibration", 100.0)
+
+        # Check Calibration
+        if "calibration" in self.results:
+            if not is_confidently_wrong:
+                if cal_score < 75:
+                    add_insight(
+                        "Critical: Calibration is poor (score < 75).\n    → Consider temperature scaling or isotonic regression.",
+                        1,
+                    )
+                elif cal_score < 90:
+                    add_insight(
+                        "Warning: Calibration is acceptable (score 75-89), but could be improved.",
+                        2,
+                    )
+                else:
+                    add_insight("ℹ Info: Calibration quality is excellent (score 90+).", 3)
+
+        # Check Failure
+        failure_module = self.results.get("failure", {})
+        error_rate = (
+            failure_module.get("misclassification_summary", {})
+            .get("__overall__", {})
+            .get("overall_error_rate", 0.0)
+        )
+        error_pct = int(error_rate * 100) if error_rate is not None else 0
+
+        avg_err_conf = failure_module.get("confidence_gap", {}).get(
+            "incorrect_confidence_mean", 0.0
+        )
+        conf_str = f"~{avg_err_conf:.2f} confidence" if avg_err_conf > 0 else "confidence-weighted error"
+
+
+
+        if not is_confidently_wrong:
+            if failure_score < 40:
+                add_insight(
+                    f"Critical: High failure risk detected ({error_pct}% error rate).\n    → Heavily penalized because errors are dangerously concentrated in the {conf_str} range.",
+                    1,
+                )
+            elif failure_score < 60:
+                add_insight(
+                    f"Warning: Moderate failure risk ({error_pct}% error rate).\n    → Model exhibits concerning confidence (~{avg_err_conf:.2f}) on incorrect predictions.",
+                    2,
                 )
 
-        if "bias" in self.results:
-            ratio = self.results["bias"].get("class_imbalance", {}).get("imbalance_ratio", 1.0)
-            if ratio > 5.0:
-                insights.append("Severe class imbalance may affect performance.")
+        if "failure" in self.results and not is_confidently_wrong:
+            if conf_gap < 0.05:
+                add_insight(
+                    "Warning: Model is overconfident on incorrect predictions (low confidence gap).",
+                    2,
+                )
 
-            subgroups = self.results["bias"].get("subgroup_performance", {})
+        # Check Bias
+        if "bias" in self.results:
+            bias_module = self.results["bias"]
+            ratio = bias_module.get("class_imbalance", {}).get("imbalance_ratio", 1.0)
+            if ratio > 5.0:
+                add_insight(
+                    "Warning: Severe class imbalance may affect performance.\n    → Consider rebalancing or fairness constraints.",
+                    2,
+                )
+
+            subgroups = bias_module.get("subgroup_performance", {})
             for feat_name, feat_data in subgroups.items():
                 gap = feat_data.get("__summary__", {}).get("performance_gap", 0.0)
                 if gap > 0.1:
-                    insights.append(f"Significant performance gap detected across {feat_name}.")
+                    add_insight(
+                        f"Warning: Significant performance gap detected across {feat_name}.\n    → Investigate subgroup disparities.",
+                        2,
+                    )
 
-        return insights
+            eq_odds = bias_module.get("equalized_odds", {})
+            has_eq_odds_skipped = eq_odds.get("status") == "skipped"
+
+            has_severe = False
+            if has_eq_odds_skipped:
+                add_insight(
+                    "ℹ Info: Fairness analysis skipped due to insufficient subgroup diversity (or non-binary target).",
+                    3,
+                )
+            elif eq_odds:
+                for k, val in eq_odds.items():
+                    if isinstance(val, dict) and k not in ("status", "reason", "details"):
+                        summary = val.get("__summary__", {})
+                        if (
+                            summary.get("tpr_violation") == "severe"
+                            or summary.get("fpr_violation") == "severe"
+                        ):
+                            has_severe = True
+                if has_severe:
+                    add_insight(
+                        "Critical: Severe fairness disparity detected between subgroups.\n    → Investigate subgroup disparities and consider rebalancing.",
+                        1,
+                    )
+
+            if not has_severe and not has_eq_odds_skipped:
+                # Check if gap from subgroup is low and no class imbalance severity.
+                if ratio <= 5.0:
+                    max_gap = 0.0
+                    for feat_data in subgroups.values():
+                        gap = feat_data.get("__summary__", {}).get("performance_gap", 0.0)
+                        if gap > max_gap:
+                            max_gap = gap
+                    if max_gap <= 0.1:
+                        margin = 0.1 - max_gap
+                        has_penalty = "Fairness" in getattr(
+                            self.trust_score, "penalties_applied", {}
+                        )
+                        if has_penalty:
+                            if margin < 0.01:
+                                msg = f"ℹ Info: At threshold boundary (0.00 margin from 0.10 limit). Minimal penalty applied."
+                            else:
+                                msg = f"ℹ Info: Minor fairness variations detected (margin: {margin:.2f} from 0.10 limit). Small penalty applied."
+                            add_insight(msg, 3)
+                        else:
+                            add_insight(
+                                f"ℹ Info: No bias detected (margin: {margin:.2f} from 0.10 limit).", 3
+                            )
+
+
+
+
+        # Sort by priority, then deduplicate while preserving order
+        insight_list.sort(key=lambda x: x[0])
+        seen = set()
+        final_insights = []
+        for _, msg in insight_list:
+            if msg not in seen:
+                seen.add(msg)
+                final_insights.append(msg)
+
+        return final_insights
 
     def _print_module(self, data: Any, indent: int = 0, verbose: bool = False) -> None:
         """Recursively pretty-print a module's result dictionary."""

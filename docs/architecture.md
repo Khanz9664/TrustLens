@@ -8,26 +8,31 @@ TrustLens is built as a modular, extensible framework designed for zero-friction
 trustlens/
 ├── metrics/           # Math & logic for Brier, ECE, Confidence Gap, Subgroup Bias
 ├── visualization/     # Matplotlib-based dashboarding, Reliability Curves, Embedding Plots
-├── explainability/    # [Experimental] Grad-CAM, Faithfulness tests (requires PyTorch)
-├── plugins/           # Extensible plugin system for custom metrics
-├── api.py             # Primary entry points (analyze, quick_analyze)
-├── report.py          # Result container, serialisation, and exports
-└── trust_score.py     # Weighted trust consensus algorithm
+├── comparison/        # Head-to-head model evaluation and recommendation logic
+├── api.py             # Primary orchestration entry points (analyze, quick_analyze)
+├── report.py          # Interpretation layer, human-readable summaries, serialization
+├── trust_score.py     # Core scoring logic, penalty algorithms, and grading
+└── comparison.py      # Exposed API for multi-report comparison
 ```
+
 
 ## Key Components
 
-### 1. The Dispatcher (`api.py`)
-Centrally manages the execution of analysis modules. It handles data validation, probability resolution, and triggers the required metrics based on the input data (e.g., only running representation analysis if embeddings are provided).
+### 1. Orchestration (`api.py`)
+Centrally manages the execution of analysis modules. It handles data validation, probability resolution, and triggers the required metrics based on the input data.
 
-### 2. The Result Container (`report.py`)
-The `TrustReport` object is the "brain" of the project. It stores all results, handles the logic for `show()` and `plot()`, and provides serialization methods like `to_dict()` and `save()`.
+### 2. Interpretation Layer (`report.py`)
+The `TrustReport` object is the system's "narrative brain." It transforms raw numeric results into human-readable text summaries, ranked explanations, and actionable insights.
 
-### 3. The Trust Scorer (`trust_score.py`)
-Computes a weighted consensus of model reliability. It translates raw metrics (like 0.04 ECE) into human-understandable dimension scores (0-100) and finally a letter grade (A-F).
+### 3. Scoring & Diagnostics (`trust_score.py`)
+Computes the final **Trust Score**. The logic is encapsulated in `TrustScoreResult`, which now tracks:
+- `base_score`: The weighted performance across dimensions.
+- `penalties_applied`: Deductions for critical diagnostic failures.
+- `is_blocked`: Binary flag triggered by extreme risks (e.g., severe bias).
 
-### 4. Plugin System (`plugins/`)
-Developers can extend TrustLens by registering custom plugins. Any class inheriting from `BasePlugin` can be injected into the `analyze()` pipeline, allowing for domain-specific reliability checks.
+### 4. Comparison Engine (`comparison.py`)
+Provides cross-report analysis. It evaluates multiple `TrustReport` objects to recommend the safest candidate, grounding its decisions in the "penalty burden" and diagnostic blocks of each model.
+
 
 ---
 

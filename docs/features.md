@@ -4,16 +4,17 @@ TrustLens goes beyond pass/fail — it explains why your model should or shouldn
 
 ## The Trust Score
 
-A single, actionable number: **0 to 100.** Computed from four independently interpretable dimensions:
+A single, actionable number: **0 to 100.** Computed from a **weighted combination (configurable, default ~40/40/20)** of three core dimensions with automatic **diagnostic penalties** for critical risks:
 
-| Dimension | What it measures | Weight |
-|---|---|---|
-| **Calibration** | Do probabilities reflect reality? | 35% |
-| **Failure** | Does confidence correlate with accuracy? | 30% |
-| **Bias** | Are all groups treated equally? | 25% |
-| **Representation** | Is the embedding space well-structured? | 10% |
+| Dimension | What it measures |
+|---|---|
+| **Calibration** | Do probabilities reflect reality? |
+| **Failure** | Does confidence correlate with accuracy? |
+| **Bias** | Are all groups treated equally? |
 
-Weights are empirically chosen based on common production failure modes and will be configurable in future releases.
+
+The final score is: `(Base Score) - (Critical Penalties)`.
+
 
 ---
 
@@ -24,27 +25,38 @@ Weights are empirically chosen based on common production failure modes and will
 ### 1. Calibration Analysis
 Uncover if your model is overconfident or underconfident.
 * **Metrics**: Brier Score, Expected Calibration Error (ECE).
-* **Visuals**: Reliability Diagrams, Calibration Histograms.
+* **Pattern Detection**: Detects **Calibration Drift** — when reliability of predicted probabilities is low.
 
 ### 2. Failure Analysis
-Identify the "silent killers" of production ML — high-confidence mistakes.
-* **Method**: `report.show_failures(top_k=5)`
-* **Output**: A ranked list of samples where the model was certain it was right, but was actually wrong.
+Identify "confidence-weighted errors" — mistakes made when the model is certain.
+* **Interpretation**: Automatically distinguishes between "Safe Failures" and "Confidently Wrong" patterns.
+* **Insights**: Provides concrete analysis of confidence ranges where errors are concentrated.
 
 ### 3. Bias Detection
-Surface performance gaps across subgroups before they become liabilities.
-* **Metrics**: Class imbalance reports, subgroup accuracy/F1 breakdown.
-* **Input**: Simply pass a dictionary of `sensitive_features`.
+Surface performance gaps across subgroups using **Bias Margins**.
+* **Metrics**: Explicitly calculates distance from the parity threshold (0.10 limit).
+* **Integration**: Powered by `equalized_odds` for rigorous fairness auditing.
 
-### 4. Representation Analysis
-Monitor how your model "sees" the data in its latent space.
-* **Metrics**: Silhouette separability, Centered Kernel Alignment (CKA).
-* **Visuals**: Embedding plots (UMAP/t-SNE support in roadmap).
+### 4. Model Comparison
+The **Comparison Engine** recommend candidates for deployment.
+* **Advantage**: Automatically ties penalty differences back to root causes (e.g., "higher due to poor calibration").
+* **API**: `trustlens.comparison.compare(reports)` for head-to-head evaluation.
+
 
 ---
 
+## Explainability Layer
+
+TrustLens is designed to justify its verdicts:
+- **Ranked Explanation**: Reports the top contributors to score deductions (Dominant → Secondary).
+- **Verdicts & Blocks**: Decisive assessment strings (e.g., "Blocked by high diagnostic risk") mapped to score tiers.
+- **Pattern Flags**: High-level semantic signals used for diagnostic interpretation:
+  - **Calibration Drift**: Probabilities are unreliable (high ECE).
+  - **Confidently Wrong**: High-confidence incorrect predictions.
+
+
 ## Output Formats
 - **Interactive**: Rich Jupyter representations via `_repr_html_`.
-* **Visual**: Presentation-ready dashboard via `report.summary_plot()`.
-* **Structured**: JSON export for automated systems (`report.save("report.json")`).
-* **Narrative**: Human-readable text summaries (`report.save("report.txt")`).
+- **Narrative**: High-density humans reports with structured methodology notes.
+- **Structured**: JSON export for automated CI/CD gating (`report.save("report.json")`).
+

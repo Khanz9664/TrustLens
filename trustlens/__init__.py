@@ -17,6 +17,7 @@ __version__ = "0.2.0"
 from .api import analyze, quick_analyze
 from .report import TrustReport
 from .trust_score import TrustScoreResult, compute_trust_score
+from .comparison import compare
 
 __all__ = [
     "analyze",
@@ -25,4 +26,5 @@ __all__ = [
     "compute_trust_score",
     "TrustScoreResult",
     "__version__",
+    "compare",
 ]

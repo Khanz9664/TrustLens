@@ -87,6 +87,11 @@ _GRADE_THRESHOLDS = [
     (0, "D", "Low Trust - serious issues, do not deploy"),
 ]
 
+_MAX_PENALTY_FAILURE = 20.0
+_MAX_PENALTY_CALIBRATION = 15.0
+_MAX_PENALTY_FAIRNESS = 15.0
+_MAX_TOTAL_PENALTY = 35.0
+
 
 # ---------------------------------------------------------------------------
 # Sub-score computers
@@ -97,11 +102,11 @@ def _calibration_score(cal_data: dict) -> float:
     """
     Compute calibration sub-score (0–100).
 
-    CalibScore = 100 × (1 − clip(0.5×BS + 0.5×ECE, 0, 1))
+    CalibScore = 100 × (1 − clip(BS + 1.5×ECE, 0, 1))
     """
     bs = float(cal_data.get("brier_score", 0.5))
     ece = float(cal_data.get("ece", 0.5))
-    composite = 0.5 * bs + 0.5 * ece
+    composite = bs + 1.5 * ece
     return 100.0 * (1.0 - float(np.clip(composite, 0.0, 1.0)))
 
 
@@ -200,6 +205,9 @@ class TrustScoreResult:
     sub_scores: dict[str, float] = field(default_factory=dict)
     weights_used: dict[str, float] = field(default_factory=dict)
     breakdown: dict[str, float] = field(default_factory=dict)
+    penalties_applied: dict[str, float] = field(default_factory=dict)
+    base_score: int = 0
+    is_blocked: bool = False
 
     def __str__(self) -> str:
         lines = [
@@ -347,21 +355,118 @@ def compute_trust_score(
             weights_used[dim] = 1.0 / len(active_dims) if active_dims else 0.0
 
     # ------------------------------------------------------------------
-    # 3. Weighted sum → final score
+    # 3. Weighted sum and Weak-Dimension Penalties → final score
     # ------------------------------------------------------------------
     raw_score = sum(sub_scores[d] * weights_used[d] for d in active_dims)
+    total_penalty = 0.0
+    penalties_applied: dict[str, float] = {}
+
+    # Scaled failure penalty (if under 60.0, apply linearly up to _MAX_PENALTY_FAILURE)
+    failure_score = sub_scores.get("failure", 100.0)
+    if failure_score < 60.0:
+        penalty = _MAX_PENALTY_FAILURE * ((60.0 - failure_score) / 60.0)
+        actual_p = float(np.clip(penalty, 0.0, _MAX_PENALTY_FAILURE))
+        total_penalty += actual_p
+        penalties_applied["Failure"] = round(actual_p, 1)
+
+    # Scaled calibration penalty (if ece > 0.05, apply linearly)
+    calibration_data = results.get("calibration", {})
+    if "ece" in calibration_data and calibration_data["ece"] is not None:
+        try:
+            ece = float(calibration_data["ece"])
+            if ece > 0.05:
+                # ECE=0.15 gives max penalty
+                penalty = _MAX_PENALTY_CALIBRATION * ((ece - 0.05) / 0.10)
+                actual_p = float(np.clip(penalty, 0.0, _MAX_PENALTY_CALIBRATION))
+                total_penalty += actual_p
+                penalties_applied["Calibration"] = round(actual_p, 1)
+        except (ValueError, TypeError):
+            pass
+
+    bias_has_severe_violation = False
+    max_gap = 0.0
+    bias_module = results.get("bias", {})
+
+    # Consolidate subgroup and equalized_odds into a single fairness penalty
+    for feat_data in bias_module.get("subgroup_performance", {}).values():
+        if isinstance(feat_data, dict):
+            gap = feat_data.get("__summary__", {}).get("performance_gap", 0.0)
+            if gap is not None:
+                try:
+                    gap_val = float(gap)
+                    max_gap = max(max_gap, gap_val)
+                    if gap_val > 0.15:
+                        bias_has_severe_violation = True
+                except (ValueError, TypeError):
+                    pass
+
+    for val in bias_module.get("equalized_odds", {}).values():
+        if not isinstance(val, dict):
+            continue
+        summary = val.get("__summary__", {})
+        if summary.get("tpr_violation") == "severe" or summary.get("fpr_violation") == "severe":
+            bias_has_severe_violation = True
+            break
+
+    if bias_has_severe_violation:
+        actual_p = float(_MAX_PENALTY_FAIRNESS)
+        total_penalty += actual_p
+        penalties_applied["Fairness"] = round(actual_p, 1)
+    elif max_gap > 0.05:
+        # Scale penalty based on gap from 0.05 up to 0.15
+        penalty = _MAX_PENALTY_FAIRNESS * ((max_gap - 0.05) / 0.10)
+        actual_p = float(np.clip(penalty, 0.0, _MAX_PENALTY_FAIRNESS))
+        total_penalty += actual_p
+        penalties_applied["Fairness"] = round(actual_p, 1)
+
+    # Cap total penalty to preserve general score variance
+    if total_penalty > _MAX_TOTAL_PENALTY:
+        scale = _MAX_TOTAL_PENALTY / total_penalty
+        for k in penalties_applied:
+            penalties_applied[k] = round(penalties_applied[k] * scale, 1)
+        total_penalty = float(_MAX_TOTAL_PENALTY)
+
+    base_score = int(round(float(np.clip(raw_score, 0.0, 100.0))))
+    raw_score -= total_penalty
+
     final_score = int(round(float(np.clip(raw_score, 0.0, 100.0))))
 
     breakdown = {d: round(sub_scores[d] * weights_used[d], 2) for d in active_dims}
 
     # ------------------------------------------------------------------
-    # 4. Assign grade
+    # 4. Assign grade & Check Blockers
     # ------------------------------------------------------------------
-    grade, verdict = "D", "Low Trust - serious issues"
-    for threshold, g, v in _GRADE_THRESHOLDS:
-        if final_score >= threshold:
-            grade, verdict = g, v
-            break
+    conf_gap = results.get("failure", {}).get("confidence_gap", {}).get("gap", 0.0)
+    ece_val = calibration_data.get("ece", 0.0) if isinstance(calibration_data, dict) else 0.0
+    is_confidently_wrong = failure_score < 50.0 and ece_val > 0.15 and conf_gap < 0.05
+
+    is_blocked = False
+    block_reason = ""
+    # Hierarchy: Failure > Fairness > Calibration
+    if is_confidently_wrong:
+        is_blocked = True
+        block_reason = "Blocked by 'confidently wrong' behavior (mismatched confidence-weighted errors)"
+    elif failure_score < 40.0:
+        is_blocked = True
+        block_reason = "Blocked by high diagnostic risk (misaligned confidence-weighted error distribution)"
+
+    elif bias_has_severe_violation:
+        is_blocked = True
+        block_reason = "Blocked by severe fairness violations"
+    elif ece_val > 0.1:
+        is_blocked = True
+        block_reason = "Blocked due to poor calibration (ECE > 0.1)"
+
+
+    if is_blocked:
+        grade = "D"
+        verdict = f"Low Trust - {block_reason}"
+    else:
+        grade, verdict = "D", "Low Trust - serious issues"
+        for threshold, g, v in _GRADE_THRESHOLDS:
+            if final_score >= threshold:
+                grade, verdict = g, v
+                break
 
     return TrustScoreResult(
         score=final_score,
@@ -370,4 +475,7 @@ def compute_trust_score(
         sub_scores={d: round(sub_scores[d], 1) for d in active_dims},
         weights_used={d: round(weights_used[d], 3) for d in active_dims},
         breakdown=breakdown,
+        penalties_applied=penalties_applied,
+        base_score=base_score,
+        is_blocked=is_blocked,
     )
