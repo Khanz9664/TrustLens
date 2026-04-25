@@ -78,42 +78,44 @@ class TrustReport:
         failure_score = self.trust_score.sub_scores.get("failure", 100.0)
         ece = self.results.get("calibration", {}).get("ece", 0.0)
         conf_gap = self.results.get("failure", {}).get("confidence_gap", {}).get("gap", 0.0)
-        
+
         # High-confidence errors mean avg confidence of mistakes is high
-        avg_err_conf = self.results.get("failure", {}).get("confidence_gap", {}).get("incorrect_confidence_mean", 0.0)
+        avg_err_conf = (
+            self.results.get("failure", {})
+            .get("confidence_gap", {})
+            .get("incorrect_confidence_mean", 0.0)
+        )
 
         # 1. Confidently Wrong
         if (failure_score < 40 or avg_err_conf > 0.65) and conf_gap < 0.1:
             self._patterns.append("Confidently Wrong")
-        
+
         # 2. Safe Failures
-        if (failure_score < 60 and avg_err_conf < 0.5 and conf_gap > 0.15):
+        if failure_score < 60 and avg_err_conf < 0.5 and conf_gap > 0.15:
             self._patterns.append("Safe Failures")
-            
+
         # 3. Calibration Drift
         if ece > 0.1 or (failure_score > 70 and ece > 0.08):
             self._patterns.append("Calibration Drift")
-
 
     def _format_score_explanation(self) -> list[str]:
         """Rank and format top penalties for explanation."""
         penalties = self.trust_score.penalties_applied
         if not penalties:
             return []
-            
+
         # Sort by magnitude descending
         sorted_p = sorted(penalties.items(), key=lambda x: x[1], reverse=True)
         top_p = sorted_p[:3]
-        
+
         lines = ["Score Explanation:"]
         labels = ["Dominant Issue", "Secondary Issue", "Minor Impact"]
-        
+
         for i, (name, val) in enumerate(top_p):
             if val > 0:
                 label = labels[i] if i < len(labels) else "Other Impact"
                 lines.append(f"  - {label:<16}: {name} (-{val:.1f})")
         return lines
-
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -132,7 +134,6 @@ class TrustReport:
             "modules_run": list(self.results.keys()),
         }
 
-
     def _print_score_methodology(self) -> None:
         """Display the mathematical composition and notes section."""
         ts = self.trust_score
@@ -143,10 +144,11 @@ class TrustReport:
         print(f"  Formula     : {weights_str}")
         print("  Definitions :")
         print("    - Failure Score     : Reflects confidence-weighted errors, not raw error rate.")
-        print("    - Calibration       : Measures probability reliability via Expected Calibration Error (ECE).")
+        print(
+            "    - Calibration       : Measures probability reliability via Expected Calibration Error (ECE)."
+        )
         print("    - Fairness Margin   : Distance from the acceptable disparity threshold (0.10).")
         print("    - Penalties         : Deductions applied for critical diagnostic risks.")
-
 
     def _max_confidence(self) -> np.ndarray:
         """Return per-sample max predicted confidence."""
@@ -184,13 +186,11 @@ class TrustReport:
             )
             print(f"  Final Score       : {ts.score}")
 
-
         explanation = self._format_score_explanation()
         if explanation:
             print()
             for line in explanation:
                 print(line)
-
 
         # Print Key Observations/Insights
         print("\nKey Observations:")
@@ -203,7 +203,6 @@ class TrustReport:
         print("\nDimension Breakdown:")
         for dim, score in ts.sub_scores.items():
             print(f"- {dim.capitalize() + ' Score':<18}: {score:5.1f}/100")
-
 
         for module_name, module_data in self.results.items():
             import io
@@ -219,12 +218,10 @@ class TrustReport:
 
         conclusion = self._generate_conclusion()
         print(f"\nConclusion:\n{conclusion}")
-        
+
         # Methodology section at the end
         self._print_score_methodology()
         print()
-
-
 
     def _generate_text_report(self, verbose: bool = False) -> str:
         """
@@ -254,7 +251,6 @@ class TrustReport:
             lines.append("")
             lines.extend(explanation)
 
-
         lines.append("\nKey Observations:")
         insights = self._generate_insights()
         if not insights:
@@ -283,14 +279,17 @@ class TrustReport:
         )
         lines.append(f"  Formula     : {weights_str}")
         lines.append("  Definitions :")
-        lines.append("    - Failure Score     : Reflects confidence-weighted errors, not raw error rate.")
-        lines.append("    - Calibration       : Measures probability reliability via Expected Calibration Error (ECE).")
-        lines.append("    - Fairness Margin   : Distance from the acceptable disparity threshold (0.10).")
+        lines.append(
+            "    - Failure Score     : Reflects confidence-weighted errors, not raw error rate."
+        )
+        lines.append(
+            "    - Calibration       : Measures probability reliability via Expected Calibration Error (ECE)."
+        )
+        lines.append(
+            "    - Fairness Margin   : Distance from the acceptable disparity threshold (0.10)."
+        )
         lines.append("    - Penalties         : Deductions applied for critical diagnostic risks.")
         return "\n".join(lines)
-
-
-
 
     def _get_module_text_lines(
         self, data: Any, buf: list[str], indent: int = 0, verbose: bool = False
@@ -382,9 +381,8 @@ class TrustReport:
             pattern_msg = "Patterns Detected:\n" + "\n".join(pattern_lines)
             add_insight(pattern_msg, 2)
 
-
         # Core signals
-        ece = self.results.get("calibration", {}).get("ece", 0.0)
+
         failure_score = self.trust_score.sub_scores.get("failure", 100.0)
         conf_gap = self.results.get("failure", {}).get("confidence_gap", {}).get("gap", 0.0)
         silhouette = (
@@ -395,7 +393,6 @@ class TrustReport:
 
         # Legacy pattern checks removed. Patterns are now sourced from self.patterns.
         is_confidently_wrong = "Confidently Wrong" in self.patterns
-
 
         # Pattern: Generalization Risk
         if silhouette < 0 and failure_score < 50:
@@ -434,9 +431,9 @@ class TrustReport:
         avg_err_conf = failure_module.get("confidence_gap", {}).get(
             "incorrect_confidence_mean", 0.0
         )
-        conf_str = f"~{avg_err_conf:.2f} confidence" if avg_err_conf > 0 else "confidence-weighted error"
-
-
+        conf_str = (
+            f"~{avg_err_conf:.2f} confidence" if avg_err_conf > 0 else "confidence-weighted error"
+        )
 
         if not is_confidently_wrong:
             if failure_score < 40:
@@ -515,17 +512,15 @@ class TrustReport:
                         )
                         if has_penalty:
                             if margin < 0.01:
-                                msg = f"ℹ Info: At threshold boundary (0.00 margin from 0.10 limit). Minimal penalty applied."
+                                msg = "ℹ Info: At threshold boundary (0.00 margin from 0.10 limit). Minimal penalty applied."
                             else:
                                 msg = f"ℹ Info: Minor fairness variations detected (margin: {margin:.2f} from 0.10 limit). Small penalty applied."
                             add_insight(msg, 3)
                         else:
                             add_insight(
-                                f"ℹ Info: No bias detected (margin: {margin:.2f} from 0.10 limit).", 3
+                                f"ℹ Info: No bias detected (margin: {margin:.2f} from 0.10 limit).",
+                                3,
                             )
-
-
-
 
         # Sort by priority, then deduplicate while preserving order
         insight_list.sort(key=lambda x: x[0])

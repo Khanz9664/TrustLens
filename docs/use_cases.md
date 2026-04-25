@@ -22,4 +22,3 @@ Head-to-head model evaluation is a core capability. Instead of choosing the mode
 - **Automated Gating**: Integrate TrustLens into CI/CD pipelines to block models that trigger "Confidently Wrong" patterns or severe fairness violations.
 - **Explainable Auditing**: Use ranked score explanations to justify to stakeholders exactly why a model was approved (or blocked) for release.
 - **Monitoring Reliability Decay**: Track the Trust Score over time using tools like MLflow or W&B to detect when a production model's decision logic begins to degrade.
-

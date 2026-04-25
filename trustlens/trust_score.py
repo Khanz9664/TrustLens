@@ -445,10 +445,14 @@ def compute_trust_score(
     # Hierarchy: Failure > Fairness > Calibration
     if is_confidently_wrong:
         is_blocked = True
-        block_reason = "Blocked by 'confidently wrong' behavior (mismatched confidence-weighted errors)"
+        block_reason = (
+            "Blocked by 'confidently wrong' behavior (mismatched confidence-weighted errors)"
+        )
     elif failure_score < 40.0:
         is_blocked = True
-        block_reason = "Blocked by high diagnostic risk (misaligned confidence-weighted error distribution)"
+        block_reason = (
+            "Blocked by high diagnostic risk (misaligned confidence-weighted error distribution)"
+        )
 
     elif bias_has_severe_violation:
         is_blocked = True
@@ -456,7 +460,6 @@ def compute_trust_score(
     elif ece_val > 0.1:
         is_blocked = True
         block_reason = "Blocked due to poor calibration (ECE > 0.1)"
-
 
     if is_blocked:
         grade = "D"

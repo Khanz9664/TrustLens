@@ -59,4 +59,3 @@ TrustLens is designed to justify its verdicts:
 - **Interactive**: Rich Jupyter representations via `_repr_html_`.
 - **Narrative**: High-density humans reports with structured methodology notes.
 - **Structured**: JSON export for automated CI/CD gating (`report.save("report.json")`).
-

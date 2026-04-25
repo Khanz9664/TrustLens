@@ -27,4 +27,3 @@ Most ML pipelines rely on Accuracy, F1, or RMSE. While useful, these metrics are
 TrustLens bridges the gap between **raw metrics and deployment decisions**. It transforms aggregate diagnostics into explainable narratives, providing machine learning practitioners with the evidence needed to approve (or block) a model for production.
 
 Learn how these issues are measured in [Features & Modules](features.md).
-
