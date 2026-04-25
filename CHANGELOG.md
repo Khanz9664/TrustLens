@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `equalized_odds()` fairness metric with per-group TPR/FPR and violation analysis (closes #17)
+
 ---
 
 ## [0.2.0] — 2026-04-24
@@ -24,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `report.save()` now supports direct export to single `.json` and `.txt` files.
 - Human-readable text report generation without ANSI colors.
 - `docs/EXPERIMENTAL.md` — contributor-facing guide for experimental module governance.
-- `equalized_odds()` fairness metric to `trustlens/metrics/bias.py`, including per-group TPR/FPR computation and violation level classification
+
 
 ### Improved
 - Enhanced `utils.py` with robust input validation and NumPy-aware numeric type checking.

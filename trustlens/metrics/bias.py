@@ -240,17 +240,16 @@ def equalized_odds(
 
             # FPR = FP / (FP + TN) — computed manually from confusion matrix
             tn, fp, fn, tp = 0, 0, 0, 0
-            if len(np.unique(y_true_g)) >= 1:
+            if len(y_true_g) > 0:
                 cm = confusion_matrix(y_true_g, y_pred_g, labels=[0, 1])
-                if cm.shape == (2, 2):
-                    tn, fp, fn, tp = cm.ravel()
+                tn, fp, fn, tp = cm.ravel()
             denominator = int(fp) + int(tn)
             fpr = float(fp / denominator) if denominator > 0 else 0.0
 
             group_results[str(g)] = {
                 "n_samples": int(mask.sum()),
-                "tpr": round(tpr, 4),
-                "fpr": round(fpr, 4),
+                "tpr": float(tpr),
+                "fpr": float(fpr),
             }
 
         # Summary block
