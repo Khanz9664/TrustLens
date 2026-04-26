@@ -1,34 +1,47 @@
 # Overview
 
-TrustLens is a unified suite for auditing machine learning models, focusing on the gap between "standard accuracy" and "production safety."
+TrustLens is a reliability-focused evaluation layer for classification models. It helps teams move from metric reporting to deployment decisions backed by evidence.
 
-## The Trust Gap
+## Why This Matters
 
-Accuracy is often a poor proxy for real-world reliability. A model can have 95% accuracy while still being:
-- **Unreliable**: Predicting 99% confidence on its mistakes (Overconfidence).
-- **Biased**: Discriminating against sensitive subgroups.
-- **Fragile**: Failing catastrophically on edge cases that it should handle.
+Accuracy alone is often insufficient for production decisions. A model can score high on accuracy while still being unsafe to deploy because of:
 
-TrustLens bridges this "Trust Gap" by providing technical evidence to support a **Deployment Verdict**.
+- overconfident errors
+- subgroup performance disparity
+- weak probability calibration
 
-## Core Pillars
+TrustLens addresses this by combining diagnostic modules and explicit decision logic.
 
-TrustLens evaluates models across four integrated dimensions:
+## What TrustLens Evaluates
 
-### 1. Calibration (Reliability)
-Does a 0.8 probability mean 80% accuracy? We use **Expected Calibration Error (ECE)** and **Brier Scores** to ensure your model's confidence reflects reality.
+TrustLens evaluates models across four dimensions:
 
-### 2. Failure Analysis (Diagnostic Risk)
-Where does your model fail? We identify high-confidence errors and calculate the **Confidence Gap** to quantify how "confidently wrong" your model is.
+- **Calibration**: are predicted probabilities aligned with real outcomes?
+- **Failure behavior**: are errors concentrated in high-confidence regions?
+- **Bias and fairness**: do important subgroups see uneven performance?
+- **Representation quality**: are embeddings well separated when provided?
 
-### 3. Bias & Fairness (Equity)
-Does the model perform equally for everyone? We support **Subgroup Analysis** and **Equalized Odds** to detect and flag hidden disparities.
+These diagnostics are combined into a Trust Score, with penalties and blocker rules applied for high-risk conditions.
 
-### 4. Representation (Data Integrity)
-Is the model seeing "familiar" data? We use **Silhouette Scores** and representation analysis to detect if the training distribution is still relevant to the current inputs.
+## Typical Workflow
 
-## High-Level Workflow
+1. Run `analyze(model, X_val, y_val, y_prob=...)`.
+2. Inspect the returned `TrustReport`.
+3. Review score, blockers, and dimension-level outputs.
+4. Export artifacts for CI, governance, or comparison.
 
-1. **Audit**: Run `analyze(model, X, y)`.
-2. **Score**: Review the **Trust Score** (aggregating results and penalties).
-3. **Decide**: Use the **Verdict** (Deploy, Partial, or Blocked) to inform your CI/CD or governance gates.
+## What You Get
+
+A TrustLens run produces:
+
+- module-level metrics
+- a composite Trust Score with grade and verdict
+- narrative insights and detected risk patterns
+- saveable artifacts for downstream workflows
+
+## Related Pages
+
+- [Getting Started](getting_started.md)
+- [Features and Modules](features.md)
+- [Trust Score Explained](trust_score_explained.md)
+- [Known Limitations](known_limitations.md)

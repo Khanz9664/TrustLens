@@ -1,57 +1,54 @@
-# Features & Modules
+# Features and Modules
 
-TrustLens provides a suite of specialized modules, each targeting a specific dimension of model reliability.
+TrustLens is organized as focused modules that diagnose model reliability from different angles. Together, they produce one deployment-oriented verdict while preserving detailed diagnostics.
 
----
+## Calibration Module
 
-## 1. Calibration Module
-*Ensure probabilities mean what they say.*
+Calibration checks whether predicted probabilities match real-world outcomes.
 
-Calibration measures the reliability of a model's predicted probabilities. A well-calibrated model that predicts 70% confidence for a set of samples should be correct for approximately 70% of them.
+- **Expected Calibration Error (ECE)**: weighted gap between confidence and observed accuracy across bins.
+- **Brier Score**: mean squared error of probabilistic predictions.
+- **Reliability Curve Data**: confidence versus observed correctness for calibration plots.
 
-- **ECE (Expected Calibration Error)**: Quantifies the average gap between confidence and accuracy across confidence bins.
-- **Brier Score**: Measures the mean squared difference between predicted probabilities and actual outcomes.
-- **Reliability Curves**: Visual diagnostics to identify overconfidence or underconfidence.
+Use calibration results when your downstream decision threshold depends on confidence quality rather than raw class labels.
 
----
+## Failure Analysis Module
 
-## 2. Failure Analysis Module
-*Identify the "Confidently Wrong" patterns.*
+Failure analysis focuses on risk concentration, not only total error rate.
 
-High-accuracy models often hide dangerous failure modes. This module drills down into the errors.
+- **Misclassification Summary**: class-wise error rates and high-confidence mistakes.
+- **Confidence Gap**: difference between confidence on correct predictions and confidence on incorrect predictions.
+- **Failure Pattern Signals**: identifies behavior such as overconfident mistakes.
 
-- **Confidence Gap**: The difference between the model's confidence on correct vs. incorrect predictions. A narrow gap signals high diagnostic risk.
-- **High-Confidence Failures**: Automatic flagging of samples where the model was >90% sure but wrong.
-- **Severity Ranking**: Categorizes errors to prioritize manual review.
+Use this module to prioritize error analysis where failure impact is highest.
 
----
+## Bias and Fairness Module
 
-## 3. Bias & Fairness Module
-*Detect performance disparities across subgroups.*
+Fairness diagnostics identify performance disparity between subgroups.
 
-Bias detection reveals performance gaps across sensitive subgroups, helping ensure models are equitable before deployment.
+- **Class Imbalance Report**: distribution imbalance and majority/minority ratios.
+- **Subgroup Performance**: group-wise accuracy and macro-F1 with gap summaries.
+- **Equalized Odds Checks**: group-wise TPR/FPR disparity for binary classification.
 
-- **Subgroup Disparity**: Compares Accuracy, Precision, and Recall across protected attributes (e.g., gender, age).
-- **Equalized Odds**: Checks for parity in False Positive Rates (FPR) and True Positive Rates (TPR) across groups.
-- **Fairness Margin**: A distance-to-limit metric that triggers penalties if disparities exceed acceptable thresholds.
+Use these outputs to detect whether your model systematically underperforms on particular segments.
 
----
+## Representation Module
 
-## 4. Representation Module
-*Audit data integrity and out-of-distribution risks.*
+Representation diagnostics evaluate geometric quality of embeddings when latent vectors are available.
 
-Leverages embeddings to understand if the model is operating on "familiar" ground.
+- **Embedding Separability**: silhouette-based estimate of class separation.
+- **Within/Between Distance Statistics**: distance-based signal for overlap versus separation.
+- **CKA Utility**: centered kernel alignment support for representation similarity studies.
 
-- **Silhouette Scores**: Measures how well-defined the model's feature space is.
-- **OOD Detection**: (Experimental) Identifies samples that fall far from the training representation cluster.
+Representation analysis is optional and only runs when embeddings are provided.
 
----
+## Trust Scoring Engine
 
-## 5. Trust Scoring Engine
-*The unified decision-support signal.*
+The trust scoring engine combines module outputs into one decision support signal.
 
-Aggregates all modules into a single **Trust Score (0-100)** and a **Grade (A-F)**.
+- **Composite Score (0-100)** with a grade and deployment verdict.
+- **Weight Redistribution** when some modules are unavailable.
+- **Risk Penalties** applied for severe calibration, failure, and fairness conditions.
+- **Deployment Blockers** that force a do-not-deploy verdict despite high raw score.
 
-- **Weights**: Configurable importance for each module.
-- **Penalties**: Dynamic deductions based on risk severity.
-- **Blockers**: Automatic "Blocked" verdict if critical thresholds are violated (e.g., severe bias or extreme overconfidence).
+For exact rules, see [Trust Score Explained](trust_score_explained.md).
