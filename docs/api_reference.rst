@@ -1,17 +1,21 @@
 API Reference
 =============
 
-This section provides detailed documentation for the TrustLens API.
+This section provides detailed documentation for the TrustLens API, categorized by the layer of the decision-support pipeline.
 
 Top-level API
 -------------
+
+The primary entry points for orchestrating model audits.
 
 .. autofunction:: trustlens.api.analyze
 
 .. autofunction:: trustlens.api.quick_analyze
 
-Reports and Results
--------------------
+Reports and Decision Results
+----------------------------
+
+Data containers for analysis results and decision logic.
 
 .. autoclass:: trustlens.report.TrustReport
    :members:
@@ -24,18 +28,17 @@ Reports and Results
 Metrics Modules
 ---------------
 
-.. automodule:: trustlens.metrics.calibration
-   :members:
-   :show-inheritance:
+Specialized modules for computing diagnostic signals.
 
-.. automodule:: trustlens.metrics.failure
-   :members:
-   :show-inheritance:
+.. toctree::
+   :maxdepth: 1
 
-.. automodule:: trustlens.metrics.bias
-   :members:
-   :show-inheritance:
+   metrics/calibration
+   metrics/failure
+   metrics/bias
+   metrics/representation
 
-.. automodule:: trustlens.metrics.representation
-   :members:
-   :show-inheritance:
+Comparative Engine
+------------------
+
+.. autofunction:: trustlens.comparison.compare

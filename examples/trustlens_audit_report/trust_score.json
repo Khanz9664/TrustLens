@@ -1,11 +1,11 @@
 {
-  "score": 74,
-  "grade": "B",
-  "verdict": "Good Trust - minor issues to address",
+  "score": 63,
+  "grade": "D",
+  "verdict": "Low Trust - Blocked by high diagnostic risk (misaligned confidence-weighted error distribution)",
   "sub_scores": {
-    "calibration": 95.3,
+    "calibration": 88.3,
     "failure": 35.3,
-    "bias": 90.0
+    "bias": 89.6
   },
   "weights_used": {
     "calibration": 0.389,
@@ -13,8 +13,8 @@
     "bias": 0.278
   },
   "breakdown": {
-    "calibration": 37.06,
+    "calibration": 34.33,
     "failure": 11.75,
-    "bias": 25.0
+    "bias": 24.88
   }
 }
