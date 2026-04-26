@@ -164,24 +164,51 @@
     "subgroup_performance": {
       "age_group": {
         "18-30": {
-          "n_samples": 181,
-          "accuracy": 0.9171,
-          "f1": 0.8686
+          "n_samples": 195,
+          "accuracy": 0.9333,
+          "f1": 0.8968
         },
         "31-50": {
-          "n_samples": 202,
-          "accuracy": 0.9406,
-          "f1": 0.9065
+          "n_samples": 213,
+          "accuracy": 0.9484,
+          "f1": 0.9177
         },
         "51+": {
-          "n_samples": 217,
-          "accuracy": 0.9401,
-          "f1": 0.8974
+          "n_samples": 192,
+          "accuracy": 0.9167,
+          "f1": 0.8536
         },
         "__summary__": {
-          "performance_gap": 0.0235,
+          "performance_gap": 0.0317,
           "best_group": "31-50",
-          "worst_group": "18-30"
+          "worst_group": "51+"
+        }
+      }
+    },
+    "equalized_odds": {
+      "age_group": {
+        "18-30": {
+          "n_samples": 195,
+          "tpr": 0.8461538461538461,
+          "fpr": 0.04487179487179487
+        },
+        "31-50": {
+          "n_samples": 213,
+          "tpr": 0.9,
+          "fpr": 0.04046242774566474
+        },
+        "51+": {
+          "n_samples": 192,
+          "tpr": 0.7575757575757576,
+          "fpr": 0.050314465408805034
+        },
+        "__summary__": {
+          "tpr_gap": 0.1424,
+          "fpr_gap": 0.0099,
+          "tpr_violation": "moderate",
+          "fpr_violation": "acceptable",
+          "best_tpr_group": "31-50",
+          "worst_tpr_group": "51+"
         }
       }
     }
