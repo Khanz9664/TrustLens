@@ -20,19 +20,19 @@ This diagram illustrates the end-to-end pipeline from raw model inputs to the fi
     graph TD
         Input[Input: model, X, y_true, y_prob?, sensitive_features?] --> Validate[Validation & Prob Resolution]
         Validate --> Orchestrator[api.analyze Orchestration]
-        
+
         subgraph Metrics Engine
             Orchestrator --> Calib[Calibration: Brier, ECE]
             Orchestrator --> Fail[Failure: Confidence Gap]
             Orchestrator --> Bias[Bias: Subgroup, Equalized Odds]
             Orchestrator --> Rep[Representation: Silhouette]
         end
-        
+
         Calib --> Results[Results Dict]
         Fail --> Results
         Bias --> Results
         Rep --> Results
-        
+
         Results --> Scoring[trust_score.py: base_score vs Penalties]
         Scoring --> Report[TrustReport: Narrative & Interpretation]
         Report --> Output[Console / Plots / Saved Files]
