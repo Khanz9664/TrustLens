@@ -4,7 +4,7 @@ This page is the canonical reference for how TrustLens turns diagnostics into a 
 
 ## Why a Composite Score Exists
 
-Raw metrics are useful, but teams still need one final decision signal for release gates and model comparison.  
+Raw metrics are useful, but teams still need one final decision signal for release gates and model comparison.
 TrustLens computes a composite Trust Score from calibration, failure behavior, bias risk, and representation quality.
 
 The score is not meant to replace detailed metrics. It is meant to summarize them for decision making.
