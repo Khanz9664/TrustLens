@@ -1,25 +1,61 @@
 # Real-World Use Cases
 
-TrustLens is applied across industries to ensure model safety and governance.
+This page shows how TrustLens is used in practical decision points where accuracy alone is not enough.
 
----
+## How to Read These Examples
 
-## 1. Safety-Critical Selection (Medical AI)
-**Scenario**: Choosing between a 94% accurate "Black Box" model and a 92% accurate well-calibrated model.
-- **TrustLens Output**: Identifies that the 94% model has high Expected Calibration Error (ECE), making its probability scores unreliable for triage.
-- **Verdict**: Recommend the 92% model due to superior calibration and reliability.
+Each use case has three parts:
 
-## 2. Model Governance & Compliance
-**Scenario**: Auditing financial models for bias before submission to regulators.
-- **TrustLens Output**: Automatically identifies performance gaps in `Equalized Odds` for sensitive protected attributes.
-- **Verdict**: Flag model as "Blocked" due to fairness violations, providing clear evidence for retraining.
+- **Scenario**: the production decision context
+- **Diagnostic signal**: what TrustLens surfaces
+- **Decision impact**: what action follows
 
-## 3. High-Throughput Maintenance
-**Scenario**: Monitoring if a deployed model is starting to "drift" or become overconfident on new data.
-- **TrustLens Output**: Detects a shrinking `Confidence Gap` over time, indicating the model is becoming less reliable at separating correct from incorrect predictions.
-- **Verdict**: Trigger a manual review of the last 1000 samples.
+## Safety-Critical Model Selection
 
-## 4. Head-to-Head Comparison
-**Scenario**: Testing three different candidate models for a production vacancy.
-- **TrustLens Output**: A ranked comparison dashboard showing which model has the cleanest aggregate Trust Score.
-- **Verdict**: Select the model with the lowest penalty burden, even if its raw accuracy is marginally lower than competitors.
+**Scenario**
+You must choose between a higher-accuracy model and a slightly lower-accuracy but better-calibrated model.
+
+**Diagnostic signal**
+Calibration outputs indicate that the higher-accuracy model has materially higher ECE and less reliable confidence.
+
+**Decision impact**
+Prefer the model with safer confidence behavior for triage-heavy workflows.
+
+## Governance and Fairness Review
+
+**Scenario**
+A model must pass internal fairness review before release.
+
+**Diagnostic signal**
+Subgroup gap and equalized-odds outputs show severe disparity for one sensitive feature.
+
+**Decision impact**
+Treat release as blocked until disparity is investigated and mitigated.
+
+## Post-Deployment Reliability Monitoring
+
+**Scenario**
+A deployed model still meets top-line accuracy targets, but support teams report suspicious errors.
+
+**Diagnostic signal**
+Confidence gap trends shrink over time and high-confidence mistakes increase.
+
+**Decision impact**
+Trigger focused error review and retraining or recalibration cycle.
+
+## Candidate Ranking for Release
+
+**Scenario**
+Several candidates pass baseline accuracy and latency targets.
+
+**Diagnostic signal**
+`compare()` shows one candidate has lower penalty burden and no blockers.
+
+**Decision impact**
+Select the safer candidate, even if raw accuracy is slightly lower.
+
+## Related Pages
+
+- [Model Comparison Workflow](guides/model_comparison_workflow.md)
+- [CI and Deployment Gate Workflow](guides/ci_deployment_gate.md)
+- [Fairness Audit Workflow](guides/fairness_audit_workflow.md)

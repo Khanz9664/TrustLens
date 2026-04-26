@@ -1,16 +1,18 @@
 # System Architecture
 
-TrustLens is a **decision-support framework** designed to transform raw model outputs into actionable deployment decisions. It operates through a decoupled pipeline that separates data orchestration from performance metrics, composite scoring, and narrative interpretation.
+TrustLens is designed as a layered pipeline so diagnostic computation, scoring logic, and report interpretation remain decoupled and maintainable.
 
----
+## Why This Design Matters
 
-## 1. High-Level Perspective
+The architecture aims to solve three practical needs:
 
-TrustLens is structured as a series of specialized layers, each governed by strict data contracts.
+- stable and testable metric computation
+- explicit decision logic with traceable rules
+- clear extension points for contributors
 
-### System-Level Data Flow
+## High-Level Data Flow
 
-This diagram illustrates the end-to-end pipeline from raw model inputs to the final deployment recommendation.
+This diagram shows how inputs move from orchestration to metrics, scoring, and final reporting.
 
 ```mermaid
 graph TD
@@ -34,15 +36,11 @@ graph TD
     Report --> Output[Console / Plots / Saved Files]
 ```
 
-*This diagram shows how raw inputs are transformed into structured metrics, then aggregated into a trust score and final deployment decision.*
+**Implementation note**: `analyze()` resolves probabilities from `predict_proba` when available and only executes optional modules when required metadata is provided.
 
-**Technical Note**: The orchestrator automatically handles `predict_proba` resolution if `y_prob` is not provided, and conditionally executes the **Bias** and **Representation** modules only when the required metadata (`sensitive_features` or `embeddings`) is present.
+## Component Interactions
 
----
-
-## 2. Component Interactions
-
-The system relies on structured data flow between internal components.
+The interaction model is centered around a structured `results` dictionary.
 
 ```mermaid
 graph LR
@@ -54,20 +52,16 @@ graph LR
     Report -- "Insights/Patterns" --> User[User/Developer]
 ```
 
-*This interaction map defines the flow of the internal results dictionary as it is enriched by the metrics and scoring engines before final interpretation.*
-
 ### Data Contracts
 
-1. **API → Metrics**: Passes sanitized numpy arrays (`y_true`, `y_prob`, `y_pred`).
-2. **Metrics → API**: Returns standard dictionaries containing scalars (e.g., `ece`) and plotting vectors (e.g., `reliability_curve_points`).
-3. **API → TrustReport**: Assembles the `results` payload and provides a model reference for metadata extraction.
-4. **TrustReport → TrustScore**: Consumes the `results` dict and evaluates it against predefined threshold constants.
+1. **API to metrics**: normalized arrays (`y_true`, `y_pred`, `y_prob`) and optional metadata.
+2. **Metrics to API**: module-scoped dictionaries with scalar values and plot-friendly arrays.
+3. **API to report**: consolidated `results` plus model and data references.
+4. **Report to scorer**: score computation from `results` including penalties and blockers.
 
----
+## Execution Sequence
 
-## 3. Execution Sequence
-
-The following sequence diagram tracks a single call to `api.analyze()`, highlighting the synchronous handoffs and conditional execution paths.
+This sequence shows one `analyze()` call from input to `TrustReport`.
 
 ```mermaid
 sequenceDiagram
@@ -91,83 +85,59 @@ sequenceDiagram
     Report-->>User: TrustReport Object
 ```
 
-*The sequence trace identifies where high-overhead or data-dependent modules are conditionally activated by the orchestrator.*
-
----
-
-## 4. Layer Responsibilities
+## Layer Responsibilities
 
 ### Orchestration Layer (`api.py`)
-Centrally manages the execution of analysis modules.
 
-* **Validation**: Ensures input consistency (e.g., matching shapes for `X` and `y_true`).
-* **Resolution**: Implements fallback logic for models without `predict_proba`.
-* **Dispatch**: Triggers modular units (`calibration`, `failure`, and conditionally `bias`/`representation`) and manages progress tracking via `tqdm`.
+- validates basic input assumptions
+- resolves probabilities when possible
+- dispatches enabled modules
+- assembles the final `results` payload
 
-### Metrics Engine (`metrics/`)
-Dedicated compute nodes for specialized diagnostics.
+### Metrics Layer (`metrics/`)
 
-* **Calibration**: Computes **Brier Score** and **Expected Calibration Error (ECE)** to measure probability reliability.
-* **Failure Analysis**: Calculates the **Confidence Gap** (difference between correct and incorrect prediction confidence).
-* **Bias Detection**: (*Optional*) Evaluates **Subgroup Performance Gap** and **Equalized Odds** (TPR/FPR parity).
-* **Representation**: (*Optional / Advanced*) Representation analysis using **Silhouette Scores**.
+- computes calibration, failure, bias, and representation diagnostics
+- keeps each metric family independent and testable
+- returns structured outputs for scoring and visualization
 
-### Decision Layer (`trust_score.py`)
-The system's judging engine. It uses a hybrid scoring methodology:
+### Scoring Layer (`trust_score.py`)
 
-1. **Base Score**: A weighted combination (configurable; default ≈ 35 / 30 / 25 / 10).
-2. **Penalty Burden**: Linear deductions for specific failures (e.g., ECE > 0.05).
-3. **Deployment Blockers**: Boolean flags (`is_blocked`) triggered by severe risks. **Critical Note**: Deployment blockers override numeric scores to prevent unsafe model approval regardless of performance in other dimensions.
+- computes sub-scores and weighted composite score
+- redistributes weights for missing dimensions
+- applies penalties and deployment blockers
 
-### Narrative & Interpretation Layer (`report.py`)
-Converts raw numbers into human-readable signals (often referred to as the "Narrative Brain").
+### Reporting Layer (`report.py`)
 
-* **Pattern Detection**: Identifies higher-order behaviors like *"Confidently Wrong"* or *"Calibration Drift"*.
-* **Insight Generation**: Ranks observations by severity (Critical, Warning, Info).
-* **Narrative Serialization**: Generates the final console summaries and the Plotly/Matplotlib dashboards.
+- packages run metadata and module outputs
+- generates textual and visual summaries
+- surfaces patterns and decision-oriented insights
 
-### Comparative Engine (`comparison.py`)
-Provides causal reasoning for multi-model selection. It ranks candidates by score and identifies the "Comparative Advantage".
+### Comparison Layer (`comparison.py`)
 
-* **Example Output**: *"Model A recommended due to lower failure penalty and no active fairness violations."*
+- compares candidate `TrustReport` objects
+- filters blocked candidates
+- provides deployment recommendation rationale
 
----
+## Extensibility Path
 
-## 5. Design Principles
+To add a new metric module:
 
-* **Modular Architecture**: Modules are isolated; failure in one (e.g., bias) does not crash the entire pipeline.
-* **Separation of Concerns**: Each layer operates independently with well-defined data contracts.
-* **Explainability-First**: Every metric is tied to a human-readable "Insight" in the report.
-* **Decision-Support**: TrustLens doesn't just report numbers; it provides a **Verdict** (Deploy vs. Investigate).
-* **Zero-Friction**: Primary entry points (`quick_analyze`) require minimal configuration for demoing.
+1. implement the metric under `trustlens/metrics/`
+2. wire dispatch logic in `analyze()`
+3. ensure return format follows existing `results` conventions
+4. add tests and documentation
+5. optionally integrate into trust score weighting
 
----
+## Architectural Constraints
 
-## 6. Extensibility Architecture
+- optimized for classification evaluation
+- fairness checks are data- and task-dependent
+- representation diagnostics require embeddings
+- some threshold logic is currently heuristic by design
 
-TrustLens is designed to be extended by researchers and engineers.
+## Related Pages
 
-### Example: Adding a New Metric
-1. **Metric Implementation**: Create a function in `trustlens/metrics/new_metric.py`.
-2. **API Integration**: Add the module to the `_ALL_MODULES` registry in `trustlens/api.py`.
-3. **Dispatch Logic**: Add a dispatch block in `api.analyze()` to call your new metric and save results to the dictionary.
-4. **Scoring Integration**: (Optional) Add a weight/sub-score computer in `trust_score.py`.
-
----
-
-## 7. Limitations & Constraints
-
-* **Model Compatibility**: Optimized for Classifiers (binary/multi-class). Regression support is currently experimental.
-* **Data Density**: Calibration metrics (ECE) require a minimum of 30 samples for statistical validity.
-* **Linear Penalties**: Penalty deduction is current linear; non-linear risk modeling is planned for future releases.
-* **Input Requirements**: Interpretability depends on availability of probabilities and optional metadata (e.g., sensitive features).
-
----
-
-## 8. Experimental Ecosystem
-
-Modules marked `[Experimental]` (e.g., **Explainability/Grad-CAM**) are kept isolated from the core production pipeline to:
-
-1. Reduce required dependency bloat (e.g., avoiding mandatory PyTorch).
-2. Allow for research-stage iteration without affecting system stability.
-3. Provide a clear path for promotion based on usage and stability testing (see [`docs/EXPERIMENTAL.md`](EXPERIMENTAL.md)).
+- [Features and Modules](features.md)
+- [Trust Score Explained](trust_score_explained.md)
+- [Known Limitations](known_limitations.md)
+- [Experimental Modules](EXPERIMENTAL.md)
