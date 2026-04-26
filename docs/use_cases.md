@@ -1,24 +1,25 @@
 # Real-World Use Cases
 
-TrustLens is a **decision-support system** used to determine if a model is safe for production.
+TrustLens is applied across industries to ensure model safety and governance.
 
+---
 
-### Medical AI
-Identify overconfidence in edge cases before a diagnostic model reaches a patient. TrustLens flags high ECE (>0.15) early, suggesting where a human-in-the-loop is most needed.
+## 1. Safety-Critical Selection (Medical AI)
+**Scenario**: Choosing between a 94% accurate "Black Box" model and a 92% accurate well-calibrated model.
+- **TrustLens Output**: Identifies that the 94% model has high Expected Calibration Error (ECE), making its probability scores unreliable for triage.
+- **Verdict**: Recommend the 92% model due to superior calibration and reliability.
 
-### Fraud Detection
-Quantify your false-negative problem. If your confidence gap is low, your model is equally confident on the fraud it catches and the fraud it misses — a clear signal that the decision threshold needs tuning.
+## 2. Model Governance & Compliance
+**Scenario**: Auditing financial models for bias before submission to regulators.
+- **TrustLens Output**: Automatically identifies performance gaps in `Equalized Odds` for sensitive protected attributes.
+- **Verdict**: Flag model as "Blocked" due to fairness violations, providing clear evidence for retraining.
 
-### Hiring & Lending
-Automated subgroup analysis reveals performance gaps across demographics (gender, age, ethnicity) before they become regulatory liabilities or ethical failures.
+## 3. High-Throughput Maintenance
+**Scenario**: Monitoring if a deployed model is starting to "drift" or become overconfident on new data.
+- **TrustLens Output**: Detects a shrinking `Confidence Gap` over time, indicating the model is becoming less reliable at separating correct from incorrect predictions.
+- **Verdict**: Trigger a manual review of the last 1000 samples.
 
-### Manufacturing & Quality Control
-Monitor representation drift. By analyzing CKA (Centered Kernel Alignment) between training and production embeddings, teams can detect when a model's understanding of "defective" is shifting.
-
-### Model Selection & Deployment
-Head-to-head model evaluation is a core capability. Instead of choosing the model with the highest accuracy, teams use `trustlens.compare()` to find the candidate with the lowest "penalty burden" and most robust calibration.
-
-### Production Safety & Gating
-- **Automated Gating**: Integrate TrustLens into CI/CD pipelines to block models that trigger "Confidently Wrong" patterns or severe fairness violations.
-- **Explainable Auditing**: Use ranked score explanations to justify to stakeholders exactly why a model was approved (or blocked) for release.
-- **Monitoring Reliability Decay**: Track the Trust Score over time using tools like MLflow or W&B to detect when a production model's decision logic begins to degrade.
+## 4. Head-to-Head Comparison
+**Scenario**: Testing three different candidate models for a production vacancy.
+- **TrustLens Output**: A ranked comparison dashboard showing which model has the cleanest aggregate Trust Score.
+- **Verdict**: Select the model with the lowest penalty burden, even if its raw accuracy is marginally lower than competitors.

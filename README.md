@@ -116,21 +116,7 @@ TrustLens provides a multi-layered diagnostic report:
 
 ## Documentation
 
-Detailed guides and architecture references are available in our [structured documentation](docs/index.md):
-
-### Core Concepts
-* [**The Problem**](docs/problem.md) — Why accuracy is a dangerous metric for production.
-* [**Who This Is For**](docs/audience.md) — Targeted guidance for MLEs, Data Scientists, and Researchers.
-
-### Deep Dive
-* [**Features & Modules**](docs/features.md) — Deep dive into Calibration, Failure, Bias, and Representation.
-* [**Real-World Use Cases**](docs/use_cases.md) — Medical AI, Fraud Detection, and Hiring.
-* [**Architecture**](docs/architecture.md) — Modular design and internal logic.
-
-### Development
-* [**Contributing**](CONTRIBUTING.md) — How to set up your dev environment.
-* [**Code of Conduct**](CODE_OF_CONDUCT.md) — Our community standards.
-* [**Roadmap**](ROADMAP.md) — Future features and project vision.
+Detailed guides and architecture references are available in our [structured documentation](docs/index.md)
 
 <!-- Maintainers: Consider updating GitHub repository description to: "Debug your ML models beyond accuracy | Structured docs in /docs" -->
 

@@ -1,61 +1,57 @@
-# Features & Output
+# Features & Modules
 
-TrustLens goes beyond pass/fail — it explains why your model should or shouldn't be trusted. It provides a deep dive into the four dimensions of model trust.
-
-## The Trust Score
-
-A single, actionable number: **0 to 100.** Computed from a **weighted combination (configurable, default ~40/40/20)** of three core dimensions with automatic **diagnostic penalties** for critical risks:
-
-| Dimension | What it measures |
-|---|---|
-| **Calibration** | Do probabilities reflect reality? |
-| **Failure** | Does confidence correlate with accuracy? |
-| **Bias** | Are all groups treated equally? |
-
-
-The final score is: `(Base Score) - (Critical Penalties)`.
-
+TrustLens provides a suite of specialized modules, each targeting a specific dimension of model reliability.
 
 ---
 
-## Core Modules
+## 1. Calibration Module
+*Ensure probabilities mean what they say.*
 
-*Learn how these modules are structured internally in the [Architecture Guide](architecture.md).*
+Calibration measures the reliability of a model's predicted probabilities. A well-calibrated model that predicts 70% confidence for a set of samples should be correct for approximately 70% of them.
 
-### 1. Calibration Analysis
-Uncover if your model is overconfident or underconfident.
-* **Metrics**: Brier Score, Expected Calibration Error (ECE).
-* **Pattern Detection**: Detects **Calibration Drift** — when reliability of predicted probabilities is low.
-
-### 2. Failure Analysis
-Identify "confidence-weighted errors" — mistakes made when the model is certain.
-* **Interpretation**: Automatically distinguishes between "Safe Failures" and "Confidently Wrong" patterns.
-* **Insights**: Provides concrete analysis of confidence ranges where errors are concentrated.
-
-### 3. Bias Detection
-Surface performance gaps across subgroups using **Bias Margins**.
-* **Metrics**: Explicitly calculates distance from the parity threshold (0.10 limit).
-* **Integration**: Powered by `equalized_odds` for rigorous fairness auditing.
-
-### 4. Model Comparison
-The **Comparison Engine** recommend candidates for deployment.
-* **Advantage**: Automatically ties penalty differences back to root causes (e.g., "higher due to poor calibration").
-* **API**: `trustlens.comparison.compare(reports)` for head-to-head evaluation.
-
+- **ECE (Expected Calibration Error)**: Quantifies the average gap between confidence and accuracy across confidence bins.
+- **Brier Score**: Measures the mean squared difference between predicted probabilities and actual outcomes.
+- **Reliability Curves**: Visual diagnostics to identify overconfidence or underconfidence.
 
 ---
 
-## Explainability Layer
+## 2. Failure Analysis Module
+*Identify the "Confidently Wrong" patterns.*
 
-TrustLens is designed to justify its verdicts:
-- **Ranked Explanation**: Reports the top contributors to score deductions (Dominant → Secondary).
-- **Verdicts & Blocks**: Decisive assessment strings (e.g., "Blocked by high diagnostic risk") mapped to score tiers.
-- **Pattern Flags**: High-level semantic signals used for diagnostic interpretation:
-  - **Calibration Drift**: Probabilities are unreliable (high ECE).
-  - **Confidently Wrong**: High-confidence incorrect predictions.
+High-accuracy models often hide dangerous failure modes. This module drills down into the errors.
 
+- **Confidence Gap**: The difference between the model's confidence on correct vs. incorrect predictions. A narrow gap signals high diagnostic risk.
+- **High-Confidence Failures**: Automatic flagging of samples where the model was >90% sure but wrong.
+- **Severity Ranking**: Categorizes errors to prioritize manual review.
 
-## Output Formats
-- **Interactive**: Rich Jupyter representations via `_repr_html_`.
-- **Narrative**: High-density humans reports with structured methodology notes.
-- **Structured**: JSON export for automated CI/CD gating (`report.save("report.json")`).
+---
+
+## 3. Bias & Fairness Module
+*Detect performance disparities across subgroups.*
+
+Bias detection reveals performance gaps across sensitive subgroups, helping ensure models are equitable before deployment.
+
+- **Subgroup Disparity**: Compares Accuracy, Precision, and Recall across protected attributes (e.g., gender, age).
+- **Equalized Odds**: Checks for parity in False Positive Rates (FPR) and True Positive Rates (TPR) across groups.
+- **Fairness Margin**: A distance-to-limit metric that triggers penalties if disparities exceed acceptable thresholds.
+
+---
+
+## 4. Representation Module
+*Audit data integrity and out-of-distribution risks.*
+
+Leverages embeddings to understand if the model is operating on "familiar" ground.
+
+- **Silhouette Scores**: Measures how well-defined the model's feature space is.
+- **OOD Detection**: (Experimental) Identifies samples that fall far from the training representation cluster.
+
+---
+
+## 5. Trust Scoring Engine
+*The unified decision-support signal.*
+
+Aggregates all modules into a single **Trust Score (0-100)** and a **Grade (A-F)**.
+
+- **Weights**: Configurable importance for each module.
+- **Penalties**: Dynamic deductions based on risk severity.
+- **Blockers**: Automatic "Blocked" verdict if critical thresholds are violated (e.g., severe bias or extreme overconfidence).
