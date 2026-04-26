@@ -18,10 +18,13 @@ extensions = [
     "sphinx.ext.autosummary",
     "myst_parser",
     "nbsphinx",
+    "sphinxcontrib.mermaid",
 ]
 
+myst_enable_extensions = ["dollarmath", "amsmath", "deflist", "html_image"]
+myst_fence_as_directive = ["mermaid"]
+
 source_suffix = {
-    ".rst": "restructuredtext",
     ".md": "markdown",
 }
 
@@ -29,18 +32,7 @@ autosummary_generate = True
 autodoc_member_order = "bysource"
 
 templates_path = ["_templates"]
-exclude_patterns = [
-    "_build",
-    "Thumbs.db",
-    ".DS_Store",
-    "index.md",
-    "getting_started.md",
-    "overview.md",
-    "architecture.md",
-    "features.md",
-    "use_cases.md",
-    "EXPERIMENTAL.md",
-]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # -- Options for HTML output -------------------------------------------------
 

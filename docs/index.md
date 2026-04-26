@@ -1,30 +1,51 @@
-# TrustLens Documentation
+# TrustLens: The ML Decision Support System
 
-Welcome to the TrustLens documentation. This guide serves as the central hub for our **decision-support system**, designed to audit machine learning models for reliability, calibration, bias, and deployment safety.
+TrustLens is a production-grade **decision-support system** designed to transform raw model outputs into actionable deployment decisions.
 
+Beyond standard accuracy, TrustLens provides a deep, multi-dimensional audit of your model's reliability, safety, and fairness. It bridges the gap between raw metrics and the technical evidence needed to approve (or block) a model for production.
 
-## Start Here
+### Core Concepts
+* [**The Problem**](problem.md) — Why accuracy is a dangerous metric for production.
+* [**Who This Is For**](audience.md) — Targeted guidance for MLEs, Data Scientists, and Researchers.
 
-If you are new to TrustLens, we recommend following this path to get up to speed:
+### Deep Dive
+* [**Features & Modules**](features.md) — Deep dive into Calibration, Failure, Bias, and Representation.
+* [**Real-World Use Cases**](use_cases.md) — Medical AI, Fraud Detection, and Hiring.
+* [**Architecture**](architecture.md) — Modular design and internal logic.
 
-1. **[Quickstart](../README.md#quickstart)** — Install and run your first analysis in under two minutes.
-2. **[The Problem](problem.md)** — Understand why accuracy isn't enough and what TrustLens is solving.
-3. **[Features & Modules](features.md)** — Learn about the four core dimensions of model trust.
+### Development
+* [**Contributing**](../CONTRIBUTING.md) — How to set up your dev environment.
+* [**Code of Conduct**](../CODE_OF_CONDUCT.md) — Our community standards.
+* [**Roadmap**](../ROADMAP.md) — Future features and project vision.
 
-## Core Concepts
+---
 
-* [The Problem](problem.md) — Why accuracy is a dangerous metric for production.
-* [Who This Is For](audience.md) — Targeted guidance for MLEs, Data Scientists, and Researchers.
+<details>
+<summary>🔍 Developer Navigation (Sphinx Only)</summary>
 
-## Deep Dive
+```{toctree}
+:maxdepth: 2
+:caption: "Contents:"
 
-* [Features & Modules](features.md) — Deep dive into Calibration, Failure, Bias, and Representation.
-* [Real-World Use Cases](use_cases.md) — From medical AI tohead-to-head model comparison.
-* [Architecture](architecture.md) — Modular design, interpretation layers, and scoring logic.
+getting_started
+overview
+architecture
+features
+use_cases
+api_reference
+```
 
+```{toctree}
+:maxdepth: 2
+:caption: "Developer Guide:"
 
-## Development
+EXPERIMENTAL
+```
 
-* [Contributing](../CONTRIBUTING.md) — How to set up your dev environment.
-* [Code of Conduct](../CODE_OF_CONDUCT.md) — Our community standards.
-* [Roadmap](../ROADMAP.md) — Future features and project vision.
+## Indices and tables
+
+* {ref}`genindex`
+* {ref}`modindex`
+* {ref}`search`
+
+</details>
