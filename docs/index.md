@@ -4,7 +4,6 @@ TrustLens is a production-grade **decision-support system** designed to transfor
 
 Beyond standard accuracy, TrustLens provides a deep, multi-dimensional audit of your model's reliability, safety, and fairness. It bridges the gap between raw metrics and the technical evidence needed to approve (or block) a model for production.
 
-
 ### Core Concepts
 * [**The Problem**](problem.md) — Why accuracy is a dangerous metric for production.
 * [**Who This Is For**](audience.md) — Targeted guidance for MLEs, Data Scientists, and Researchers.
@@ -20,6 +19,9 @@ Beyond standard accuracy, TrustLens provides a deep, multi-dimensional audit of 
 * [**Roadmap**](../ROADMAP.md) — Future features and project vision.
 
 ---
+
+<details>
+<summary>🔍 Developer Navigation (Sphinx Only)</summary>
 
 ```{toctree}
 :maxdepth: 2
@@ -40,10 +42,10 @@ api_reference
 EXPERIMENTAL
 ```
 
----
-
 ## Indices and tables
 
 * {ref}`genindex`
 * {ref}`modindex`
 * {ref}`search`
+
+</details>
