@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pattern detection system (e.g., "Calibration Drift", "Confidently Wrong") to surface high-level semantic risks.
 - Initial `equalized_odds()` fairness metric with per-group TPR/FPR analysis (closes #17). Thanks @komoike-oss28-ui
 - Ranked score explanation layer to justify Trust Score deductions.
+- `equalized_odds()`: added input validation, configurable violation thresholds (`severe_threshold`, `moderate_threshold`), and concrete docstring examples (closes #41)
 
 ### Improved
 - Final Trust Score logic now includes a base score, penalty breakdown, and decisive deployment verdicts.
