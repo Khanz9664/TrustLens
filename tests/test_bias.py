@@ -168,3 +168,88 @@ class TestEqualizedOdds:
         result = equalized_odds(y_true, y_pred, sensitive_features={"group": group})
         assert result["group"]["0"]["n_samples"] == 3
         assert result["group"]["1"]["n_samples"] == 2
+
+    # --- New tests for issue #41 ---
+
+    def test_custom_thresholds_moderate(self):
+        """Custom thresholds: gap that is 'severe' by default becomes 'moderate'."""
+        y_true = np.array([1, 1, 0, 0, 1, 1, 0, 0])
+        y_pred = np.array([1, 0, 0, 0, 1, 1, 1, 0])
+        gender = np.array([0, 0, 0, 0, 1, 1, 1, 1])
+
+        # tpr_gap=0.5, with severe_threshold=0.6 this should be 'moderate'
+        result = equalized_odds(
+            y_true,
+            y_pred,
+            sensitive_features={"gender": gender},
+            severe_threshold=0.6,
+            moderate_threshold=0.1,
+        )
+        assert result["gender"]["__summary__"]["tpr_violation"] == "moderate"
+
+    def test_custom_thresholds_acceptable(self):
+        """Custom thresholds: gap that is 'moderate' by default becomes 'acceptable'."""
+        y_true = np.array([1, 0, 1, 0])
+        y_pred = np.array([1, 0, 1, 0])
+        group = np.array([0, 0, 1, 1])
+
+        result = equalized_odds(
+            y_true,
+            y_pred,
+            sensitive_features={"group": group},
+            severe_threshold=0.3,
+            moderate_threshold=0.1,
+        )
+        assert result["group"]["__summary__"]["tpr_violation"] == "acceptable"
+
+    def test_default_thresholds_unchanged(self):
+        """Default thresholds remain 0.15 / 0.05 — backward compatible."""
+        y_true = np.array([1, 1, 0, 0, 1, 1, 0, 0])
+        y_pred = np.array([1, 0, 0, 0, 1, 1, 1, 0])
+        gender = np.array([0, 0, 0, 0, 1, 1, 1, 1])
+
+        result = equalized_odds(y_true, y_pred, sensitive_features={"gender": gender})
+        assert result["gender"]["__summary__"]["tpr_violation"] == "severe"
+
+    def test_validation_empty_arrays(self):
+        """Empty y_true / y_pred should raise ValueError."""
+        with pytest.raises(ValueError, match="must not be empty"):
+            equalized_odds(np.array([]), np.array([]), {"group": np.array([])})
+
+    def test_validation_length_mismatch_y(self):
+        """Mismatched y_true and y_pred lengths should raise ValueError."""
+        with pytest.raises(ValueError, match="same length"):
+            equalized_odds(
+                np.array([1, 0, 1]),
+                np.array([1, 0]),
+                {"group": np.array([0, 0, 1])},
+            )
+
+    def test_validation_length_mismatch_feature(self):
+        """Mismatched sensitive_features length should raise ValueError."""
+        with pytest.raises(ValueError, match="sensitive_features"):
+            equalized_odds(
+                np.array([1, 0, 1, 0]),
+                np.array([1, 0, 1, 0]),
+                {"group": np.array([0, 1])},  # wrong length
+            )
+
+    def test_validation_invalid_thresholds(self):
+        """moderate_threshold >= severe_threshold should raise ValueError."""
+        with pytest.raises(ValueError, match="Thresholds must satisfy"):
+            equalized_odds(
+                np.array([1, 0, 1, 0]),
+                np.array([1, 0, 1, 0]),
+                {"group": np.array([0, 0, 1, 1])},
+                severe_threshold=0.05,
+                moderate_threshold=0.15,
+            )
+
+    def test_validation_empty_sensitive_features(self):
+        """Empty sensitive_features dict should raise ValueError."""
+        with pytest.raises(ValueError, match="sensitive_features must not be empty"):
+            equalized_odds(
+                np.array([1, 0, 1, 0]),
+                np.array([1, 0, 1, 0]),
+                {},
+            )

@@ -168,6 +168,8 @@ def equalized_odds(
     y_true: np.ndarray,
     y_pred: np.ndarray,
     sensitive_features: dict[str, np.ndarray],
+    severe_threshold: float = 0.15,
+    moderate_threshold: float = 0.05,
 ) -> dict:
     """
     Compute Equalized Odds fairness metrics broken down by sensitive subgroups.
@@ -182,12 +184,18 @@ def equalized_odds(
     Parameters
     ----------
     y_true : np.ndarray
-        Ground-truth binary labels.
+        Ground-truth binary labels (0 or 1).
     y_pred : np.ndarray
-        Model predictions (binary).
+        Model predictions (binary, 0 or 1).
     sensitive_features : dict
         Mapping of feature name → 1-D array of group labels.
         Example: ``{"gender": gender_array}``.
+    severe_threshold : float, optional
+        Gap above which a violation is classified as ``"severe"``.
+        Default: ``0.15``.
+    moderate_threshold : float, optional
+        Gap above which a violation is classified as ``"moderate"``.
+        Must be less than ``severe_threshold``. Default: ``0.05``.
 
     Returns
     -------
@@ -208,21 +216,68 @@ def equalized_odds(
           * ``worst_tpr_group``  — group with lowest TPR
 
         Violation levels:
-          * ``"severe"``     — gap > 0.15
-          * ``"moderate"``   — gap between 0.05 and 0.15
-          * ``"acceptable"`` — gap < 0.05
+          * ``"severe"``     — gap > severe_threshold (default 0.15)
+          * ``"moderate"``   — gap between moderate_threshold and severe_threshold
+          * ``"acceptable"`` — gap < moderate_threshold (default 0.05)
+
+    Raises
+    ------
+    ValueError
+        If ``y_true`` and ``y_pred`` have different lengths.
+    ValueError
+        If any ``sensitive_features`` array has a different length than ``y_true``.
+    ValueError
+        If ``moderate_threshold`` >= ``severe_threshold``.
+    ValueError
+        If ``y_true`` or ``y_pred`` is empty.
 
     Examples
     --------
-    >>> results = equalized_odds(
-    ...     y_true, y_pred,
-    ...     sensitive_features={"gender": gender_array},
-    ... )
-    >>> print(results["gender"]["__summary__"]["tpr_violation"])
+    >>> import numpy as np
+    >>> from trustlens.metrics.bias import equalized_odds
+    >>>
+    >>> y_true = np.array([1, 1, 0, 0, 1, 1, 0, 0])
+    >>> y_pred = np.array([1, 0, 0, 0, 1, 1, 1, 0])
+    >>> gender  = np.array([0, 0, 0, 0, 1, 1, 1, 1])
+    >>>
+    >>> results = equalized_odds(y_true, y_pred, {"gender": gender})
+    >>> results["gender"]["0"]
+    {'n_samples': 4, 'tpr': 0.5, 'fpr': 0.0}
+    >>> results["gender"]["1"]
+    {'n_samples': 4, 'tpr': 1.0, 'fpr': 0.5}
+    >>> results["gender"]["__summary__"]
+    {'tpr_gap': 0.5, 'fpr_gap': 0.5, 'tpr_violation': 'severe', 'fpr_violation': 'severe', 'best_tpr_group': '1', 'worst_tpr_group': '0'}
     """
+    # --- Input validation ---
     y_true = np.asarray(y_true)
     y_pred = np.asarray(y_pred)
 
+    if len(y_true) == 0 or len(y_pred) == 0:
+        raise ValueError("y_true and y_pred must not be empty.")
+
+    if len(y_true) != len(y_pred):
+        raise ValueError(
+            f"y_true and y_pred must have the same length, got {len(y_true)} and {len(y_pred)}."
+        )
+
+    if not (0.0 < moderate_threshold < severe_threshold < 1.0):
+        raise ValueError(
+            f"Thresholds must satisfy 0 < moderate_threshold < severe_threshold < 1, "
+            f"got moderate_threshold={moderate_threshold}, severe_threshold={severe_threshold}."
+        )
+
+    if not sensitive_features:
+        raise ValueError("sensitive_features must not be empty.")
+
+    for feature_name, group_array in sensitive_features.items():
+        group_array = np.asarray(group_array)
+        if len(group_array) != len(y_true):
+            raise ValueError(
+                f"sensitive_features['{feature_name}'] has length {len(group_array)}, "
+                f"expected {len(y_true)}."
+            )
+
+    # --- Core computation ---
     report: dict = {}
 
     for feature_name, group_array in sensitive_features.items():
@@ -270,8 +325,8 @@ def equalized_odds(
         group_results["__summary__"] = {
             "tpr_gap": tpr_gap,
             "fpr_gap": fpr_gap,
-            "tpr_violation": _violation_level(tpr_gap),
-            "fpr_violation": _violation_level(fpr_gap),
+            "tpr_violation": _violation_level(tpr_gap, severe_threshold, moderate_threshold),
+            "fpr_violation": _violation_level(fpr_gap, severe_threshold, moderate_threshold),
             "best_tpr_group": best_tpr_group,
             "worst_tpr_group": worst_tpr_group,
         }
@@ -281,11 +336,13 @@ def equalized_odds(
     return report
 
 
-def _violation_level(gap: float) -> str:
+def _violation_level(
+    gap: float, severe_threshold: float = 0.15, moderate_threshold: float = 0.05
+) -> str:
     """Classify a fairness gap into a violation severity level."""
-    if gap > 0.15:
+    if gap > severe_threshold:
         return "severe"
-    elif gap >= 0.05:
+    elif gap >= moderate_threshold:
         return "moderate"
     else:
         return "acceptable"
