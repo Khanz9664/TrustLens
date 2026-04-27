@@ -70,3 +70,4 @@ Thumbs.db
 .env
 .env.local
 secrets/
+.dev/
