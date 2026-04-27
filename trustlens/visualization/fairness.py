@@ -10,6 +10,7 @@ Inputs are expected to come from ``report.results["bias"]``.
 from __future__ import annotations
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
@@ -100,14 +101,20 @@ def plot_subgroup_performance(
                 fontsize=11,
                 ha="right",
                 va="top",
-                bbox=dict(boxstyle="round,pad=0.4", facecolor="white", edgecolor="#CCCCCC", alpha=0.9),
+                bbox=dict(
+                    boxstyle="round,pad=0.4", facecolor="white", edgecolor="#CCCCCC", alpha=0.9
+                ),
                 fontfamily="monospace",
             )
 
     ax.set_ylim(0, 1.1)
     ax.set_xlabel(feature_name.capitalize(), fontsize=12)
     ax.set_ylabel(metric.capitalize(), fontsize=12)
-    ax.set_title(f"Subgroup {metric.capitalize()} by {feature_name.capitalize()}", fontsize=13, fontweight="bold")
+    ax.set_title(
+        f"Subgroup {metric.capitalize()} by {feature_name.capitalize()}",
+        fontsize=13,
+        fontweight="bold",
+    )
     ax.grid(axis="y", alpha=0.35)
 
     if save_path:
@@ -165,8 +172,26 @@ def plot_equalized_odds(
 
     fig, ax = plt.subplots(figsize=(8, 5), constrained_layout=True)
 
-    bars_tpr = ax.bar(x - width / 2, tpr_values, width, label="TPR", color="#4B8BF5", edgecolor="white", linewidth=1.2, alpha=0.85)
-    bars_fpr = ax.bar(x + width / 2, fpr_values, width, label="FPR", color="#F5784B", edgecolor="white", linewidth=1.2, alpha=0.85)
+    bars_tpr = ax.bar(
+        x - width / 2,
+        tpr_values,
+        width,
+        label="TPR",
+        color="#4B8BF5",
+        edgecolor="white",
+        linewidth=1.2,
+        alpha=0.85,
+    )
+    bars_fpr = ax.bar(
+        x + width / 2,
+        fpr_values,
+        width,
+        label="FPR",
+        color="#F5784B",
+        edgecolor="white",
+        linewidth=1.2,
+        alpha=0.85,
+    )
 
     # Annotate bars
     for bar, val in zip(bars_tpr, tpr_values):
@@ -174,14 +199,20 @@ def plot_equalized_odds(
             bar.get_x() + bar.get_width() / 2,
             bar.get_height() + 0.01,
             f"{val:.3f}",
-            ha="center", va="bottom", fontsize=10, fontweight="bold",
+            ha="center",
+            va="bottom",
+            fontsize=10,
+            fontweight="bold",
         )
     for bar, val in zip(bars_fpr, fpr_values):
         ax.text(
             bar.get_x() + bar.get_width() / 2,
             bar.get_height() + 0.01,
             f"{val:.3f}",
-            ha="center", va="bottom", fontsize=10, fontweight="bold",
+            ha="center",
+            va="bottom",
+            fontsize=10,
+            fontweight="bold",
         )
 
     # Summary annotation
@@ -268,7 +299,10 @@ def plot_fairness_gap(
             bar.get_x() + bar.get_width() / 2,
             bar.get_height() + 0.005,
             f"{val:.3f}",
-            ha="center", va="bottom", fontsize=12, fontweight="bold",
+            ha="center",
+            va="bottom",
+            fontsize=12,
+            fontweight="bold",
         )
 
     # Violation level annotations
@@ -276,14 +310,18 @@ def plot_fairness_gap(
     fpr_violation = summary.get("fpr_violation", "")
     violation_colors = {"severe": "#FF2D55", "moderate": "#FF9F0A", "acceptable": "#34C759"}
 
-    for i, (violation, label) in enumerate(zip([tpr_violation, fpr_violation], labels)):
+    for i, (violation, _label) in enumerate(zip([tpr_violation, fpr_violation], labels)):
         color = violation_colors.get(violation, "#CCCCCC")
         ax.text(
             i,
             -0.06,
             violation,
-            ha="center", va="top", fontsize=10, fontweight="bold",
-            color=color, transform=ax.get_xaxis_transform(),
+            ha="center",
+            va="top",
+            fontsize=10,
+            fontweight="bold",
+            color=color,
+            transform=ax.get_xaxis_transform(),
         )
 
     ax.set_ylim(0, 1.1)
