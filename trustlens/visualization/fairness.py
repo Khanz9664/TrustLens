@@ -55,6 +55,11 @@ def plot_subgroup_performance(
     -------
     matplotlib.figure.Figure
 
+    Notes
+    -----
+    ``subgroup_data`` may optionally contain a ``"__summary__"`` key
+    (as returned by ``subgroup_performance()``) for gap annotation.
+
     Examples
     --------
     >>> results = subgroup_performance(y_true, y_pred, {"gender": gender})
@@ -153,6 +158,12 @@ def plot_equalized_odds(
     Returns
     -------
     matplotlib.figure.Figure
+
+    Notes
+    -----
+    ``equalized_odds_data`` must contain a ``"__summary__"`` key
+    (as returned by ``equalized_odds()``). Missing summary data
+    will result in annotations being silently skipped.
 
     Examples
     --------
@@ -274,6 +285,13 @@ def plot_fairness_gap(
     Returns
     -------
     matplotlib.figure.Figure
+
+    Notes
+    -----
+    ``equalized_odds_data`` must contain a ``"__summary__"`` key
+    (as returned by ``equalized_odds()``). Missing summary data
+    will result in annotations being silently skipped.
+
 
     Examples
     --------
