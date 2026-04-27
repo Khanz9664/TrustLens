@@ -292,7 +292,6 @@ def plot_fairness_gap(
     (as returned by ``equalized_odds()``). Missing summary data
     will result in annotations being silently skipped.
 
-
     Examples
     --------
     >>> results = equalized_odds(y_true, y_pred, {"gender": gender})
