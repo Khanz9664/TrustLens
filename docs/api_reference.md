@@ -34,3 +34,19 @@ This page provides the technical documentation for all public components of Trus
    :members:
    :show-inheritance:
 ```
+
+---
+
+## Visualization
+
+### `trustlens.visualization.plot_module`
+```{eval-rst}
+.. autofunction:: trustlens.visualization.plot_module
+```
+
+### `trustlens.visualization.fairness`
+```{eval-rst}
+.. automodule:: trustlens.visualization.fairness
+   :members:
+   :show-inheritance:
+```

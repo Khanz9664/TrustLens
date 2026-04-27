@@ -752,6 +752,64 @@ class TrustReport:
                 logger.warning("Module '%s' not found in results.", m)
 
     # ------------------------------------------------------------------
+    # plot_bias()
+    # ------------------------------------------------------------------
+
+    def plot_bias(
+        self,
+        show: bool = True,
+        save_path: str | None = None,
+    ):
+        """
+        Generate fairness/bias visualizations from report results.
+
+        Renders equalized-odds or subgroup-performance plots using the
+        precomputed data stored in ``self.results["bias"]``.
+
+        Parameters
+        ----------
+        show : bool
+            Whether to display the figure interactively. Default True.
+        save_path : str, optional
+            If provided, saves the figure to this path (PNG or PDF).
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+
+        Raises
+        ------
+        ValueError
+            If ``"bias"`` is not present in ``self.results``.
+        """
+        from trustlens.visualization import _plot_bias
+
+        if "bias" not in self.results:
+            raise ValueError(
+                "Bias results not available in report. "
+                "Ensure 'bias' module was included in analyze()."
+            )
+
+        fig = _plot_bias(self.results["bias"])
+        if fig is None:
+            logger.warning("No plottable bias data found in results.")
+            return None
+
+        if save_path:
+            fig.savefig(save_path, dpi=150, bbox_inches="tight")
+
+        if show:
+            try:
+                import matplotlib.pyplot as plt
+
+                if "agg" not in plt.get_backend().lower():
+                    plt.show()
+            except Exception:
+                pass
+
+        return fig
+
+    # ------------------------------------------------------------------
     # save()
     # ------------------------------------------------------------------
 

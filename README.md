@@ -97,7 +97,7 @@ quick_analyze(dataset="breast_cancer")
 - **Bias and fairness diagnostics**: class imbalance, subgroup performance, equalized-odds checks
 - **Representation diagnostics**: embedding separability when embeddings are provided
 - **Decision engine**: weighted trust score with penalties and deployment blockers
-- **Reporting**: console summary, plots, JSON/TXT export, model comparison utility
+- **Reporting**: console summary, fairness visuals, plots, JSON/TXT export, model comparison utility
 
 ---
 
