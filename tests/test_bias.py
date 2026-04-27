@@ -236,7 +236,9 @@ class TestEqualizedOdds:
 
     def test_validation_invalid_thresholds(self):
         """moderate_threshold >= severe_threshold should raise ValueError."""
-        with pytest.raises(ValueError, match="Thresholds must satisfy"):
+        with pytest.raises(
+            ValueError, match="moderate_threshold must be less than severe_threshold"
+        ):
             equalized_odds(
                 np.array([1, 0, 1, 0]),
                 np.array([1, 0, 1, 0]),
