@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial `equalized_odds()` fairness metric with per-group TPR/FPR analysis (closes #17). Thanks @komoike-oss28-ui
 - Ranked score explanation layer to justify Trust Score deductions.
 - `equalized_odds()`: added input validation, configurable violation thresholds (`severe_threshold`, `moderate_threshold`), and concrete docstring examples (closes #41)
+- Fairness visualization module (`trustlens/visualization/fairness.py`) with `plot_subgroup_performance()`, `plot_equalized_odds()`, and `plot_fairness_gap()` (closes #52)
 
 ### Improved
 - Final Trust Score logic now includes a base score, penalty breakdown, and decisive deployment verdicts.
@@ -23,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bias reporting now includes explicit margin calculations relative to the 0.10 threshold.
 - Comparison engine includes causal reasoning (e.g., linking selection to lower penalty burdens).
 - Integrated fairness metrics into the main `analyze()` pipeline with safe fallback handling and margin reporting.
+- Unified validation error message format in `equalized_odds()` for consistency
+- Enhanced `_violation_level()` docstring with parameter descriptions and threshold details
+
 
 
 ### Stability

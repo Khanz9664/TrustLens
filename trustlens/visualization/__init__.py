@@ -17,6 +17,11 @@ from typing import Optional
 from trustlens.visualization.bias_plots import plot_class_distribution
 from trustlens.visualization.calibration_plots import plot_reliability_diagram
 from trustlens.visualization.failure_plots import plot_confidence_gap
+from trustlens.visualization.fairness import (
+    plot_equalized_odds,
+    plot_fairness_gap,
+    plot_subgroup_performance,
+)
 from trustlens.visualization.representation_plots import plot_embedding_separability
 
 __all__ = [
@@ -25,6 +30,9 @@ __all__ = [
     "plot_class_distribution",
     "plot_embedding_separability",
     "plot_module",
+    "plot_subgroup_performance",
+    "plot_equalized_odds",
+    "plot_fairness_gap",
 ]
 
 
@@ -86,9 +94,12 @@ def _plot_failure(data: dict):
 
 
 def _plot_bias(data: dict):
-    if "class_imbalance" not in data:
-        return None
-    return plot_class_distribution(data["class_imbalance"])
+    if "class_imbalance" in data:
+        return plot_class_distribution(data["class_imbalance"])
+    if "equalized_odds" in data:
+        for feature_name, feature_data in data["equalized_odds"].items():
+            return plot_equalized_odds(feature_data, feature_name)
+    return None
 
 
 def _plot_representation(data: dict):

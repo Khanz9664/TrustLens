@@ -262,7 +262,7 @@ def equalized_odds(
 
     if not (0.0 < moderate_threshold < severe_threshold < 1.0):
         raise ValueError(
-            f"Thresholds must satisfy 0 < moderate_threshold < severe_threshold < 1, "
+            f"moderate_threshold must be less than severe_threshold, "
             f"got moderate_threshold={moderate_threshold}, severe_threshold={severe_threshold}."
         )
 
@@ -276,7 +276,6 @@ def equalized_odds(
                 f"sensitive_features['{feature_name}'] has length {len(group_array)}, "
                 f"expected {len(y_true)}."
             )
-
     # --- Core computation ---
     report: dict = {}
 
@@ -339,7 +338,23 @@ def equalized_odds(
 def _violation_level(
     gap: float, severe_threshold: float = 0.15, moderate_threshold: float = 0.05
 ) -> str:
-    """Classify a fairness gap into a violation severity level."""
+    """
+    Classify a fairness gap into a violation severity level.
+
+    Parameters
+    ----------
+    gap : float
+        The fairness gap to classify (e.g. tpr_gap or fpr_gap).
+    severe_threshold : float
+        Gap above this value is classified as ``"severe"``. Default: 0.15.
+    moderate_threshold : float
+        Gap above this value is classified as ``"moderate"``. Default: 0.05.
+
+    Returns
+    -------
+    str
+        One of ``"severe"``, ``"moderate"``, or ``"acceptable"``.
+    """
     if gap > severe_threshold:
         return "severe"
     elif gap >= moderate_threshold:
