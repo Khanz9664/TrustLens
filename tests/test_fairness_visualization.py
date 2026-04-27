@@ -20,13 +20,12 @@ from sklearn.datasets import make_classification
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 
+from trustlens.visualization import _plot_bias
 from trustlens.visualization.fairness import (
     plot_equalized_odds,
     plot_fairness_gap,
     plot_subgroup_performance,
 )
-from trustlens.visualization import _plot_bias
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -37,8 +36,11 @@ from trustlens.visualization import _plot_bias
 def binary_data():
     """Generate a reproducible binary classification dataset with sensitive features."""
     X, y = make_classification(
-        n_samples=500, n_features=10, n_informative=5,
-        n_classes=2, random_state=42,
+        n_samples=500,
+        n_features=10,
+        n_informative=5,
+        n_classes=2,
+        random_state=42,
     )
     rng = np.random.default_rng(42)
     gender = rng.choice(["male", "female"], size=500)
@@ -226,7 +228,9 @@ class TestReportPlotBias:
 
         X, y, gender, _ = binary_data
         report = analyze(
-            trained_rf, X, y,
+            trained_rf,
+            X,
+            y,
             sensitive_features={"gender": gender},
             verbose=False,
         )
@@ -272,7 +276,9 @@ class TestReportPlotBias:
 
         X, y, gender, age_group = binary_data
         report = analyze(
-            trained_rf, X, y,
+            trained_rf,
+            X,
+            y,
             sensitive_features={"gender": gender, "age_group": age_group},
             verbose=False,
         )
@@ -290,7 +296,9 @@ class TestReportPlotBias:
         clf.fit(X, y)
 
         report = analyze(
-            clf, X, y,
+            clf,
+            X,
+            y,
             sensitive_features={"gender": gender},
             verbose=False,
         )
@@ -312,7 +320,9 @@ class TestNonBreaking:
 
         X, y, gender, _ = binary_data
         report = analyze(
-            trained_rf, X, y,
+            trained_rf,
+            X,
+            y,
             sensitive_features={"gender": gender},
             verbose=False,
         )
