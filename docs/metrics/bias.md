@@ -30,6 +30,16 @@ Key outputs include:
 
 Large subgroup gaps or severe equalized-odds violations should be treated as release blockers in high-impact domains.
 
+## Visualization
+
+TrustLens provides built-in visualization tools to help interpret fairness diagnostics:
+
+- **Subgroup Performance Plot**: Visualizes metric gaps (e.g., accuracy, F1) across groups.
+- **Equalized Odds Plot**: Side-by-side TPR/FPR comparison to identify specific disparity types.
+- **Fairness Gap Plot**: Summarizes the maximum TPR and FPR gaps between groups.
+
+These can be accessed directly via `report.plot_bias()` or through the specialized plotting functions in `trustlens.visualization.fairness`.
+
 ## Limitations and Caveats
 
 - fairness metrics are sensitive to subgroup sample size
