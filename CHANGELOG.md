@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Generates subgroup performance, equalized odds, and fairness gap plots
   - Built on top of `equalized_odds()` and `subgroup_performance()`
   - Integrated with existing bias analysis pipeline
-
+- Added bias analysis demo with subgroup diagnostics (`examples/bias_analysis_demo.py`)
 ### Improved
 - Final Trust Score logic now includes a base score, penalty breakdown, and decisive deployment verdicts.
 - Standardized canonical terminology to "confidence-weighted errors".

@@ -222,10 +222,6 @@ class TrustScoreResult:
     def __repr__(self) -> str:
         return f"TrustScoreResult(score={self.score}, grade={self.grade!r})"
 
-    def __format__(self, format_spec: str) -> str:
-        """Support f-string formatting (e.g., f'{trust_score:.1f}')."""
-        return format(float(self.score), format_spec)
-
     def _repr_html_(self) -> str:
         """Rich HTML representation for Jupyter notebooks."""
         from trustlens.visualization.summary_plot import _C, _color_for_grade, _color_for_score

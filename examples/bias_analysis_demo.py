@@ -7,26 +7,21 @@ import numpy as np
 from sklearn.datasets import make_classification
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
+
 from trustlens import analyze
 
 # --- 1. Generate a synthetic dataset ---
 np.random.seed(42)
 n_samples = 500
 
-X, y = make_classification(
-    n_samples=n_samples,
-    n_features=5,
-    random_state=42
-)
+X, y = make_classification(n_samples=n_samples, n_features=5, random_state=42)
 
 # Add sensitive attributes (not used in training, only for bias analysis)
 gender = np.random.choice(["male", "female"], size=n_samples)
 age_group = np.random.choice(["young", "middle", "senior"], size=n_samples)
 
 # --- 2. Train/test split ---
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.3, random_state=42
-)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
 # Split sensitive attributes the same way
 indices = np.arange(n_samples)
@@ -51,7 +46,7 @@ report = analyze(
     X_test,
     y_test,
     y_prob=y_prob,
-    sensitive_features={"gender": gender_test, "age_group": age_group_test}
+    sensitive_features={"gender": gender_test, "age_group": age_group_test},
 )
 
 # --- 5. Display results ---
