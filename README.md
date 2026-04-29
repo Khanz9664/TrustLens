@@ -178,8 +178,16 @@ See [Use Cases](docs/use_cases.md) and [Guides](docs/guides/ci_deployment_gate.m
         <sub><b>komoike-oss28-ui</b></sub>
       </a>
     </td>
+    <td align="center">
+      <a href="https://github.com/sidharth-vijayan">
+        <img src="https://github.com/sidharth-vijayan.png" width="100px;" style="border-radius:50%;" alt="sidharth-vijayan"/>
+        <br />
+        <sub><b>sidharth-vijayan</b></sub>
+      </a>
+    </td>
   </tr>
 </table>
+
 
 Want to see your name here? Start with a [`good first issue`](https://github.com/Khanz9664/TrustLens/issues).
 
