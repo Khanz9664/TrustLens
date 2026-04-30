@@ -16,10 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Ranked score explanation layer to justify Trust Score deductions.
 - `equalized_odds()`: added input validation, configurable violation thresholds (`severe_threshold`, `moderate_threshold`), and concrete docstring examples (closes #41) Thanks @komoike-oss28-ui
 - Fairness visualization module (`trustlens/visualization/fairness.py`) with `plot_subgroup_performance()`, `plot_equalized_odds()`, and `plot_fairness_gap()` (closes #52) Thanks @komoike-oss28-ui
-- Fairness visualization support via `TrustReport.plot_bias()`
-  - Generates subgroup performance, equalized odds, and fairness gap plots
-  - Built on top of `equalized_odds()` and `subgroup_performance()`
-  - Integrated with existing bias analysis pipeline
+- Upgraded `TrustReport.plot_bias()` with multi-mode diagnostic support:
+  - New `mode` parameter: `"summary"` (default), `"all"`, `"subgroup"`, `"equalized_odds"`, and `"gap"`.
+  - Added deterministic return contracts (Returns `Figure` or `dict[str, Figure | None]`).
+  - Implemented backend-safe `plt.show()` and automated `save_path` suffixing for batch plotting.
+  - Hardened validation for bias data structures and added memory hygiene documentation.
 - Added bias analysis demo with subgroup diagnostics (`examples/bias_analysis_demo.py`). Thanks @sidharth-vijayan
 ### Improved
 - Final Trust Score logic now includes a base score, penalty breakdown, and decisive deployment verdicts.

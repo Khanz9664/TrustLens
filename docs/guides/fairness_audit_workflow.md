@@ -16,9 +16,12 @@ Detect and triage subgroup performance disparities before deployment decisions.
 
 1. Define sensitive features (for example gender, age_group, region).
 2. Run analysis with `sensitive_features`.
-3. Inspect subgroup performance gaps.
-4. Inspect equalized-odds violation severity.
-5. Decide whether to proceed, recalibrate, or retrain with mitigation.
+3. Visualize the disparities:
+   ```python
+   # Deep-dive into all diagnostic plots
+   plots = report.plot_bias(mode="all", save_path="fairness_audit")
+   ```
+4. Decide whether to proceed, recalibrate, or retrain with mitigation.
 
 ## Example
 

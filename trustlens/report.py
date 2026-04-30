@@ -757,32 +757,76 @@ class TrustReport:
 
     def plot_bias(
         self,
+        mode: str = "summary",
         show: bool = True,
         save_path: str | None = None,
     ):
         """
         Generate fairness/bias visualizations from report results.
 
-        Renders equalized-odds or subgroup-performance plots using the
-        precomputed data stored in ``self.results["bias"]``.
+        Guarantees:
+        - Returns matplotlib.figure.Figure (single modes)
+        - Returns dict[str, matplotlib.figure.Figure | None] (mode="all")
+        - Raises ValueError for invalid mode or unusable data
+
+        Returned dict for mode="all" ALWAYS contains exactly three keys in order:
+        'subgroup' -> 'equalized_odds' -> 'gap'. Values may be None if a plot
+        cannot be generated. Individual plot failures in mode="all" are silent
+        (no exception, no logging; values set to None). If all plots fail (all
+        values None), raise ValueError. Caller is responsible for checking
+        None values in returned dict.
+
+        Note: mode="all" returns a dictionary of plots and does NOT display them
+        unless show=True.
 
         Parameters
         ----------
+        mode : str, optional
+            Visualization mode. One of {"summary", "all", "subgroup", "equalized_odds", "gap"}.
+            Default "summary".
         show : bool
             Whether to display the figure interactively. Default True.
         save_path : str, optional
-            If provided, saves the figure to this path (PNG or PDF).
+            If provided, saves the figure(s) to this path.
+            - Single modes: Treated as full file path. Defaults to .png if extension missing.
+            - mode="all": Treated as base name. Appends suffixes and .png.
 
         Returns
         -------
-        matplotlib.figure.Figure
+        matplotlib.figure.Figure | dict[str, matplotlib.figure.Figure | None]
+
+        Notes
+        -----
+        Currently supports one sensitive feature per plot. If multiple are present,
+        the first is used. New modes can be added by extending ALLOWED_MODES and
+        dispatch logic without breaking existing behavior.
+        Function behavior MUST be deterministic given identical inputs (no randomness,
+        no state mutation). This includes consistent plot ordering, consistent key
+        ordering in dict, and no randomness in visualization.
+        Each returned Figure must be independent (no shared axes, state, or references
+        between plots). Each plot must be independently renderable and savable.
+
+        Caution: Figures are returned open. If calling this method repeatedly in a
+        loop, ensure you call plt.close(fig) on the returned figures to avoid
+        memory accumulation.
 
         Raises
         ------
         ValueError
-            If ``"bias"`` is not present in ``self.results``.
+            If "bias" is not present in self.results or if data is unusable.
         """
+        import matplotlib.pyplot as plt
+
         from trustlens.visualization import _plot_bias
+        from trustlens.visualization.fairness import (
+            plot_equalized_odds,
+            plot_fairness_gap,
+            plot_subgroup_performance,
+        )
+
+        ALLOWED_MODES = {"summary", "all", "subgroup", "equalized_odds", "gap"}
+        if mode not in ALLOWED_MODES:
+            raise ValueError(f"Invalid mode '{mode}'. Allowed: {ALLOWED_MODES}")
 
         if "bias" not in self.results:
             raise ValueError(
@@ -790,24 +834,142 @@ class TrustReport:
                 "Ensure 'bias' module was included in analyze()."
             )
 
-        fig = _plot_bias(self.results["bias"])
-        if fig is None:
-            logger.warning("No plottable bias data found in results.")
-            return None
+        bias_data = self.results["bias"]
 
-        if save_path:
-            fig.savefig(save_path, dpi=150, bbox_inches="tight")
+        # Validation: check for usable structure (valid, non-empty)
+        has_subgroup = bool(bias_data.get("subgroup_performance"))
+        has_eo = bool(bias_data.get("equalized_odds"))
+        has_imbalance = bool(bias_data.get("class_imbalance"))
 
-        if show:
-            try:
-                import matplotlib.pyplot as plt
+        if not (has_subgroup or has_eo or has_imbalance):
+            raise ValueError("Bias data is present but not usable for visualization.")
 
-                if "agg" not in plt.get_backend().lower():
-                    plt.show()
-            except Exception:
-                pass
+        def _get_first(key):
+            d = bias_data.get(key, {})
+            for k, v in d.items():
+                if k not in ("status", "reason", "details"):
+                    return k, v
+            return None, None
 
-        return fig
+        def _get_save_path(base_path, suffix=None):
+            if base_path is None:
+                return None
+            import os
+
+            name, ext = os.path.splitext(base_path)
+            if suffix:
+                # mode="all": Strip extension if present, then append suffix and .png
+                return f"{name}_{suffix}.png"
+
+            # Single modes: If no extension -> append .png
+            if not ext:
+                ext = ".png"
+            return f"{name}{ext}"
+
+        if mode == "summary":
+            # "summary" mode requires data compatible with _plot_bias()
+            fig = _plot_bias(bias_data)
+            if fig is None:
+                raise ValueError("Failed to generate summary bias plot.")
+            if save_path:
+                fig.savefig(_get_save_path(save_path), dpi=150, bbox_inches="tight")
+            if show:
+                backend = plt.get_backend().lower()
+                if "agg" not in backend:
+                    try:
+                        plt.show()
+                    except Exception:
+                        pass
+            return fig
+
+        if mode == "subgroup":
+            feat_name, feat_data = _get_first("subgroup_performance")
+            if feat_data is None:
+                raise ValueError("Missing 'subgroup_performance' data for 'subgroup' mode.")
+            return plot_subgroup_performance(
+                feat_data, feat_name, show=show, save_path=_get_save_path(save_path)
+            )
+
+        if mode == "equalized_odds":
+            feat_name, feat_data = _get_first("equalized_odds")
+            if feat_data is None:
+                raise ValueError("Missing 'equalized_odds' data for 'equalized_odds' mode.")
+            return plot_equalized_odds(
+                feat_data, feat_name, show=show, save_path=_get_save_path(save_path)
+            )
+
+        if mode == "gap":
+            # Priority: subgroup_performance > equalized_odds
+            feat_name, feat_data = _get_first("subgroup_performance")
+            if feat_data is None:
+                feat_name, feat_data = _get_first("equalized_odds")
+
+            if feat_data is None:
+                raise ValueError(
+                    "Missing sufficient data for 'gap' mode (either subgroup_performance or equalized_odds)."
+                )
+            return plot_fairness_gap(
+                feat_data, feat_name, show=show, save_path=_get_save_path(save_path)
+            )
+
+        if mode == "all":
+            results = {}
+
+            # 1. Subgroup
+            f_name_s, f_data_s = _get_first("subgroup_performance")
+            fig_s = None
+            if f_data_s:
+                try:
+                    fig_s = plot_subgroup_performance(
+                        f_data_s,
+                        f_name_s,
+                        show=False,
+                        save_path=_get_save_path(save_path, "subgroup"),
+                    )
+                except Exception:
+                    fig_s = None
+            results["subgroup"] = fig_s
+
+            # 2. Equalized Odds
+            f_name_eo, f_data_eo = _get_first("equalized_odds")
+            fig_eo = None
+            if f_data_eo:
+                try:
+                    fig_eo = plot_equalized_odds(
+                        f_data_eo,
+                        f_name_eo,
+                        show=False,
+                        save_path=_get_save_path(save_path, "equalized_odds"),
+                    )
+                except Exception:
+                    fig_eo = None
+            results["equalized_odds"] = fig_eo
+
+            # 3. Gap
+            fig_g = None
+            # Re-use best available data for gap priority
+            g_name, g_data = (f_name_s, f_data_s) if f_data_s else (f_name_eo, f_data_eo)
+            if g_data:
+                try:
+                    fig_g = plot_fairness_gap(
+                        g_data, g_name, show=False, save_path=_get_save_path(save_path, "gap")
+                    )
+                except Exception:
+                    fig_g = None
+            results["gap"] = fig_g
+
+            if all(v is None for v in results.values()):
+                raise ValueError("Failed to generate any bias plots in 'all' mode.")
+
+            if show:
+                backend = plt.get_backend().lower()
+                if "agg" not in backend:
+                    try:
+                        plt.show()
+                    except Exception:
+                        pass
+
+            return results
 
     # ------------------------------------------------------------------
     # save()
