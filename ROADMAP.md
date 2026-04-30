@@ -23,7 +23,7 @@
 
 These are high-priority items currently being developed or targeted for the next release.
 
-- [~] **Equalized Odds** (Issue #25) — *[OPEN]*
+- [x] **Equalized Odds** (Issue #25)
 - [~] **UMAP/t-SNE Visualization** (Issue #22) — *[OPEN]*
 - [~] **HTML Report Export** (Issue #19) — *[OPEN]*
 
@@ -61,7 +61,7 @@ Deep learning explainability features are under experimental development and not
 > **Focus:** High-impact ML features that integrate directly into the `analyze()` pipeline.
 
 ### High Priority
-- [~] **Equalized Odds** (Issue #25) — [OPEN]
+- [x] **Equalized Odds** (Issue #25)
 - [~] **UMAP/t-SNE Visualization** (Issue #22) — [OPEN]
 - [~] **HTML Report Export** (Issue #19) — [OPEN]
 - [ ] **Maximum Calibration Error (MCE)** (Issue #1)
