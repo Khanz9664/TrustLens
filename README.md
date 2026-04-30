@@ -90,6 +90,21 @@ quick_analyze(dataset="breast_cancer")
 
 ---
 
+## Try a Full Audit (1-minute)
+
+```bash
+python examples/comprehensive_audit.py
+```
+
+End-to-end demo with:
+- calibration, failure, and bias analysis
+- fairness visualizations (`plot_bias(mode="all")`)
+- exportable reports
+
+👉 See [examples/](examples/) for all demos
+
+---
+
 ## Core Capabilities
 
 - **Calibration diagnostics**: Brier score, ECE, reliability curve data
@@ -123,6 +138,8 @@ Deep dive: [Trust Score Explained](docs/trust_score_explained.md)
 - Workflow guides: [Guides](docs/guides/model_comparison_workflow.md)
 - Limits and caveats: [Known Limitations](docs/known_limitations.md)
 - API docs: [API Reference](docs/api_reference.md)
+
+📂 Examples: [examples/](examples/) — quickstart, bias demo, full audit, and more
 
 ---
 
