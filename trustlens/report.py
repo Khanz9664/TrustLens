@@ -874,10 +874,12 @@ class TrustReport:
             if save_path:
                 fig.savefig(_get_save_path(save_path), dpi=150, bbox_inches="tight")
             if show:
-                try:
-                    plt.show()
-                except Exception:
-                    pass
+                backend = plt.get_backend().lower()
+                if "agg" not in backend:
+                    try:
+                        plt.show()
+                    except Exception:
+                        pass
             return fig
 
         if mode == "subgroup":
@@ -960,10 +962,12 @@ class TrustReport:
                 raise ValueError("Failed to generate any bias plots in 'all' mode.")
 
             if show:
-                try:
-                    plt.show()
-                except Exception:
-                    pass
+                backend = plt.get_backend().lower()
+                if "agg" not in backend:
+                    try:
+                        plt.show()
+                    except Exception:
+                        pass
 
             return results
 
