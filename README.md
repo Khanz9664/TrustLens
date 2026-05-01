@@ -202,6 +202,13 @@ See [Use Cases](docs/use_cases.md) and [Guides](docs/guides/ci_deployment_gate.m
         <sub><b>sidharth-vijayan</b></sub>
       </a>
     </td>
+    <td align="center">
+      <a href="https://github.com/MustansirNisar">
+        <img src="https://github.com/MustansirNisar.png" width="100px;" style="border-radius:50%;" alt="MustansirNisar"/>
+        <br />
+        <sub><b>MustansirNisar</b></sub>
+      </a>
+    </td>
   </tr>
 </table>
 

@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Implemented backend-safe `plt.show()` and automated `save_path` suffixing for batch plotting.
   - Hardened validation for bias data structures and added memory hygiene documentation.
 - Added bias analysis demo with subgroup diagnostics (`examples/bias_analysis_demo.py`). Thanks @sidharth-vijayan
-- Added SECURITY.md
+- Added SECURITY.md. Thanks @MustansirNisar
 
 ### Improved
 - Final Trust Score logic now includes a base score, penalty breakdown, and decisive deployment verdicts.
