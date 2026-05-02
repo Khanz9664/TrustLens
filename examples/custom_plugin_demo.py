@@ -65,30 +65,48 @@ class NPVGapPlugin(BasePlugin):
         }
 
 
-# ---------------------------------------------------------------------------
-# Register and run
-# ---------------------------------------------------------------------------
+def main():
+    # -----------------------------
+    # 1. Load data
+    # -----------------------------
+    X, y = make_classification(n_samples=800, random_state=7, weights=[0.8, 0.2])
+    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.3, random_state=7)
 
-registry = PluginRegistry()
-registry.register(NPVGapPlugin)
+    # -----------------------------
+    # 2. Train model
+    # -----------------------------
+    clf = GradientBoostingClassifier(n_estimators=50, random_state=7)
+    clf.fit(X_train, y_train)
 
-print("Registered plugins:", registry.list_plugins())
+    # -----------------------------
+    # 3. Analyze
+    # -----------------------------
+    # Register and run
+    registry = PluginRegistry()
+    registry.register(NPVGapPlugin)
 
-# Train a model
-X, y = make_classification(n_samples=800, random_state=7, weights=[0.8, 0.2])
-X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.3, random_state=7)
+    print("Registered plugins:", registry.list_plugins())
 
-clf = GradientBoostingClassifier(n_estimators=50, random_state=7)
-clf.fit(X_train, y_train)
+    # Run with plugin
+    report = analyze(
+        clf,
+        X_val,
+        y_val,
+        plugins=["npv_gap"],
+        verbose=True,
+    )
 
-# Run with plugin
-report = analyze(
-    clf,
-    X_val,
-    y_val,
-    plugins=["npv_gap"],
-    verbose=True,
-)
+    # -----------------------------
+    # 4. Visualize
+    # -----------------------------
+    report.show()
 
-report.show()
-print("\nPlugin result:", report.results["plugin_npv_gap"])
+    # -----------------------------
+    # 5. Output
+    # -----------------------------
+    print("\nPlugin result:", report.results["plugin_npv_gap"])
+
+
+if __name__ == "__main__":
+    print("Running TrustLens custom plugin demo...\n")
+    main()
