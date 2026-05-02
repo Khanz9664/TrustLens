@@ -336,3 +336,165 @@ def plot_fairness_gap(
             plt.show()
     plt.close(fig)
     return fig
+
+
+# ---------------------------------------------------------------------------
+# Multi-feature wrappers
+# ---------------------------------------------------------------------------
+
+
+def plot_subgroup_performance_multi(
+    subgroup_data: dict,
+    metric: str = "accuracy",
+    save_dir: str | None = None,
+    show: bool = True,
+) -> dict[str, plt.Figure]:
+    """
+    Plot subgroup performance for **each** sensitive feature.
+
+    Iterates over all features in ``subgroup_data`` and delegates to
+    :func:`plot_subgroup_performance` for each one.  No feature is silently
+    dropped.
+
+    Parameters
+    ----------
+    subgroup_data : dict
+        Mapping of ``{feature_name: feature_data}`` as returned by
+        ``subgroup_performance()`` when multiple sensitive features are passed.
+        Example: ``results["bias"]["subgroup_performance"]``.
+    metric : str, optional
+        Which metric to plot. Supports ``"accuracy"`` and ``"f1"``.
+        Default: ``"accuracy"``.
+    save_dir : str, optional
+        Directory in which per-feature PNG files are saved.
+        Files are named ``subgroup_performance_<feature_name>.png``.
+        If ``None``, no files are written.
+    show : bool, optional
+        Whether to display each figure interactively. Default: ``True``.
+
+    Returns
+    -------
+    dict[str, matplotlib.figure.Figure]
+        Mapping of ``{feature_name: Figure}`` for every feature processed.
+
+    Examples
+    --------
+    >>> results = subgroup_performance(y_true, y_pred, sensitive_features)
+    >>> figs = plot_subgroup_performance_multi(results)
+    >>> fig_gender = figs["gender"]
+    """
+    import os
+
+    figures: dict[str, plt.Figure] = {}
+    for feature_name, feature_data in subgroup_data.items():
+        save_path = (
+            os.path.join(save_dir, f"subgroup_performance_{feature_name}.png") if save_dir else None
+        )
+        figures[feature_name] = plot_subgroup_performance(
+            feature_data,
+            feature_name,
+            metric=metric,
+            save_path=save_path,
+            show=show,
+        )
+    return figures
+
+
+def plot_equalized_odds_multi(
+    equalized_odds_data: dict,
+    save_dir: str | None = None,
+    show: bool = True,
+) -> dict[str, plt.Figure]:
+    """
+    Plot equalized odds for **each** sensitive feature.
+
+    Iterates over all features in ``equalized_odds_data`` and delegates to
+    :func:`plot_equalized_odds` for each one.  No feature is silently dropped.
+
+    Parameters
+    ----------
+    equalized_odds_data : dict
+        Mapping of ``{feature_name: feature_data}`` as returned by
+        ``equalized_odds()`` when multiple sensitive features are passed.
+        Example: ``results["bias"]["equalized_odds"]``.
+    save_dir : str, optional
+        Directory in which per-feature PNG files are saved.
+        Files are named ``equalized_odds_<feature_name>.png``.
+        If ``None``, no files are written.
+    show : bool, optional
+        Whether to display each figure interactively. Default: ``True``.
+
+    Returns
+    -------
+    dict[str, matplotlib.figure.Figure]
+        Mapping of ``{feature_name: Figure}`` for every feature processed.
+
+    Examples
+    --------
+    >>> results = equalized_odds(y_true, y_pred, sensitive_features)
+    >>> figs = plot_equalized_odds_multi(results)
+    >>> fig_age = figs["age"]
+    """
+    import os
+
+    figures: dict[str, plt.Figure] = {}
+    for feature_name, feature_data in equalized_odds_data.items():
+        save_path = (
+            os.path.join(save_dir, f"equalized_odds_{feature_name}.png") if save_dir else None
+        )
+        figures[feature_name] = plot_equalized_odds(
+            feature_data,
+            feature_name,
+            save_path=save_path,
+            show=show,
+        )
+    return figures
+
+
+def plot_fairness_gap_multi(
+    equalized_odds_data: dict,
+    save_dir: str | None = None,
+    show: bool = True,
+) -> dict[str, plt.Figure]:
+    """
+    Plot fairness gap for **each** sensitive feature.
+
+    Iterates over all features in ``equalized_odds_data`` and delegates to
+    :func:`plot_fairness_gap` for each one.  No feature is silently dropped.
+
+    Parameters
+    ----------
+    equalized_odds_data : dict
+        Mapping of ``{feature_name: feature_data}`` as returned by
+        ``equalized_odds()`` when multiple sensitive features are passed.
+        Example: ``results["bias"]["equalized_odds"]``.
+    save_dir : str, optional
+        Directory in which per-feature PNG files are saved.
+        Files are named ``fairness_gap_<feature_name>.png``.
+        If ``None``, no files are written.
+    show : bool, optional
+        Whether to display each figure interactively. Default: ``True``.
+
+    Returns
+    -------
+    dict[str, matplotlib.figure.Figure]
+        Mapping of ``{feature_name: Figure}`` for every feature processed.
+
+    Examples
+    --------
+    >>> results = equalized_odds(y_true, y_pred, sensitive_features)
+    >>> figs = plot_fairness_gap_multi(results)
+    >>> fig_gender = figs["gender"]
+    """
+    import os
+
+    figures: dict[str, plt.Figure] = {}
+    for feature_name, feature_data in equalized_odds_data.items():
+        save_path = os.path.join(save_dir, f"fairness_gap_{feature_name}.png") if save_dir else None
+        figures[feature_name] = plot_fairness_gap(
+            feature_data,
+            feature_name,
+            save_path=save_path,
+            show=show,
+        )
+    return figures
