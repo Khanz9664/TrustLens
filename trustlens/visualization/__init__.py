@@ -100,6 +100,15 @@ def _plot_failure(data: dict):
 
 
 def _plot_bias(data: dict):
+    """
+    Note
+    ----
+    When ``equalized_odds`` data contains multiple sensitive features,
+    only the first figure is returned to remain compatible with
+    ``plot_module()``'s single-figure flow. To obtain a figure for every
+    feature, call ``plot_equalized_odds_multi()`` directly. Multi-figure
+    support in ``plot_module()`` itself is a potential follow-up.
+    """
     if "class_imbalance" in data:
         return plot_class_distribution(data["class_imbalance"])
     if "equalized_odds" in data:
