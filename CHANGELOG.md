@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Hardened validation for bias data structures and added memory hygiene documentation.
 - Added bias analysis demo with subgroup diagnostics (`examples/bias_analysis_demo.py`). Thanks @sidharth-vijayan
 - Added SECURITY.md. Thanks @MustansirNisar
+- Added unit tests for multi-feature fairness visualizations covering all-features-processed guarantee, output key matching, and figure smoke tests (`tests/test_fairness_visualization_multi.py`). 
 
 ### Improved
 - Final Trust Score logic now includes a base score, penalty breakdown, and decisive deployment verdicts.
