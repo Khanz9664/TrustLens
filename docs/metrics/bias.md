@@ -30,6 +30,23 @@ Key outputs include:
 
 Large subgroup gaps or severe equalized-odds violations should be treated as release blockers in high-impact domains.
 
+## Visualization
+
+TrustLens provides comprehensive visualization modes via `report.plot_bias(mode="...")` to help interpret fairness diagnostics:
+
+- **`"summary"` (Default)**: Combines key fairness signals into a single diagnostic view.
+- **`"subgroup"`**: Detailed performance metric comparison (e.g., accuracy, precision) across all groups.
+- **`"equalized_odds"`**: Visualizes TPR and FPR side-by-side to identify specific types of disparity.
+- **`"gap"`**: High-level summary of the maximum demographic parity or opportunity gaps.
+- **`"all"`**: Generates and returns all three diagnostic plots for a full audit.
+
+These visualizations ensure that fairness gaps are not just calculated but are immediately visible and actionable.
+
+```python
+# Generate all diagnostic plots for a full audit
+plots = report.plot_bias(mode="all")
+```
+
 ## Limitations and Caveats
 
 - fairness metrics are sensitive to subgroup sample size

@@ -1,20 +1,23 @@
 {
-  "score": 63,
+  "score": 33,
   "grade": "D",
   "verdict": "Low Trust - Blocked by high diagnostic risk (misaligned confidence-weighted error distribution)",
   "sub_scores": {
-    "calibration": 88.3,
-    "failure": 35.3,
-    "bias": 89.6
+    "calibration": 74.8,
+    "failure": 31.4,
+    "bias": 95.2,
+    "representation": 61.9
   },
   "weights_used": {
-    "calibration": 0.389,
-    "failure": 0.333,
-    "bias": 0.278
+    "calibration": 0.35,
+    "failure": 0.3,
+    "bias": 0.25,
+    "representation": 0.1
   },
   "breakdown": {
-    "calibration": 34.33,
-    "failure": 11.75,
-    "bias": 24.88
+    "calibration": 26.17,
+    "failure": 9.43,
+    "bias": 23.79,
+    "representation": 6.19
   }
 }

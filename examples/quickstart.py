@@ -24,78 +24,92 @@ from trustlens import analyze
 print(f"TrustLens v{trustlens.__version__}")
 print("=" * 60)
 
-# ---------------------------------------------------------------------------
-# 1. Generate a synthetic dataset with realistic class imbalance
-# ---------------------------------------------------------------------------
-print("\n[1/4] Generating dataset …")
 
-X, y = make_classification(
-    n_samples=1_000,
-    n_features=20,
-    n_informative=8,
-    n_redundant=4,
-    n_classes=2,
-    weights=[0.75, 0.25],  # 75/25 imbalance
-    flip_y=0.05,  # 5% label noise
-    random_state=42,
-)
+def main():
+    # -----------------------------
+    # 1. Load data
+    # -----------------------------
+    print("\n[1/4] Generating dataset …")
 
-X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
-print(f"  Train: {len(X_train)} samples | Val: {len(X_val)} samples")
-print(f"  Class counts (val): {dict(zip(*np.unique(y_val, return_counts=True)))}")
+    X, y = make_classification(
+        n_samples=1_000,
+        n_features=20,
+        n_informative=8,
+        n_redundant=4,
+        n_classes=2,
+        weights=[0.75, 0.25],  # 75/25 imbalance
+        flip_y=0.05,  # 5% label noise
+        random_state=42,
+    )
 
-# ---------------------------------------------------------------------------
-# 2. Train a RandomForest model
-# ---------------------------------------------------------------------------
-print("\n[2/4] Training RandomForestClassifier …")
+    X_train, X_val, y_train, y_val = train_test_split(
+        X, y, test_size=0.3, random_state=42, stratify=y
+    )
+    print(f"  Train: {len(X_train)} samples | Val: {len(X_val)} samples")
+    print(f"  Class counts (val): {dict(zip(*np.unique(y_val, return_counts=True)))}")
 
-clf = RandomForestClassifier(
-    n_estimators=100,
-    max_depth=8,
-    random_state=42,
-    n_jobs=-1,
-)
-clf.fit(X_train, y_train)
-y_prob = clf.predict_proba(X_val)
-accuracy = (clf.predict(X_val) == y_val).mean()
-print(f"  Validation accuracy: {accuracy:.2%}")
+    # -----------------------------
+    # 2. Train model
+    # -----------------------------
+    print("\n[2/4] Training RandomForestClassifier …")
 
-# ---------------------------------------------------------------------------
-# 3. Simulate sensitive features for bias analysis
-# ---------------------------------------------------------------------------
-rng = np.random.default_rng(7)
-gender = rng.choice(["M", "F"], size=len(y_val))
-age_grp = rng.choice(["18-35", "36-55", "55+"], size=len(y_val))
+    clf = RandomForestClassifier(
+        n_estimators=100,
+        max_depth=8,
+        random_state=42,
+        n_jobs=-1,
+    )
+    clf.fit(X_train, y_train)
+    y_prob = clf.predict_proba(X_val)
+    accuracy = (clf.predict(X_val) == y_val).mean()
+    print(f"  Validation accuracy: {accuracy:.2%}")
 
-# Simulate embeddings (in real use, these come from a model's penultimate layer)
-embeddings = rng.standard_normal((len(y_val), 32))
-# Make them slightly class-informative for interesting separability results
-embeddings += y_val.reshape(-1, 1) * 0.8
+    # -----------------------------
+    # 3. Analyze
+    # -----------------------------
+    rng = np.random.default_rng(7)
+    gender = rng.choice(["M", "F"], size=len(y_val))
+    age_grp = rng.choice(["18-35", "36-55", "55+"], size=len(y_val))
 
-# ---------------------------------------------------------------------------
-# 4. Run TrustLens analysis
-# ---------------------------------------------------------------------------
-print("\n[3/4] Running TrustLens analysis …")
+    # Simulate embeddings (in real use, these come from a model's penultimate layer)
+    embeddings = rng.standard_normal((len(y_val), 32))
+    # Make them slightly class-informative for interesting separability results
+    embeddings += y_val.reshape(-1, 1) * 0.8
 
-report = analyze(
-    clf,
-    X_val,
-    y_val,
-    y_prob=y_prob,
-    embeddings=embeddings,
-    sensitive_features={
-        "gender": gender,
-        "age_group": age_grp,
-    },
-    verbose=True,
-)
+    print("\n[3/4] Running TrustLens analysis …")
 
-# ---------------------------------------------------------------------------
-# 5. Display + save results
-# ---------------------------------------------------------------------------
-print("\n[4/4] Report:")
-report.show()
+    report = analyze(
+        clf,
+        X_val,
+        y_val,
+        y_prob=y_prob,
+        embeddings=embeddings,
+        sensitive_features={
+            "gender": gender,
+            "age_group": age_grp,
+        },
+        verbose=True,
+    )
 
-out_dir = report.save("examples/output")
-print(f"\n Report saved to: {out_dir}")
-print("  Files: report.json, metadata.json, calibration_plot.png, etc.")
+    # -----------------------------
+    # 4. Visualize
+    # -----------------------------
+    print("\n[4/4] Report Summary:")
+    report.show()
+
+    # Visualize fairness deep-dive
+    print("\n[*] Generating fairness summary plot...")
+    report.plot_bias(mode="summary", save_path="examples/output/quickstart_bias.png")
+
+    # -----------------------------
+    # 5. Output
+    # -----------------------------
+    out_dir = report.save("examples/output")
+    print(f"\nReport artifacts saved to: {out_dir}")
+    print("  - Metrics: report.json, metadata.json")
+    print("  - Plots: calibration_plot.png, failure_plot.png, quickstart_bias.png")
+
+
+if __name__ == "__main__":
+    print("Running TrustLens quickstart demo...\n")
+    main()

@@ -29,6 +29,10 @@ Fairness diagnostics identify performance disparity between subgroups.
 - **Class Imbalance Report**: distribution imbalance and majority/minority ratios.
 - **Subgroup Performance**: group-wise accuracy and macro-F1 with gap summaries.
 - **Equalized Odds Checks**: group-wise TPR/FPR disparity for binary classification.
+- **Fairness Visualizations**: Upgraded `plot_bias()` with diagnostic modes: summary view, subgroup performance bars, equalized-odds grouped bars, and fairness gap summaries.
+  ```python
+  report.plot_bias(mode="all")
+  ```
 
 Use these outputs to detect whether your model systematically underperforms on particular segments.
 

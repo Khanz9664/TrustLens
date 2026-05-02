@@ -90,6 +90,21 @@ quick_analyze(dataset="breast_cancer")
 
 ---
 
+## Try a Full Audit (1-minute)
+
+```bash
+python examples/comprehensive_audit.py
+```
+
+End-to-end demo with:
+- calibration, failure, and bias analysis
+- fairness visualizations (`plot_bias(mode="all")`)
+- exportable reports
+
+👉 See [examples/](examples/) for all demos
+
+---
+
 ## Core Capabilities
 
 - **Calibration diagnostics**: Brier score, ECE, reliability curve data
@@ -97,7 +112,7 @@ quick_analyze(dataset="breast_cancer")
 - **Bias and fairness diagnostics**: class imbalance, subgroup performance, equalized-odds checks
 - **Representation diagnostics**: embedding separability when embeddings are provided
 - **Decision engine**: weighted trust score with penalties and deployment blockers
-- **Reporting**: console summary, plots, JSON/TXT export, model comparison utility
+- **Reporting**: console summary, fairness visuals, plots, JSON/TXT export, model comparison utility
 
 ---
 
@@ -123,6 +138,8 @@ Deep dive: [Trust Score Explained](docs/trust_score_explained.md)
 - Workflow guides: [Guides](docs/guides/model_comparison_workflow.md)
 - Limits and caveats: [Known Limitations](docs/known_limitations.md)
 - API docs: [API Reference](docs/api_reference.md)
+
+📂 Examples: [examples/](examples/) — quickstart, bias demo, full audit, and more
 
 ---
 
@@ -178,8 +195,23 @@ See [Use Cases](docs/use_cases.md) and [Guides](docs/guides/ci_deployment_gate.m
         <sub><b>komoike-oss28-ui</b></sub>
       </a>
     </td>
+    <td align="center">
+      <a href="https://github.com/sidharth-vijayan">
+        <img src="https://github.com/sidharth-vijayan.png" width="100px;" style="border-radius:50%;" alt="sidharth-vijayan"/>
+        <br />
+        <sub><b>sidharth-vijayan</b></sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/MustansirNisar">
+        <img src="https://github.com/MustansirNisar.png" width="100px;" style="border-radius:50%;" alt="MustansirNisar"/>
+        <br />
+        <sub><b>MustansirNisar</b></sub>
+      </a>
+    </td>
   </tr>
 </table>
+
 
 Want to see your name here? Start with a [`good first issue`](https://github.com/Khanz9664/TrustLens/issues).
 

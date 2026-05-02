@@ -14,8 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pattern detection system (e.g., "Calibration Drift", "Confidently Wrong") to surface high-level semantic risks.
 - Initial `equalized_odds()` fairness metric with per-group TPR/FPR analysis (closes #17). Thanks @komoike-oss28-ui
 - Ranked score explanation layer to justify Trust Score deductions.
-- `equalized_odds()`: added input validation, configurable violation thresholds (`severe_threshold`, `moderate_threshold`), and concrete docstring examples (closes #41)
-- Fairness visualization module (`trustlens/visualization/fairness.py`) with `plot_subgroup_performance()`, `plot_equalized_odds()`, and `plot_fairness_gap()` (closes #52)
+- `equalized_odds()`: added input validation, configurable violation thresholds (`severe_threshold`, `moderate_threshold`), and concrete docstring examples (closes #41) Thanks @komoike-oss28-ui
+- Fairness visualization module (`trustlens/visualization/fairness.py`) with `plot_subgroup_performance()`, `plot_equalized_odds()`, and `plot_fairness_gap()` (closes #52) Thanks @komoike-oss28-ui
+- Upgraded `TrustReport.plot_bias()` with multi-mode diagnostic support:
+  - New `mode` parameter: `"summary"` (default), `"all"`, `"subgroup"`, `"equalized_odds"`, and `"gap"`.
+  - Added deterministic return contracts (Returns `Figure` or `dict[str, Figure | None]`).
+  - Implemented backend-safe `plt.show()` and automated `save_path` suffixing for batch plotting.
+  - Hardened validation for bias data structures and added memory hygiene documentation.
+- Added bias analysis demo with subgroup diagnostics (`examples/bias_analysis_demo.py`). Thanks @sidharth-vijayan
+- Added SECURITY.md. Thanks @MustansirNisar
 
 ### Improved
 - Final Trust Score logic now includes a base score, penalty breakdown, and decisive deployment verdicts.
@@ -27,6 +34,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unified validation error message format in `equalized_odds()` for consistency
 - Enhanced `_violation_level()` docstring with parameter descriptions and threshold details
 - Fairness visualization now supports multiple sensitive features via `plot_subgroup_performance_multi()`, `plot_equalized_odds_multi()`, and `plot_fairness_gap_multi()`, which return per-feature figures as `{feature_name: Figure}`. Fixed `_plot_bias()` to no longer silently drop features after the first (closes #56)
+
+- Unified validation error message format in `equalized_odds()` for consistency Thanks @komoike-oss28-ui
+- Enhanced `_violation_level()` docstring with parameter descriptions and threshold details Thanks @komoike-oss28-ui
+- Enhanced bias module usability with visual diagnostics for easier interpretation
 
 
 ### Stability
