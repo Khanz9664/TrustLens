@@ -35,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unified validation error message format in `equalized_odds()` for consistency. Thanks @komoike-oss28-ui
 - Enhanced `_violation_level()` docstring with parameter descriptions and threshold details. Thanks @komoike-oss28-ui
 - Fairness visualization now supports multiple sensitive features via `plot_subgroup_performance_multi()`, `plot_equalized_odds_multi()`, and `plot_fairness_gap_multi()`, which return per-feature figures as `{feature_name: Figure}`. Fixed `_plot_bias()` to no longer silently drop features after the first (closes #56). Thanks @komoike-oss28-ui
-- Enhanced bias module usability with visual diagnostics for easier interpretation. 
+- Enhanced bias module usability with visual diagnostics for easier interpretation.
 
 
 ### Stability
