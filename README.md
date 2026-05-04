@@ -110,6 +110,7 @@ End-to-end demo with:
 - **Calibration diagnostics**: Brier score, ECE, reliability curve data
 - **Failure diagnostics**: misclassification analysis and confidence-gap risk signals
 - **Bias and fairness diagnostics**: class imbalance, subgroup performance, equalized-odds checks
+- **Multi-feature fairness visualization**: pass multiple sensitive features (e.g., gender, age) and generate per-feature plots automatically with `plot_module("bias", data, save_dir="plots/")`
 - **Representation diagnostics**: embedding separability when embeddings are provided
 - **Decision engine**: weighted trust score with penalties and deployment blockers
 - **Reporting**: console summary, fairness visuals, plots, JSON/TXT export, model comparison utility

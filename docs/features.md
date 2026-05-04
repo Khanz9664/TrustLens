@@ -29,9 +29,17 @@ Fairness diagnostics identify performance disparity between subgroups.
 - **Class Imbalance Report**: distribution imbalance and majority/minority ratios.
 - **Subgroup Performance**: group-wise accuracy and macro-F1 with gap summaries.
 - **Equalized Odds Checks**: group-wise TPR/FPR disparity for binary classification.
-- **Fairness Visualizations**: Upgraded `plot_bias()` with diagnostic modes: summary view, subgroup performance bars, equalized-odds grouped bars, and fairness gap summaries.
+- **Multi-Feature Fairness Visualization**: pass multiple sensitive features (e.g., gender, age, income) and TrustLens generates per-feature plots for every visualization type — no feature is silently dropped.
+  - Features are processed in sorted order for deterministic, reproducible output.
+  - Filenames are automatically sanitized for safety (e.g., `"income level"` → `income_level`).
+  - `plot_module` serves as the sole orchestrator for saving and closing figures.
   ```python
+  # High-level: generate all diagnostic plots
   report.plot_bias(mode="all")
+
+  # Orchestrated batch save: one call, all per-feature files
+  from trustlens.visualization import plot_module
+  plot_module("bias", report.results["bias"], save_dir="plots/")
   ```
 
 Use these outputs to detect whether your model systematically underperforms on particular segments.
