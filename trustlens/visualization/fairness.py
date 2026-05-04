@@ -60,9 +60,7 @@ def _plot_multi_helper(
     figures: dict[str, plt.Figure] = {}
     for feature_name in sorted(data.keys()):
         save_path = (
-            os.path.join(save_dir, f"{prefix}_{_safe_name(feature_name)}.png")
-            if save_dir
-            else None
+            os.path.join(save_dir, f"{prefix}_{_safe_name(feature_name)}.png") if save_dir else None
         )
         figures[feature_name] = plot_fn(
             data[feature_name],

@@ -5,17 +5,13 @@ Unit tests for plot_module and _plot_bias integration with multi-feature
 fairness visualizations.
 """
 
-import os
-
 import matplotlib
 import pytest
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from trustlens.visualization import plot_module
-from trustlens.visualization import _plot_bias
-
+from trustlens.visualization import _plot_bias, plot_module
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -135,9 +131,7 @@ class TestPlotBiasReturnStructure:
         result = _plot_bias(equalized_odds_data)
         for plot_type, feature_figs in result.items():
             for feature_name, fig in feature_figs.items():
-                assert isinstance(fig, plt.Figure), (
-                    f"{plot_type}/{feature_name} is not a Figure"
-                )
+                assert isinstance(fig, plt.Figure), f"{plot_type}/{feature_name} is not a Figure"
 
     def test_mixed_availability_subgroup_only(self, subgroup_data):
         """Only subgroup_performance → result has only 'subgroup' key."""
@@ -158,9 +152,7 @@ class TestPlotBiasReturnStructure:
         result = _plot_bias(equalized_odds_data)
         for plot_type, feature_figs in result.items():
             keys = list(feature_figs.keys())
-            assert keys == sorted(keys), (
-                f"{plot_type}: keys {keys} are not sorted"
-            )
+            assert keys == sorted(keys), f"{plot_type}: keys {keys} are not sorted"
 
 
 # ---------------------------------------------------------------------------
