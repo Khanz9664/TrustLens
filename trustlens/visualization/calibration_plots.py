@@ -9,9 +9,6 @@ calibration. A perfectly calibrated model's curve hugs the diagonal.
 
 from __future__ import annotations
 
-import matplotlib
-
-matplotlib.use("Agg")  # non-interactive backend; caller shows/saves figure
 import matplotlib.pyplot as plt
 import numpy as np
 

@@ -1218,9 +1218,6 @@ def _plot_failure_grid(
     save_path: str | None = None,
 ):
     """Render a grid of failure images with prediction annotations."""
-    import matplotlib
-
-    matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
     n = len(indices)

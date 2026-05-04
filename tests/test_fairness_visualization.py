@@ -185,12 +185,17 @@ class TestPlotBiasDispatcher:
         assert isinstance(fig, matplotlib.figure.Figure)
 
     def test_equalized_odds_dispatched(self, equalized_odds_data_single):
-        """_plot_bias with equalized_odds data should route to plot_equalized_odds."""
+        """_plot_bias with equalized_odds data should route to plot_equalized_odds_multi
+        and return a nested dict keyed by plot type then feature."""
         data = {
             "equalized_odds": {"gender": equalized_odds_data_single},
         }
-        fig = _plot_bias(data)
-        assert isinstance(fig, matplotlib.figure.Figure)
+        result = _plot_bias(data)
+        assert isinstance(result, dict)
+        assert "equalized_odds" in result
+        assert "fairness_gap" in result
+        assert "gender" in result["equalized_odds"]
+        assert isinstance(result["equalized_odds"]["gender"], matplotlib.figure.Figure)
 
     def test_equalized_odds_preferred_over_imbalance(self, equalized_odds_data_single):
         """When both class_imbalance and equalized_odds are present,

@@ -9,9 +9,9 @@ Inputs are expected to come from ``report.results["bias"]``.
 
 from __future__ import annotations
 
-import matplotlib
+import os
+import re
 
-matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 PALETTE = [
@@ -24,6 +24,54 @@ PALETTE = [
     "#5AC8FA",
     "#FF6B35",
 ]
+
+
+def _safe_name(s: str) -> str:
+    """Sanitize a string for safe use in filenames."""
+    return re.sub(r"[^a-zA-Z0-9_\-]", "_", s)
+
+
+def _plot_multi_helper(
+    data: dict,
+    plot_fn,
+    prefix: str,
+    save_dir: str | None = None,
+    show: bool = True,
+    **kwargs,
+) -> dict[str, plt.Figure]:
+    """Internal helper — iterates over features in sorted order, delegates to
+    a single-feature plot function, and collects results.
+
+    Parameters
+    ----------
+    data : dict
+        Mapping of ``{feature_name: feature_data}``.
+    plot_fn : callable
+        Single-feature plot function to delegate to.
+    prefix : str
+        Filename prefix used when ``save_dir`` is provided.
+    save_dir : str, optional
+        Directory in which per-feature PNG files are saved.
+    show : bool, optional
+        Whether to display each figure interactively.
+    **kwargs
+        Extra keyword arguments forwarded to *plot_fn*.
+    """
+    figures: dict[str, plt.Figure] = {}
+    for feature_name in sorted(data.keys()):
+        save_path = (
+            os.path.join(save_dir, f"{prefix}_{_safe_name(feature_name)}.png")
+            if save_dir
+            else None
+        )
+        figures[feature_name] = plot_fn(
+            data[feature_name],
+            feature_name,
+            save_path=save_path,
+            show=show,
+            **kwargs,
+        )
+    return figures
 
 
 def plot_subgroup_performance(
@@ -371,7 +419,7 @@ def plot_subgroup_performance_multi(
 
     Iterates over all features in ``subgroup_data`` and delegates to
     :func:`plot_subgroup_performance` for each one.  No feature is silently
-    dropped.
+    dropped.  Features are processed in sorted order for deterministic output.
 
     Parameters
     ----------
@@ -400,21 +448,14 @@ def plot_subgroup_performance_multi(
     >>> figs = plot_subgroup_performance_multi(results)
     >>> fig_gender = figs["gender"]
     """
-    import os
-
-    figures: dict[str, plt.Figure] = {}
-    for feature_name, feature_data in subgroup_data.items():
-        save_path = (
-            os.path.join(save_dir, f"subgroup_performance_{feature_name}.png") if save_dir else None
-        )
-        figures[feature_name] = plot_subgroup_performance(
-            feature_data,
-            feature_name,
-            metric=metric,
-            save_path=save_path,
-            show=show,
-        )
-    return figures
+    return _plot_multi_helper(
+        subgroup_data,
+        plot_subgroup_performance,
+        "subgroup_performance",
+        save_dir=save_dir,
+        show=show,
+        metric=metric,
+    )
 
 
 def plot_equalized_odds_multi(
@@ -427,6 +468,7 @@ def plot_equalized_odds_multi(
 
     Iterates over all features in ``equalized_odds_data`` and delegates to
     :func:`plot_equalized_odds` for each one.  No feature is silently dropped.
+    Features are processed in sorted order for deterministic output.
 
     Parameters
     ----------
@@ -452,20 +494,13 @@ def plot_equalized_odds_multi(
     >>> figs = plot_equalized_odds_multi(results)
     >>> fig_age = figs["age"]
     """
-    import os
-
-    figures: dict[str, plt.Figure] = {}
-    for feature_name, feature_data in equalized_odds_data.items():
-        save_path = (
-            os.path.join(save_dir, f"equalized_odds_{feature_name}.png") if save_dir else None
-        )
-        figures[feature_name] = plot_equalized_odds(
-            feature_data,
-            feature_name,
-            save_path=save_path,
-            show=show,
-        )
-    return figures
+    return _plot_multi_helper(
+        equalized_odds_data,
+        plot_equalized_odds,
+        "equalized_odds",
+        save_dir=save_dir,
+        show=show,
+    )
 
 
 def plot_fairness_gap_multi(
@@ -478,6 +513,7 @@ def plot_fairness_gap_multi(
 
     Iterates over all features in ``equalized_odds_data`` and delegates to
     :func:`plot_fairness_gap` for each one.  No feature is silently dropped.
+    Features are processed in sorted order for deterministic output.
 
     Parameters
     ----------
@@ -503,15 +539,10 @@ def plot_fairness_gap_multi(
     >>> figs = plot_fairness_gap_multi(results)
     >>> fig_gender = figs["gender"]
     """
-    import os
-
-    figures: dict[str, plt.Figure] = {}
-    for feature_name, feature_data in equalized_odds_data.items():
-        save_path = os.path.join(save_dir, f"fairness_gap_{feature_name}.png") if save_dir else None
-        figures[feature_name] = plot_fairness_gap(
-            feature_data,
-            feature_name,
-            save_path=save_path,
-            show=show,
-        )
-    return figures
+    return _plot_multi_helper(
+        equalized_odds_data,
+        plot_fairness_gap,
+        "fairness_gap",
+        save_dir=save_dir,
+        show=show,
+    )

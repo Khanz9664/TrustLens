@@ -12,12 +12,16 @@ All plotting functions follow a consistent interface:
 The ``plot_module()`` dispatcher routes data to the appropriate plotter.
 """
 
+import os
 from typing import Optional
+
+import matplotlib.pyplot as plt
 
 from trustlens.visualization.bias_plots import plot_class_distribution
 from trustlens.visualization.calibration_plots import plot_reliability_diagram
 from trustlens.visualization.failure_plots import plot_confidence_gap
 from trustlens.visualization.fairness import (
+    _safe_name,
     plot_equalized_odds,
     plot_equalized_odds_multi,
     plot_fairness_gap,
@@ -41,6 +45,15 @@ __all__ = [
     "plot_fairness_gap_multi",
 ]
 
+# ---------------------------------------------------------------------------
+# Bias plot-type registry — deterministic ordering
+# ---------------------------------------------------------------------------
+_BIAS_PLOT_TYPES = (
+    ("subgroup", plot_subgroup_performance_multi, "subgroup_performance"),
+    ("equalized_odds", plot_equalized_odds_multi, "equalized_odds"),
+    ("fairness_gap", plot_fairness_gap_multi, "equalized_odds"),
+)
+
 
 def plot_module(module_name: str, data: dict, save_dir: Optional[str] = None) -> None:
     """
@@ -53,10 +66,8 @@ def plot_module(module_name: str, data: dict, save_dir: Optional[str] = None) ->
     data : dict
       Module result data from TrustReport.results[module_name].
     save_dir : str, optional
-      Directory to save the resulting PNG file.
+      Directory to save the resulting PNG file(s).
     """
-    import os
-
     dispatch = {
         "calibration": _plot_calibration,
         "failure": _plot_failure,
@@ -68,17 +79,49 @@ def plot_module(module_name: str, data: dict, save_dir: Optional[str] = None) ->
     if plotter is None:
         return
 
-    fig = plotter(data)
-    if fig is None:
+    # All plotters called uniformly — no save_dir threading
+    result = plotter(data)
+
+    if result is None:
         return
 
+    # Short-circuit empty dict
+    if isinstance(result, dict) and not result:
+        return
+
+    # Ensure output directory exists
     if save_dir:
-        save_path = os.path.join(save_dir, f"{module_name}_plot.png")
-        fig.savefig(save_path, dpi=150, bbox_inches="tight")
+        os.makedirs(save_dir, exist_ok=True)
 
-    import matplotlib.pyplot as plt
-
-    plt.close(fig)
+    if isinstance(result, dict):
+        for key, value in result.items():
+            if isinstance(value, dict):
+                # Nested: dict[str, dict[str, Figure]]
+                for subkey, subfig in value.items():
+                    if subfig is not None:
+                        if save_dir:
+                            path = os.path.join(
+                                save_dir,
+                                f"{module_name}_{key}_{_safe_name(subkey)}.png",
+                            )
+                            subfig.savefig(path, dpi=150, bbox_inches="tight")
+                        plt.close(subfig)
+            else:
+                # Flat: dict[str, Figure]
+                if value is not None:
+                    if save_dir:
+                        path = os.path.join(
+                            save_dir,
+                            f"{module_name}_{key}.png",
+                        )
+                        value.savefig(path, dpi=150, bbox_inches="tight")
+                    plt.close(value)
+    else:
+        # Single Figure (existing behaviour)
+        if save_dir:
+            save_path = os.path.join(save_dir, f"{module_name}_plot.png")
+            result.savefig(save_path, dpi=150, bbox_inches="tight")
+        plt.close(result)
 
 
 def _plot_calibration(data: dict):
@@ -100,22 +143,26 @@ def _plot_failure(data: dict):
 
 
 def _plot_bias(data: dict):
-    """
-    Note
-    ----
-    When ``equalized_odds`` data contains multiple sensitive features,
-    only the first figure is returned to remain compatible with
-    ``plot_module()``'s single-figure flow. To obtain a figure for every
-    feature, call ``plot_equalized_odds_multi()`` directly. Multi-figure
-    support in ``plot_module()`` itself is a potential follow-up.
+    """Route bias data to the appropriate fairness visualizations.
+
+    .. note::
+        Internal use only. Called by ``plot_module()``.
+        Returns a single ``Figure`` for class-imbalance data, or a nested
+        ``dict[str, dict[str, Figure]]`` keyed by plot type then feature
+        when fairness metrics are present. File saving is handled
+        exclusively by ``plot_module()``.
     """
     if "class_imbalance" in data:
         return plot_class_distribution(data["class_imbalance"])
-    if "equalized_odds" in data:
-        figures = plot_equalized_odds_multi(data["equalized_odds"])
-        # Return the first figure for compatibility with plot_module's single-fig flow
-        return next(iter(figures.values()), None) if figures else None
-    return None
+
+    result = {}
+    for key, multi_fn, data_key in _BIAS_PLOT_TYPES:
+        if data_key in data:
+            figures = multi_fn(data[data_key], save_dir=None, show=False)
+            if figures:
+                result[key] = figures
+
+    return result if result else None
 
 
 def _plot_representation(data: dict):

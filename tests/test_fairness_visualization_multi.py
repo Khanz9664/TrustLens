@@ -72,7 +72,7 @@ class TestPlotSubgroupPerformanceMulti:
     def test_output_keys_match_input(self, subgroup_data):
         """Output dict keys must exactly match input feature names."""
         figs = plot_subgroup_performance_multi(subgroup_data, show=False)
-        assert list(figs.keys()) == list(subgroup_data.keys())
+        assert set(figs.keys()) == set(subgroup_data.keys())
 
     def test_returns_figure_instances(self, subgroup_data):
         """Each value in the returned dict must be a matplotlib Figure."""
@@ -109,7 +109,7 @@ class TestPlotEqualizedOddsMulti:
     def test_output_keys_match_input(self, equalized_odds_data):
         """Output dict keys must exactly match input feature names."""
         figs = plot_equalized_odds_multi(equalized_odds_data, show=False)
-        assert list(figs.keys()) == list(equalized_odds_data.keys())
+        assert set(figs.keys()) == set(equalized_odds_data.keys())
 
     def test_returns_figure_instances(self, equalized_odds_data):
         """Each value in the returned dict must be a matplotlib Figure."""
@@ -141,7 +141,7 @@ class TestPlotFairnessGapMulti:
     def test_output_keys_match_input(self, equalized_odds_data):
         """Output dict keys must exactly match input feature names."""
         figs = plot_fairness_gap_multi(equalized_odds_data, show=False)
-        assert list(figs.keys()) == list(equalized_odds_data.keys())
+        assert set(figs.keys()) == set(equalized_odds_data.keys())
 
     def test_returns_figure_instances(self, equalized_odds_data):
         """Each value in the returned dict must be a matplotlib Figure."""

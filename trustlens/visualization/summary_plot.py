@@ -24,9 +24,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import matplotlib
-
-matplotlib.use("Agg")
 import matplotlib.gridspec as gridspec
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
