@@ -24,6 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added bias analysis demo with subgroup diagnostics (`examples/bias_analysis_demo.py`). Thanks @sidharth-vijayan
 - Added SECURITY.md. Thanks @MustansirNisar
 - Added unit tests for multi-feature fairness visualizations covering all-features-processed guarantee, output key matching, and figure smoke tests (`tests/test_fairness_visualization_multi.py`). Thanks @komoike-oss28-ui
+- `_plot_multi_helper()` — internal helper that eliminates duplication across `*_multi` wrappers and enforces deterministic (sorted) feature iteration.
+- `_safe_name()` — filename sanitizer for feature names containing spaces or special characters (e.g., `"income level"` → `income_level`).
+- `_BIAS_PLOT_TYPES` — internal registry for deterministic plot-type dispatch ordering in `_plot_bias()`.
+- `tests/conftest.py` — centralized Agg backend configuration for the test suite.
+- `tests/test_plot_module_multi_feature.py` — 23 integration tests covering nested figure outputs, filename sanitization, orchestrated saving, and edge cases.
 
 ### Improved
 - Final Trust Score logic now includes a base score, penalty breakdown, and decisive deployment verdicts.
@@ -36,11 +41,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced `_violation_level()` docstring with parameter descriptions and threshold details. Thanks @komoike-oss28-ui
 - Fairness visualization now supports multiple sensitive features via `plot_subgroup_performance_multi()`, `plot_equalized_odds_multi()`, and `plot_fairness_gap_multi()`, which return per-feature figures as `{feature_name: Figure}`. Fixed `_plot_bias()` to no longer silently drop features after the first (closes #56). Thanks @komoike-oss28-ui
 - Enhanced bias module usability with visual diagnostics for easier interpretation.
+- Refactored `_plot_bias()` into a pure figure-generation function (no file I/O or side effects). All saving and figure closing is now centralized in `plot_module()`.
+- `plot_module()` now handles nested `dict[str, dict[str, Figure]]` outputs for multi-feature bias data, with standardized filenames (`bias_<type>_<feature>.png`).
+- Updated `docs/metrics/bias.md`, `docs/features.md`, and `README.md` with multi-feature visualization documentation, usage examples, and file output reference.
 
+### Fixed
+- Removed all `matplotlib.use("Agg")` calls from library modules (6 visualization files, `report.py`, `gradcam.py`). This was silently overriding the user's matplotlib backend at import time, breaking interactive use in Jupyter and GUI environments.
 
 ### Stability
 - Maintained full backward compatibility with the `analyze()` API.
-- All 33 core tests passing.
+- All 213 tests passing (33 core + 180 visualization/integration).
 
 
 ---
