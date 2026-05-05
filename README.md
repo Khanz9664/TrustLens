@@ -14,6 +14,21 @@ TrustLens is an open-source Python library for evaluating model reliability beyo
 [Get Started](#quickstart) · [Documentation](docs/index.md) · [Live Demo](examples/trustlens_demo.ipynb) · [PyPI](https://pypi.org/project/trustlens) · [Discussions](https://github.com/Khanz9664/TrustLens/discussions)
 </div>
 
+
+## TrustLens Demo
+
+[![TrustLens Demo](https://img.youtube.com/vi/lZo7aWg6efI/maxresdefault.jpg)](https://youtu.be/lZo7aWg6efI)
+
+▶**Watch the full demo:** https://youtu.be/lZo7aWg6efI
+
+#### Try it yourself
+
+Clone the repo and run the comprehensive showdown demo:
+
+```bash
+python demo.py
+```
+
 ---
 
 ## Why TrustLens

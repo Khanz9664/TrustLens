@@ -57,10 +57,12 @@ trust_report/
 !assets/*.png
 
 # Local demo outputs
-demo.py
 demo_output_*/
 demo_output_*
 demo_plots_*
+trustlens_demo_output/
+
+
 
 # OS
 .DS_Store
@@ -71,3 +73,8 @@ Thumbs.db
 .env.local
 secrets/
 .dev/
+
+.agents/
+graphify-out/
+graphify.md
+
