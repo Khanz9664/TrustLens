@@ -59,7 +59,14 @@ _BIAS_PLOT_TYPES = (
 )
 
 
-def plot_module(module_name: str, data: dict, save_dir: Optional[str] = None) -> None:
+def plot_module(
+    module_name: str,
+    data: dict,
+    save_dir: Optional[str] = None,
+    *,
+    embeddings: Optional["np.ndarray"] = None,
+    labels: Optional["np.ndarray"] = None,
+) -> None:
     """
     Dispatch a module's result data to the appropriate visualization function.
 
@@ -71,7 +78,13 @@ def plot_module(module_name: str, data: dict, save_dir: Optional[str] = None) ->
       Module result data from TrustReport.results[module_name].
     save_dir : str, optional
       Directory to save the resulting PNG file(s).
+    embeddings : np.ndarray, optional
+      Embedding matrix (only used by ``"representation"`` module).
+    labels : np.ndarray, optional
+      Ground-truth labels (only used by ``"representation"`` module).
     """
+    import numpy as np
+
     dispatch = {
         "calibration": _plot_calibration,
         "failure": _plot_failure,
@@ -83,8 +96,10 @@ def plot_module(module_name: str, data: dict, save_dir: Optional[str] = None) ->
     if plotter is None:
         return
 
-    # All plotters called uniformly — no save_dir threading
-    result = plotter(data)
+    if module_name == "representation":
+        result = plotter(data, embeddings=embeddings, labels=labels)
+    else:
+        result = plotter(data)
 
     if result is None:
         return
@@ -169,7 +184,19 @@ def _plot_bias(data: dict):
     return result if result else None
 
 
-def _plot_representation(data: dict):
+def _plot_representation(data: dict, *, embeddings=None, labels=None):
     if "separability" not in data:
         return None
-    return plot_embedding_separability(data["separability"])
+    fig_scorecard = plot_embedding_separability(data["separability"])
+
+    if embeddings is not None and labels is not None:
+        sil = data["separability"].get("silhouette_score")
+        fig_2d = plot_embedding_2d(
+            embeddings=embeddings,
+            labels=labels,
+            silhouette_score=sil,
+            show=False,
+        )
+        return {"separability": fig_scorecard, "embedding_2d": fig_2d}
+
+    return fig_scorecard
