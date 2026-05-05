@@ -29,12 +29,16 @@ from trustlens.visualization.fairness import (
     plot_subgroup_performance,
     plot_subgroup_performance_multi,
 )
-from trustlens.visualization.representation_plots import plot_embedding_separability
+from trustlens.visualization.representation_plots import (
+    plot_embedding_2d,
+    plot_embedding_separability,
+)
 
 __all__ = [
     "plot_reliability_diagram",
     "plot_confidence_gap",
     "plot_class_distribution",
+    "plot_embedding_2d",
     "plot_embedding_separability",
     "plot_module",
     "plot_subgroup_performance",

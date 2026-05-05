@@ -302,5 +302,6 @@ def analyze(
         y_true=y_true,
         y_pred=y_pred,
         y_prob=y_prob,
+        embeddings=embeddings,
     )
     return report

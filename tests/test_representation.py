@@ -11,6 +11,7 @@ from trustlens.metrics.representation import (
     centered_kernel_alignment,
     embedding_separability,
 )
+from trustlens.visualization.representation_plots import plot_embedding_2d
 
 
 class TestEmbeddingSeparability:
@@ -80,3 +81,58 @@ class TestCenteredKernelAlignment:
         cka = centered_kernel_alignment(X, Y)
         # We can't guarantee exactly 0, but it should be < 0.9
         assert cka < 0.9
+
+
+class TestPlotEmbedding2D:
+    def test_plot_embedding_2d_returns_figure(self):
+        rng = np.random.default_rng(0)
+        embeddings = rng.standard_normal((120, 8))
+        labels = np.array([0] * 60 + [1] * 60)
+        fig = plot_embedding_2d(embeddings, labels, method="pca", show=False)
+        assert fig is not None
+        assert hasattr(fig, "savefig")
+
+    def test_plot_embedding_2d_method_fallback_to_pca(self, monkeypatch):
+        rng = np.random.default_rng(1)
+        embeddings = rng.standard_normal((90, 6))
+        labels = np.array([0] * 45 + [1] * 45)
+
+        from sklearn.manifold import TSNE
+
+        def _raise_on_tsne(self, X):
+            raise RuntimeError("forced tsne failure")
+
+        monkeypatch.setattr(TSNE, "fit_transform", _raise_on_tsne)
+        fig = plot_embedding_2d(embeddings, labels, method="tsne", show=False)
+        assert fig is not None
+
+    def test_plot_embedding_2d_subsampling_respects_n_max(self, capsys):
+        rng = np.random.default_rng(2)
+        embeddings = rng.standard_normal((250, 12))
+        labels = np.array([0] * 125 + [1] * 125)
+        fig = plot_embedding_2d(embeddings, labels, method="pca", n_max=80, show=False)
+        captured = capsys.readouterr()
+        assert "Subsampled embeddings" in captured.out
+        assert fig is not None
+
+    def test_plot_embedding_2d_save_path(self, tmp_path):
+        rng = np.random.default_rng(3)
+        embeddings = rng.standard_normal((80, 10))
+        labels = np.array([0] * 40 + [1] * 40)
+        save_path = tmp_path / "embedding_2d.png"
+        _ = plot_embedding_2d(embeddings, labels, method="pca", save_path=str(save_path), show=False)
+        assert save_path.exists()
+
+    def test_plot_embedding_2d_show_false(self):
+        rng = np.random.default_rng(4)
+        embeddings = rng.standard_normal((60, 7))
+        labels = np.array([0] * 30 + [1] * 30)
+        fig = plot_embedding_2d(embeddings, labels, method="pca", show=False)
+        assert fig is not None
+
+    def test_plot_embedding_2d_invalid_method_raises(self):
+        rng = np.random.default_rng(5)
+        embeddings = rng.standard_normal((40, 5))
+        labels = np.array([0] * 20 + [1] * 20)
+        with pytest.raises(ValueError, match="Unknown method"):
+            plot_embedding_2d(embeddings, labels, method="invalid", show=False)

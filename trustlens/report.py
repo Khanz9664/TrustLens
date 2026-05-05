@@ -52,6 +52,7 @@ class TrustReport:
         y_true: np.ndarray,
         y_pred: np.ndarray,
         y_prob: np.ndarray,
+        embeddings: np.ndarray | None = None,
     ) -> None:
         self.results = results
         self.model = model
@@ -59,6 +60,7 @@ class TrustReport:
         self.y_true = y_true
         self.y_pred = y_pred
         self.y_prob = y_prob
+        self.embeddings = embeddings
         self.metadata = self._build_metadata()
 
         # Compute Trust Score immediately so it's always available
@@ -750,6 +752,77 @@ class TrustReport:
                 plot_module(module_name=m, data=self.results[m], save_dir=save_dir)
             else:
                 logger.warning("Module '%s' not found in results.", m)
+
+    # ------------------------------------------------------------------
+    # plot_embedding_2d()
+    # ------------------------------------------------------------------
+
+    def plot_embedding_2d(
+        self,
+        method: str = "umap",
+        n_max: int = 5000,
+        save_path: str | None = None,
+        show: bool = True,
+    ):
+        """
+        Project stored embeddings to 2D and render a class-colored scatter plot.
+
+        Delegates to the underlying ``plot_embedding_2d`` in the visualization
+        sub-package, forwarding silhouette score (when available) so the plot
+        is annotated automatically.
+
+        Guarantees:
+        - Returns matplotlib.figure.Figure
+        - Raises ValueError when embeddings were not supplied to ``analyze()``
+        - Projection falls back gracefully (UMAP -> t-SNE -> PCA) when optional
+          libraries are missing
+
+        Parameters
+        ----------
+        method : str
+          Projection algorithm: ``"umap"`` (default), ``"tsne"``, or ``"pca"``.
+        n_max : int
+          Max samples plotted.  Subsampled randomly when the embedding matrix
+          exceeds this limit.
+        save_path : str, optional
+          File path to save the figure (e.g. ``"clusters.png"``).
+        show : bool
+          Whether to display the figure interactively.  Default True.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+
+        Raises
+        ------
+        ValueError
+            If embeddings are not available (i.e. not passed to ``analyze()``).
+        """
+        from trustlens.visualization.representation_plots import (
+            plot_embedding_2d as _plot,
+        )
+
+        if self.embeddings is None:
+            raise ValueError(
+                "No embeddings available. "
+                "Pass 'embeddings' to analyze() to enable 2D embedding visualization."
+            )
+
+        sil = (
+            self.results.get("representation", {})
+            .get("separability", {})
+            .get("silhouette_score")
+        )
+
+        return _plot(
+            embeddings=self.embeddings,
+            labels=self.y_true,
+            silhouette_score=sil,
+            method=method,
+            n_max=n_max,
+            save_path=save_path,
+            show=show,
+        )
 
     # ------------------------------------------------------------------
     # plot_bias()
