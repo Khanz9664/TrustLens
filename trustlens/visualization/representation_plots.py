@@ -166,7 +166,9 @@ def plot_embedding_2d(
         idx = rng.choice(len(embeddings), n_max, replace=False)
         emb_used = embeddings[idx]
         labels_used = labels[idx]
-        print(f"[TrustLens] Subsampled embeddings from {len(embeddings)} to {n_max} for 2D plotting.")
+        print(
+            f"[TrustLens] Subsampled embeddings from {len(embeddings)} to {n_max} for 2D plotting."
+        )
 
     methods_to_try = {
         "umap": ["umap", "tsne", "pca"],
@@ -202,7 +204,9 @@ def plot_embedding_2d(
             last_error = exc
 
     if coords_2d is None or used_method is None:
-        raise RuntimeError(f"Failed to compute 2D projection with method '{method}'.") from last_error
+        raise RuntimeError(
+            f"Failed to compute 2D projection with method '{method}'."
+        ) from last_error
 
     plt.style.use("seaborn-v0_8-whitegrid")
     fig, ax = plt.subplots(figsize=(8, 6), constrained_layout=True)

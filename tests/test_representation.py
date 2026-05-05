@@ -120,7 +120,9 @@ class TestPlotEmbedding2D:
         embeddings = rng.standard_normal((80, 10))
         labels = np.array([0] * 40 + [1] * 40)
         save_path = tmp_path / "embedding_2d.png"
-        _ = plot_embedding_2d(embeddings, labels, method="pca", save_path=str(save_path), show=False)
+        _ = plot_embedding_2d(
+            embeddings, labels, method="pca", save_path=str(save_path), show=False
+        )
         assert save_path.exists()
 
     def test_plot_embedding_2d_show_false(self):

@@ -749,7 +749,13 @@ class TrustReport:
         modules_to_plot = [module] if module else list(self.results.keys())
         for m in modules_to_plot:
             if m in self.results:
-                plot_module(module_name=m, data=self.results[m], save_dir=save_dir)
+                plot_module(
+                    module_name=m,
+                    data=self.results[m],
+                    save_dir=save_dir,
+                    embeddings=self.embeddings if m == "representation" else None,
+                    labels=self.y_true if m == "representation" else None,
+                )
             else:
                 logger.warning("Module '%s' not found in results.", m)
 
@@ -808,11 +814,7 @@ class TrustReport:
                 "Pass 'embeddings' to analyze() to enable 2D embedding visualization."
             )
 
-        sil = (
-            self.results.get("representation", {})
-            .get("separability", {})
-            .get("silhouette_score")
-        )
+        sil = self.results.get("representation", {}).get("separability", {}).get("silhouette_score")
 
         return _plot(
             embeddings=self.embeddings,

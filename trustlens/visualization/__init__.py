@@ -12,10 +12,13 @@ All plotting functions follow a consistent interface:
 The ``plot_module()`` dispatcher routes data to the appropriate plotter.
 """
 
+from __future__ import annotations
+
 import os
 from typing import Optional
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 from trustlens.visualization.bias_plots import plot_class_distribution
 from trustlens.visualization.calibration_plots import plot_reliability_diagram
@@ -59,7 +62,14 @@ _BIAS_PLOT_TYPES = (
 )
 
 
-def plot_module(module_name: str, data: dict, save_dir: Optional[str] = None) -> None:
+def plot_module(
+    module_name: str,
+    data: dict,
+    save_dir: Optional[str] = None,
+    *,
+    embeddings: Optional[np.ndarray] = None,
+    labels: Optional[np.ndarray] = None,
+) -> None:
     """
     Dispatch a module's result data to the appropriate visualization function.
 
@@ -71,20 +81,21 @@ def plot_module(module_name: str, data: dict, save_dir: Optional[str] = None) ->
       Module result data from TrustReport.results[module_name].
     save_dir : str, optional
       Directory to save the resulting PNG file(s).
+    embeddings : np.ndarray, optional
+      Embedding matrix (only used by ``"representation"`` module).
+    labels : np.ndarray, optional
+      Ground-truth labels (only used by ``"representation"`` module).
     """
-    dispatch = {
-        "calibration": _plot_calibration,
-        "failure": _plot_failure,
-        "bias": _plot_bias,
-        "representation": _plot_representation,
-    }
-
-    plotter = dispatch.get(module_name)
-    if plotter is None:
+    if module_name == "representation":
+        result = _plot_representation(data, embeddings=embeddings, labels=labels)
+    elif module_name == "calibration":
+        result = _plot_calibration(data)
+    elif module_name == "failure":
+        result = _plot_failure(data)
+    elif module_name == "bias":
+        result = _plot_bias(data)
+    else:
         return
-
-    # All plotters called uniformly — no save_dir threading
-    result = plotter(data)
 
     if result is None:
         return
@@ -169,7 +180,19 @@ def _plot_bias(data: dict):
     return result if result else None
 
 
-def _plot_representation(data: dict):
+def _plot_representation(data: dict, *, embeddings=None, labels=None):
     if "separability" not in data:
         return None
-    return plot_embedding_separability(data["separability"])
+    fig_scorecard = plot_embedding_separability(data["separability"])
+
+    if embeddings is not None and labels is not None:
+        sil = data["separability"].get("silhouette_score")
+        fig_2d = plot_embedding_2d(
+            embeddings=embeddings,
+            labels=labels,
+            silhouette_score=sil,
+            show=False,
+        )
+        return {"separability": fig_scorecard, "embedding_2d": fig_2d}
+
+    return fig_scorecard
