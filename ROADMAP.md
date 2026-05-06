@@ -5,7 +5,7 @@
 
 ---
 
-## Current State (v0.2.0)
+## Current State (v0.3.0)
 
 - Stable ML evaluation pipeline (calibration, failure, bias, representation)
 - Experimental modules isolated (explainability, faithfulness)
@@ -35,7 +35,7 @@ These are high-priority items currently being developed or targeted for the next
 
 The minimal set of features required to be genuinely useful to practitioners.
 
-Note: As of v0.2.0, TrustLens focuses on classical ML evaluation.
+Note: As of v0.3.0, TrustLens focuses on classical ML evaluation.
 Deep learning explainability features are under experimental development and not part of the core pipeline.
 
 ### Deliverables
@@ -56,7 +56,7 @@ Deep learning explainability features are under experimental development and not
 
 ## Phase 2: Core Expansion — *Going Deeper*
 
-**Target: v0.2.x (ongoing)**
+**Target: v0.3.x (ongoing)**
 
 > **Focus:** High-impact ML features that integrate directly into the `analyze()` pipeline.
 

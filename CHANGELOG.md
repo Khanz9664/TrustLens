@@ -9,10 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-05-06
+
 ### Added
-- 2D embedding visualization (`plot_embedding_2d`) with automatic UMAP → t-SNE → PCA fallback, class-colored scatter plot, silhouette score annotation, and configurable subsampling (`n_max`). Integrated into `report.plot()` auto-dispatch.
-- `embedding_separability` metric computing silhouette score, within/between-class distances, and separability ratio.
-- 14 tests covering representation metrics, CKA, and 2D embedding visualization.
+- 2D embedding visualization (`plot_embedding_2d`) with automatic UMAP → t-SNE → PCA fallback, class-colored scatter plot, silhouette score annotation, and configurable subsampling (`n_max`). Integrated into `report.plot()` auto-dispatch. Thanks @WeiGuang-2099
+- `embedding_separability` metric computing silhouette score, within/between-class distances, and separability ratio. Thanks @WeiGuang-2099
+- 14 tests covering representation metrics, CKA, and 2D embedding visualization. Thanks @WeiGuang-2099
 - Model comparison API (`trustlens.compare`) for head-to-head multi-model evaluation and recommendation.
 - Pattern detection system (e.g., "Calibration Drift", "Confidently Wrong") to surface high-level semantic risks.
 - Initial `equalized_odds()` fairness metric with per-group TPR/FPR analysis (closes #17). Thanks @komoike-oss28-ui
@@ -137,7 +139,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions CI workflow (linting, testing, and formatting)
 - Complete documentation: README (with logo), CONTRIBUTING, ROADMAP, this CHANGELOG
 
-[Unreleased]: https://github.com/Khanz9664/TrustLens/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Khanz9664/TrustLens/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Khanz9664/TrustLens/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Khanz9664/TrustLens/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/Khanz9664/TrustLens/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Khanz9664/TrustLens/compare/v0.1.0...v0.1.1

@@ -6,7 +6,8 @@ We actively support the latest version of TrustLens. Please keep your installati
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 0.2.x   | :white_check_mark: Yes |
+| 0.3.x | :white_check_mark: Yes |
+| 0.2.x | :white_check_mark: Yes |
 | < 0.2.0 | :x: No             |
 
 ## Reporting a Vulnerability
