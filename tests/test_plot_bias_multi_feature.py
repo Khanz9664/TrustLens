@@ -10,9 +10,6 @@ between ``multi_feature=True`` and an invalid ``mode``.
 
 from unittest.mock import MagicMock
 
-import matplotlib
-
-matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
