@@ -835,68 +835,117 @@ class TrustReport:
         mode: str = "summary",
         show: bool = True,
         save_path: str | None = None,
+        multi_feature: bool = False,
     ):
         """
         Generate fairness/bias visualizations from report results.
 
+        ``mode`` and ``multi_feature`` are independent dimensions; the return
+        shape is fully determined by their combination, with no flattening.
+
         Guarantees:
-        - Returns matplotlib.figure.Figure (single modes)
-        - Returns dict[str, matplotlib.figure.Figure | None] (mode="all")
-        - Raises ValueError for invalid mode or unusable data
+        - Return shape is fixed by the ``(mode, multi_feature)`` combination
+          (see the table below). The structure never collapses across calls.
+        - Multi-feature outputs never contain ``None`` values; missing
+          components are represented by empty dicts ``{}``.
+        - Raises ``ValueError`` for invalid ``mode`` or unusable data, regardless
+          of ``multi_feature``.
 
-        Returned dict for mode="all" ALWAYS contains exactly three keys in order:
-        'subgroup' -> 'equalized_odds' -> 'gap'. Values may be None if a plot
-        cannot be generated. Individual plot failures in mode="all" are silent
-        (no exception, no logging; values set to None). If all plots fail (all
-        values None), raise ValueError. Caller is responsible for checking
-        None values in returned dict.
+        Return shape by ``(mode, multi_feature)``:
 
-        Note: mode="all" returns a dictionary of plots and does NOT display them
-        unless show=True.
+        +-----------------+----------------+--------------------------------------+
+        | mode            | multi_feature  | Return type                          |
+        +=================+================+======================================+
+        | single mode     | False          | ``Figure``                           |
+        | (summary,       |                |                                      |
+        | subgroup,       |                |                                      |
+        | equalized_odds, |                |                                      |
+        | gap)            |                |                                      |
+        +-----------------+----------------+--------------------------------------+
+        | summary         | True           | ``Figure`` (same as ``False``)       |
+        +-----------------+----------------+--------------------------------------+
+        | subgroup,       | True           | ``dict[str, Figure]`` keyed by       |
+        | equalized_odds, |                | feature name (sorted)                |
+        | gap             |                |                                      |
+        +-----------------+----------------+--------------------------------------+
+        | all             | False          | ``dict[str, Figure | None]`` keyed   |
+        |                 |                | by mode (existing behavior)          |
+        +-----------------+----------------+--------------------------------------+
+        | all             | True           | ``dict[str, dict[str, Figure]]``     |
+        |                 |                | keyed by mode, then feature.         |
+        |                 |                | Always contains exactly the keys     |
+        |                 |                | 'subgroup', 'equalized_odds',        |
+        |                 |                | 'gap' (in that order). Components    |
+        |                 |                | with no data return ``{}``.          |
+        +-----------------+----------------+--------------------------------------+
+
+        Returned dict for ``mode="all"`` (regardless of ``multi_feature``)
+        ALWAYS contains exactly three keys in order: ``'subgroup'`` ->
+        ``'equalized_odds'`` -> ``'gap'``. Within each multi-feature dict,
+        feature order follows ``sorted(feature_names)`` for determinism.
+
+        Note: ``mode="all"`` returns a structured dict and does NOT display
+        figures unless ``show=True``.
 
         Parameters
         ----------
         mode : str, optional
-            Visualization mode. One of {"summary", "all", "subgroup", "equalized_odds", "gap"}.
-            Default "summary".
+            Visualization mode. One of {"summary", "all", "subgroup",
+            "equalized_odds", "gap"}. Default "summary".
         show : bool
             Whether to display the figure interactively. Default True.
         save_path : str, optional
-            If provided, saves the figure(s) to this path.
-            - Single modes: Treated as full file path. Defaults to .png if extension missing.
-            - mode="all": Treated as base name. Appends suffixes and .png.
+            If provided, saves the figure(s) to this path. Only honored when
+            ``multi_feature=False`` (single-feature behavior).
+            - Single modes: Treated as full file path. Defaults to ``.png`` if
+              extension missing.
+            - ``mode="all"``: Treated as base name. Appends suffixes and ``.png``.
+            When ``multi_feature=True``, ``save_path`` is ignored (per-feature
+            saving is intentionally not exposed here; use the lower-level
+            ``plot_*_multi`` helpers if you need on-disk output).
+        multi_feature : bool, optional
+            If True, return per-feature figures rather than only the first
+            sensitive feature. Default False (backward compatible).
 
         Returns
         -------
-        matplotlib.figure.Figure | dict[str, matplotlib.figure.Figure | None]
+        matplotlib.figure.Figure
+            | dict[str, matplotlib.figure.Figure | None]
+            | dict[str, matplotlib.figure.Figure]
+            | dict[str, dict[str, matplotlib.figure.Figure]]
+            See the return-shape table above.
 
         Notes
         -----
-        Currently supports one sensitive feature per plot. If multiple are present,
-        the first is used. New modes can be added by extending ALLOWED_MODES and
-        dispatch logic without breaking existing behavior.
-        Function behavior MUST be deterministic given identical inputs (no randomness,
-        no state mutation). This includes consistent plot ordering, consistent key
-        ordering in dict, and no randomness in visualization.
-        Each returned Figure must be independent (no shared axes, state, or references
-        between plots). Each plot must be independently renderable and savable.
+        New modes can be added by extending ``ALLOWED_MODES`` and dispatch
+        logic without breaking existing behavior.
+        Function behavior MUST be deterministic given identical inputs (no
+        randomness, no state mutation). This includes consistent plot ordering,
+        consistent key ordering in dicts, and no randomness in visualization.
+        Each returned Figure must be independent (no shared axes, state, or
+        references between plots). Each plot must be independently renderable
+        and savable.
 
-        Caution: Figures are returned open. If calling this method repeatedly in a
-        loop, ensure you call plt.close(fig) on the returned figures to avoid
-        memory accumulation.
+        Caution: Figures are returned open. If calling this method repeatedly
+        in a loop, ensure you call ``plt.close(fig)`` on the returned figures
+        to avoid memory accumulation.
 
         Raises
         ------
         ValueError
-            If "bias" is not present in self.results or if data is unusable.
+            If ``mode`` is invalid, ``"bias"`` is not present in
+            ``self.results``, or the data is unusable.
         """
         import matplotlib.pyplot as plt
 
         from trustlens.visualization import _plot_bias
         from trustlens.visualization.fairness import (
             plot_equalized_odds,
+            plot_equalized_odds_multi,
             plot_fairness_gap,
+            plot_fairness_gap_multi,
             plot_subgroup_performance,
+            plot_subgroup_performance_multi,
         )
 
         ALLOWED_MODES = {"summary", "all", "subgroup", "equalized_odds", "gap"}
@@ -919,12 +968,24 @@ class TrustReport:
         if not (has_subgroup or has_eo or has_imbalance):
             raise ValueError("Bias data is present but not usable for visualization.")
 
+        # Reserved meta keys that should never be treated as feature names.
+        _META_KEYS = ("status", "reason", "details")
+
         def _get_first(key):
             d = bias_data.get(key, {})
             for k, v in d.items():
-                if k not in ("status", "reason", "details"):
+                if k not in _META_KEYS:
                     return k, v
             return None, None
+
+        def _sorted_feature_dict(key):
+            """Return ``{feature: data}`` ordered by ``sorted(feature_names)``.
+
+            Drops reserved meta keys so wrapper functions iterate only over
+            real features.
+            """
+            d = bias_data.get(key, {})
+            return {fname: d[fname] for fname in sorted(k for k in d if k not in _META_KEYS)}
 
         def _get_save_path(base_path, suffix=None):
             if base_path is None:
@@ -940,6 +1001,84 @@ class TrustReport:
             if not ext:
                 ext = ".png"
             return f"{name}{ext}"
+
+        # ------------------------------------------------------------------
+        # multi_feature=True dispatch
+        #
+        # Implemented as a thin transformation layer over the same plotting
+        # primitives the single-feature path uses. The "summary" mode simply
+        # falls through to the existing single-figure path because a summary
+        # plot is feature-agnostic by design.
+        # ------------------------------------------------------------------
+        if multi_feature and mode != "summary":
+            if save_path is not None:
+                logger.warning(
+                    "save_path is ignored when multi_feature=True; "
+                    "use plot_*_multi helpers directly for per-feature files."
+                )
+
+            if mode == "subgroup":
+                feat_dict = _sorted_feature_dict("subgroup_performance")
+                if not feat_dict:
+                    raise ValueError("Missing 'subgroup_performance' data for 'subgroup' mode.")
+                return plot_subgroup_performance_multi(feat_dict, show=show)
+
+            if mode == "equalized_odds":
+                feat_dict = _sorted_feature_dict("equalized_odds")
+                if not feat_dict:
+                    raise ValueError("Missing 'equalized_odds' data for 'equalized_odds' mode.")
+                return plot_equalized_odds_multi(feat_dict, show=show)
+
+            if mode == "gap":
+                # Priority: subgroup_performance -> equalized_odds, mirroring
+                # the single-feature path. The gap plot internally uses the
+                # equalized-odds-shaped data, so we use whichever is present.
+                feat_dict = _sorted_feature_dict("subgroup_performance")
+                if not feat_dict:
+                    feat_dict = _sorted_feature_dict("equalized_odds")
+                if not feat_dict:
+                    raise ValueError(
+                        "Missing sufficient data for 'gap' mode "
+                        "(either subgroup_performance or equalized_odds)."
+                    )
+                return plot_fairness_gap_multi(feat_dict, show=show)
+
+            if mode == "all":
+                # Return shape is fixed: three keys, in this order, every
+                # call. Components with no data map to {} (never None).
+                multi_results: dict[str, dict[str, plt.Figure]] = {
+                    "subgroup": {},
+                    "equalized_odds": {},
+                    "gap": {},
+                }
+
+                sub_dict = _sorted_feature_dict("subgroup_performance")
+                eo_dict = _sorted_feature_dict("equalized_odds")
+
+                if sub_dict:
+                    multi_results["subgroup"] = plot_subgroup_performance_multi(
+                        sub_dict, show=False
+                    )
+
+                if eo_dict:
+                    multi_results["equalized_odds"] = plot_equalized_odds_multi(eo_dict, show=False)
+
+                # 'gap' uses the same priority rule as the single-feature
+                # path: subgroup_performance first, falling back to
+                # equalized_odds.
+                gap_dict = sub_dict if sub_dict else eo_dict
+                if gap_dict:
+                    multi_results["gap"] = plot_fairness_gap_multi(gap_dict, show=False)
+
+                if show:
+                    backend = plt.get_backend().lower()
+                    if "agg" not in backend:
+                        try:
+                            plt.show()
+                        except Exception:
+                            pass
+
+                return multi_results
 
         if mode == "summary":
             # "summary" mode requires data compatible with _plot_bias()
