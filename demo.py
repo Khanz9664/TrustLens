@@ -186,10 +186,12 @@ def run_comprehensive_demo():
             )
 
         # --- [FEATURE: 2D EMBEDDING VISUALIZATION] ---
-        print(f"    - Generating 2D Embedding Projection (Latent Space)...")
+        print("    - Generating 2D Embedding Projection (Latent Space)...")
         report.plot_embedding_2d(
             method="pca",
-            save_path=os.path.join(BASE_OUTPUT, f"visuals/{folder}/representation/latent_space.png"),
+            save_path=os.path.join(
+                BASE_OUTPUT, f"visuals/{folder}/representation/latent_space.png"
+            ),
             show=False,
         )
 
