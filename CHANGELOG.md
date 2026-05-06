@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `_BIAS_PLOT_TYPES` — internal registry for deterministic plot-type dispatch ordering in `_plot_bias()`.
 - `tests/conftest.py` — centralized Agg backend configuration for the test suite.
 - `tests/test_plot_module_multi_feature.py` — 23 integration tests covering nested figure outputs, filename sanitization, orchestrated saving, and edge cases.
+- `TrustReport.plot_bias()` now accepts an opt-in `multi_feature: bool = False` parameter for per-feature visualization output. With `multi_feature=True`, single modes (`"subgroup"`, `"equalized_odds"`, `"gap"`) return `dict[str, Figure]` keyed by feature name, and `mode="all"` returns a nested `dict[str, dict[str, Figure]]` keyed by mode then feature. The structure is fixed by the `(mode, multi_feature)` combination, missing components are represented by empty dicts (never `None`), and feature ordering is deterministic (`sorted(feature_names)`). Default behavior (`multi_feature=False`) is unchanged. `tests/test_plot_bias_multi_feature.py` adds 18 tests covering the four return-shape cells, partial-data handling, deterministic ordering, and invalid-mode interaction (closes #74). Thanks @komoike-oss28-ui
 
 ### Improved
 - Final Trust Score logic now includes a base score, penalty breakdown, and decisive deployment verdicts.
