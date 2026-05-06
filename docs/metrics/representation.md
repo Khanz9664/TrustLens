@@ -34,6 +34,37 @@ Low separability should trigger deeper feature and model diagnostics, not immedi
 - silhouette estimates can be unstable with small or highly imbalanced samples
 - representation outputs should be interpreted with calibration and failure diagnostics, not in isolation
 
+## 2D Embedding Visualization
+
+Use `plot_embedding_2d()` to project high-dimensional embeddings into a 2D scatter plot color-coded by class label.
+
+```python
+report = TrustReport(...)
+report.plot_embedding_2d(method="umap", save_path="clusters.png")
+```
+
+### Fallback Behavior
+
+The `method` parameter controls the projection algorithm:
+
+- `"umap"` (default) — requires `umap-learn`; falls back to t-SNE, then PCA
+- `"tsne"` — uses scikit-learn `TSNE`; falls back to PCA
+- `"pca"` — uses scikit-learn `PCA` (always available)
+
+If the requested library is not installed, TrustLens silently falls back to the next available method. No extra dependencies are forced on users.
+
+### Subsampling
+
+When the number of samples exceeds `n_max` (default 5000), the function automatically subsamples to keep runtime and plot density manageable:
+
+```python
+report.plot_embedding_2d(n_max=3000)
+```
+
+### Integration with `report.plot()`
+
+When embeddings were passed to `analyze()`, calling `report.plot()` automatically generates both the separability scorecard and the 2D scatter projection. No extra call is needed.
+
 ## API Reference
 
 ```{eval-rst}

@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- 2D embedding visualization (`plot_embedding_2d`) with automatic UMAP → t-SNE → PCA fallback, class-colored scatter plot, silhouette score annotation, and configurable subsampling (`n_max`). Integrated into `report.plot()` auto-dispatch.
+- `embedding_separability` metric computing silhouette score, within/between-class distances, and separability ratio.
+- 14 tests covering representation metrics, CKA, and 2D embedding visualization.
 - Model comparison API (`trustlens.compare`) for head-to-head multi-model evaluation and recommendation.
 - Pattern detection system (e.g., "Calibration Drift", "Confidently Wrong") to surface high-level semantic risks.
 - Initial `equalized_odds()` fairness metric with per-group TPR/FPR analysis (closes #17). Thanks @komoike-oss28-ui
@@ -50,7 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Stability
 - Maintained full backward compatibility with the `analyze()` API.
-- All 213 tests passing (33 core + 180 visualization/integration).
+- All 219 tests passing.
 
 
 ---

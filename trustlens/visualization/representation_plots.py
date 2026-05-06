@@ -226,7 +226,7 @@ def plot_embedding_2d(
         )
 
     title = f"Embedding 2D Projection ({used_method.upper()})"
-    if silhouette_score is not None:
+    if silhouette_score is not None and np.isfinite(silhouette_score):
         title += f" | Silhouette={silhouette_score:.4f}"
 
     ax.set_title(title, fontsize=12, fontweight="bold")
