@@ -14,6 +14,7 @@ Expected outputs:
 - bias_subgroup.png
 - bias_equalized_odds.png
 - bias_gap.png
+- representation_2d.png
 - report.json
 """
 
@@ -108,6 +109,11 @@ def main():
     # Generate subgroup, equalized_odds, and gap plots in one call
     audit_plots = report.plot_bias(mode="all", save_path="comprehensive_audit_plots")
     print(f"    ✔ Batch plots generated: {list(audit_plots.keys())}")
+
+    print("\n[*] Generating 2D Embedding Projection...")
+    # This will use UMAP if available, otherwise t-SNE or PCA
+    report.plot_embedding_2d(method="pca", save_path="examples/representation_2d.png")
+    print("    ✔ 2D Projection saved to: examples/representation_2d.png")
 
     # -----------------------------
     # 5. Output

@@ -39,6 +39,7 @@ def setup_output_dirs():
     # Folders for model assets
     for m in ["model_a", "model_b", "model_c"]:
         os.makedirs(os.path.join(BASE_OUTPUT, f"visuals/{m}/bias_deep_dive"), exist_ok=True)
+        os.makedirs(os.path.join(BASE_OUTPUT, f"visuals/{m}/representation"), exist_ok=True)
     os.makedirs(os.path.join(BASE_OUTPUT, "reports"), exist_ok=True)
 
 
@@ -184,6 +185,14 @@ def run_comprehensive_demo():
                 bias_results["equalized_odds"], save_dir=deep_dive_path, show=False
             )
 
+        # --- [FEATURE: 2D EMBEDDING VISUALIZATION] ---
+        print(f"    - Generating 2D Embedding Projection (Latent Space)...")
+        report.plot_embedding_2d(
+            method="pca",
+            save_path=os.path.join(BASE_OUTPUT, f"visuals/{folder}/representation/latent_space.png"),
+            show=False,
+        )
+
         # Save the report bundle
         report.save(f"{BASE_OUTPUT}/reports/{folder}_report/")
         # Save the master dashboard
@@ -211,7 +220,7 @@ def run_comprehensive_demo():
     print("-" * 80)
 
     # Module-level breakdowns
-    for dim in ["calibration", "failure", "bias"]:
+    for dim in ["calibration", "failure", "bias", "representation"]:
         s_a = reports[0].trust_score.sub_scores.get(dim, 0)
         s_b = reports[1].trust_score.sub_scores.get(dim, 0)
         s_c = reports[2].trust_score.sub_scores.get(dim, 0)
@@ -237,6 +246,9 @@ def run_comprehensive_demo():
     print(f"\n✅ All features showcased. Results consolidated in: ./{BASE_OUTPUT}/")
     print(
         f"   Note: Check ./{BASE_OUTPUT}/visuals/model_a/bias_deep_dive/ for every single fairness plot."
+    )
+    print(
+        f"   Note: Check ./{BASE_OUTPUT}/visuals/model_a/representation/ for 2D embedding projections."
     )
 
 
