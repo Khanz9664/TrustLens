@@ -68,6 +68,10 @@ dev = [
     "ruff>=0.4",
     "mypy>=1.0",
     "pre-commit>=3.0",
+    "build>=1.0",
+    "twine>=5.0",
+    "pip-audit>=2.7",
+    "pytest-xdist>=3.0",
 ]
 docs = [
     "sphinx>=6.0",
@@ -106,6 +110,7 @@ omit = [
 [tool.coverage.report]
 show_missing = true
 skip_covered = false
+fail_under = 73
 
 [tool.ruff]
 line-length = 100
@@ -153,3 +158,4 @@ python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
 ignore_missing_imports = true
+follow_imports = "silent"
