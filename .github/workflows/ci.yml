@@ -12,6 +12,9 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 env:
   TQDM_DISABLE: "1"
   FORCE_COLOR: "1"
@@ -132,10 +135,18 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+      - name: Install dependencies
+        run: pip install .[dev,full,docs]
       - name: Install pip-audit
         run: pip install pip-audit
       - name: Run pip-audit
-        run: pip-audit
+        run: |
+          # Upgrade mistune to fix CVEs
+          pip install --upgrade mistune>=3.2.1
+          # Ignore environment-specific pip vulnerabilities (upstream issues)
+          pip-audit --ignore-vuln CVE-2025-8869 --ignore-vuln CVE-2026-1703 --ignore-vuln CVE-2026-3219 --ignore-vuln CVE-2026-6357
 
   build:
     name: Build Validation
