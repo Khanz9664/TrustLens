@@ -1,0 +1,14 @@
+{
+  "trustlens_version": "0.3.0",
+  "timestamp": "2026-05-11T18:20:18.012166+00:00",
+  "n_samples": 800,
+  "n_classes": 2,
+  "model_class": "Model A",
+  "modules_run": [
+    "calibration",
+    "failure",
+    "bias",
+    "representation",
+    "plugin_conf_stability"
+  ]
+}

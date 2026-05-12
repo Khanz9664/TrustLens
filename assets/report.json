@@ -1,0 +1,337 @@
+{
+  "calibration": {
+    "brier_score": 0.15432888486497773,
+    "ece": 0.07983368977100383,
+    "reliability_curve": [
+      [
+        0.20408163265306123,
+        0.11458333333333333,
+        0.1452513966480447,
+        0.20618556701030927,
+        0.4342105263157895,
+        0.5588235294117647,
+        0.7692307692307693,
+        0.875,
+        1.0,
+        0.6666666666666666
+      ],
+      [
+        0.0776106365784895,
+        0.15285955305358792,
+        0.24258195239878266,
+        0.34403814996996007,
+        0.4433997129792409,
+        0.5513479820082493,
+        0.6509219845632246,
+        0.7511409009142179,
+        0.8408061971033554,
+        0.9248868513028011
+      ],
+      [
+        49,
+        192,
+        179,
+        97,
+        76,
+        68,
+        52,
+        56,
+        28,
+        3
+      ]
+    ]
+  },
+  "failure": {
+    "misclassification_summary": {
+      "0": {
+        "support": 532,
+        "n_misclassified": 50,
+        "error_rate": 0.094,
+        "avg_misclassification_confidence": 0.6053,
+        "top_mistake_indices": [
+          15,
+          33,
+          11,
+          2,
+          10
+        ]
+      },
+      "1": {
+        "support": 268,
+        "n_misclassified": 111,
+        "error_rate": 0.4142,
+        "avg_misclassification_confidence": 0.7089,
+        "top_mistake_indices": [
+          32,
+          90,
+          101,
+          3,
+          25
+        ]
+      },
+      "__overall__": {
+        "total_errors": 161,
+        "overall_error_rate": 0.2013
+      }
+    },
+    "confidence_gap": {
+      "correct_confidence_mean": 0.7513629593143544,
+      "incorrect_confidence_mean": 0.6767428317046542,
+      "gap": 0.0746,
+      "histogram_bins": [
+        0.0,
+        0.05,
+        0.1,
+        0.15000000000000002,
+        0.2,
+        0.25,
+        0.30000000000000004,
+        0.35000000000000003,
+        0.4,
+        0.45,
+        0.5,
+        0.55,
+        0.6000000000000001,
+        0.65,
+        0.7000000000000001,
+        0.75,
+        0.8,
+        0.8500000000000001,
+        0.9,
+        0.9500000000000001,
+        1.0
+      ],
+      "correct_hist": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        33,
+        48,
+        45,
+        72,
+        82,
+        120,
+        106,
+        92,
+        37,
+        4
+      ],
+      "incorrect_hist": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        30,
+        33,
+        16,
+        16,
+        16,
+        17,
+        16,
+        6,
+        8,
+        3
+      ],
+      "n_correct": 639,
+      "n_incorrect": 161
+    }
+  },
+  "bias": {
+    "class_imbalance": {
+      "class_counts": {
+        "0": 532,
+        "1": 268
+      },
+      "class_frequencies": {
+        "0": 0.665,
+        "1": 0.335
+      },
+      "imbalance_ratio": 1.9851,
+      "minority_class": 1,
+      "majority_class": 0,
+      "n_classes": 2
+    },
+    "subgroup_performance": {
+      "gender": {
+        "Female": {
+          "n_samples": 389,
+          "accuracy": 0.8072,
+          "f1": 0.7756
+        },
+        "Male": {
+          "n_samples": 411,
+          "accuracy": 0.7908,
+          "f1": 0.7418
+        },
+        "__summary__": {
+          "performance_gap": 0.0164,
+          "best_group": "Female",
+          "worst_group": "Male"
+        }
+      },
+      "region": {
+        "East": {
+          "n_samples": 206,
+          "accuracy": 0.8204,
+          "f1": 0.7744
+        },
+        "North": {
+          "n_samples": 211,
+          "accuracy": 0.8104,
+          "f1": 0.7694
+        },
+        "South": {
+          "n_samples": 182,
+          "accuracy": 0.7363,
+          "f1": 0.7065
+        },
+        "West": {
+          "n_samples": 201,
+          "accuracy": 0.8209,
+          "f1": 0.7819
+        },
+        "__summary__": {
+          "performance_gap": 0.0846,
+          "best_group": "West",
+          "worst_group": "South"
+        }
+      },
+      "education": {
+        "Bachelor": {
+          "n_samples": 191,
+          "accuracy": 0.822,
+          "f1": 0.7934
+        },
+        "High School": {
+          "n_samples": 203,
+          "accuracy": 0.798,
+          "f1": 0.7398
+        },
+        "Master": {
+          "n_samples": 213,
+          "accuracy": 0.8028,
+          "f1": 0.7588
+        },
+        "PhD": {
+          "n_samples": 193,
+          "accuracy": 0.772,
+          "f1": 0.7408
+        },
+        "__summary__": {
+          "performance_gap": 0.05,
+          "best_group": "Bachelor",
+          "worst_group": "PhD"
+        }
+      }
+    },
+    "equalized_odds": {
+      "gender": {
+        "Female": {
+          "n_samples": 389,
+          "tpr": 0.6131386861313869,
+          "fpr": 0.0873015873015873
+        },
+        "Male": {
+          "n_samples": 411,
+          "tpr": 0.5572519083969466,
+          "fpr": 0.1
+        },
+        "__summary__": {
+          "tpr_gap": 0.0559,
+          "fpr_gap": 0.0127,
+          "tpr_violation": "moderate",
+          "fpr_violation": "acceptable",
+          "best_tpr_group": "Female",
+          "worst_tpr_group": "Male"
+        }
+      },
+      "region": {
+        "East": {
+          "n_samples": 206,
+          "tpr": 0.59375,
+          "fpr": 0.07746478873239436
+        },
+        "North": {
+          "n_samples": 211,
+          "tpr": 0.6029411764705882,
+          "fpr": 0.09090909090909091
+        },
+        "South": {
+          "n_samples": 182,
+          "tpr": 0.5507246376811594,
+          "fpr": 0.1504424778761062
+        },
+        "West": {
+          "n_samples": 201,
+          "tpr": 0.5970149253731343,
+          "fpr": 0.06716417910447761
+        },
+        "__summary__": {
+          "tpr_gap": 0.0522,
+          "fpr_gap": 0.0833,
+          "tpr_violation": "moderate",
+          "fpr_violation": "moderate",
+          "best_tpr_group": "North",
+          "worst_tpr_group": "South"
+        }
+      },
+      "education": {
+        "Bachelor": {
+          "n_samples": 191,
+          "tpr": 0.671875,
+          "fpr": 0.10236220472440945
+        },
+        "High School": {
+          "n_samples": 203,
+          "tpr": 0.515625,
+          "fpr": 0.07194244604316546
+        },
+        "Master": {
+          "n_samples": 213,
+          "tpr": 0.5714285714285714,
+          "fpr": 0.08391608391608392
+        },
+        "PhD": {
+          "n_samples": 193,
+          "tpr": 0.5857142857142857,
+          "fpr": 0.12195121951219512
+        },
+        "__summary__": {
+          "tpr_gap": 0.1562,
+          "fpr_gap": 0.05,
+          "tpr_violation": "severe",
+          "fpr_violation": "moderate",
+          "best_tpr_group": "Bachelor",
+          "worst_tpr_group": "High School"
+        }
+      }
+    }
+  },
+  "representation": {
+    "separability": {
+      "silhouette_score": 0.0545,
+      "within_class_distance": 5.6275,
+      "between_class_distance": 5.9338,
+      "separability_ratio": 1.0544,
+      "n_samples_used": 800,
+      "embedding_dim": 16
+    }
+  },
+  "plugin_conf_stability": {
+    "avg_err_conf": 0.6767,
+    "status": "Safe"
+  }
+}
