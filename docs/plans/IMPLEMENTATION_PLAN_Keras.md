@@ -42,20 +42,20 @@ Many users only use **`tf.keras`**. Implementation may ship **`analyze_keras`** 
 
 ## Objectives (Keras)
 
-1. **Binary classification**  
-   - Sigmoid output `(n, 1)`: normalize to TrustLens binary convention (two-column `y_prob` or documented single-column path consistent with `api.py`).  
+1. **Binary classification**
+   - Sigmoid output `(n, 1)`: normalize to TrustLens binary convention (two-column `y_prob` or documented single-column path consistent with `api.py`).
    - Softmax output `(n, 2)`: use as-is; `y_pred = argmax(axis=1)`.
 
-2. **Multiclass**  
+2. **Multiclass**
    Softmax `(n, C)`, `C > 2`: `y_prob` as-is; `y_pred = argmax(axis=1)`.
 
-3. **Input**  
+3. **Input**
    **v1:** NumPy `X` (and optional `embeddings`) only; call `model.predict(X, verbose=0)` then `np.asarray(..., dtype=np.float64)`.
 
-4. **Examples**  
+4. **Examples**
    `examples/keras_audit.py`: small `Sequential` model on synthetic data, `analyze_keras`, optional `report.save(...)`.
 
-5. **Documentation**  
+5. **Documentation**
    `docs/EXPERIMENTAL.md`: Keras subsection — install, API, limitations, promotion checklist.
 
 ---
@@ -89,7 +89,7 @@ Centralize normalization in **`resolve_keras_predictions(model, X) -> tuple[y_pr
 ### 3. Integration
 
 ```text
-analyze_keras(model, X, y_true, *, embeddings=None, ...) 
+analyze_keras(model, X, y_true, *, embeddings=None, ...)
   -> resolve_keras_predictions(model, X)
   -> _run_analysis_pipeline(y_true, y_pred, y_prob, ...)
   -> TrustReport
@@ -162,10 +162,10 @@ When promoted per `EXPERIMENTAL.md`:
 
 ## FAQ
 
-**Q: Keras 3 multi-backend vs tf.keras only?**  
+**Q: Keras 3 multi-backend vs tf.keras only?**
 **A:** v1 should pick **one** supported install to reduce support burden; document the other as “community tested” or future work.
 
-**Q: Overlap with TensorFlow plan?**  
+**Q: Overlap with TensorFlow plan?**
 **A:** Keras plan owns **shapes and API**; TensorFlow plan owns **TF package**, versions, SavedModel, and lazy-import policy.
 
 ---

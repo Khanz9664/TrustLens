@@ -142,10 +142,10 @@ No module-level `tensorflow` import in files that are transitively imported by `
 
 ## FAQ
 
-**Q: Why a separate doc from Keras?**  
+**Q: Why a separate doc from Keras?**
 **A:** TensorFlow covers **package install, import policy, CI, SavedModel, runtime**; Keras covers **model.predict contract** for Keras API models (including `tf.keras`).
 
-**Q: JAX?**  
+**Q: JAX?**
 **A:** Out of scope for this TensorFlow plan.
 
 ---

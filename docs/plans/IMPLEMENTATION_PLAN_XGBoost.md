@@ -116,10 +116,10 @@ Record in saved report metadata, e.g. `framework: xgboost`, `xgboost_version`, b
 
 ## Suggested PR breakdown
 
-1. **PR A — Resolver + sklearn parity**  
+1. **PR A — Resolver + sklearn parity**
    Introduce `resolve_predictions`; wire `analyze()`; no XGBoost yet; tests prove identical behavior to today.
 
-2. **PR B — XGBoost**  
+2. **PR B — XGBoost**
    Optional extra, branch, tests, docs — isolated revert surface.
 
 ---
@@ -137,10 +137,10 @@ Record in saved report metadata, e.g. `framework: xgboost`, `xgboost_version`, b
 
 ## FAQ
 
-**Q: LightGBM / CatBoost?**  
+**Q: LightGBM / CatBoost?**
 **A:** Often work today via `predict` / `predict_proba`. Add library-specific tests in follow-up PRs; open a dedicated plan only if a quirk requires a new branch.
 
-**Q: Order relative to Keras / TensorFlow?**  
+**Q: Order relative to Keras / TensorFlow?**
 **A:** Independent once PR A exists. XGBoost is lighter and is a good first optional backend.
 
 ---
