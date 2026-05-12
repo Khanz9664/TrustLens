@@ -1,264 +1,219 @@
 <div align="center">
-  <img src="assets/banner1.png" alt="TrustLens Banner" width="100%" />
 
-### Your model has 92% accuracy. That may still be unsafe.
+<img src="assets/banner1.png" alt="TrustLens" width="100%" />
 
-TrustLens is an open-source Python library for evaluating model reliability beyond accuracy and producing deployment-ready decisions.
+<br/>
 
-[![PyPI version](https://badge.fury.io/py/trustlens.svg)](https://pypi.org/project/trustlens/)
+# TrustLens
+
+### Audit ML models beyond accuracy — calibration, fairness, latent health, and deployment verdicts.
+
+<br/>
+
+[![PyPI](https://badge.fury.io/py/trustlens.svg)](https://pypi.org/project/trustlens/)
+[![Downloads](https://img.shields.io/pypi/dm/trustlens)](https://pypi.org/project/trustlens)
 [![CI](https://github.com/Khanz9664/TrustLens/actions/workflows/ci.yml/badge.svg)](https://github.com/Khanz9664/TrustLens/actions)
+[![Coverage](https://img.shields.io/badge/coverage-75%25-brightgreen)](https://github.com/Khanz9664/TrustLens)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![PyPI Downloads](https://img.shields.io/pypi/dm/trustlens)](https://pypi.org/project/trustlens)
-[![Code of Conduct](https://img.shields.io/badge/code%20of%20conduct-Contributor%20Covenant-blue.svg)](CODE_OF_CONDUCT.md)
+[![Tests](https://img.shields.io/badge/tests-237%20passing-success)](https://github.com/Khanz9664/TrustLens/actions)
 
-[Get Started](#quickstart) · [Documentation](docs/index.md) · [Live Demo](examples/trustlens_demo.ipynb) · [PyPI](https://pypi.org/project/trustlens) · [Discussions](https://github.com/Khanz9664/TrustLens/discussions)
+<br/>
+
+[**Quickstart**](#quickstart) · [**How It Works**](#how-it-works) · [**Demo Video**](https://youtu.be/lZo7aWg6efI) · [**Docs**](docs/index.md) · [**Project Showcase**](https://khanz9664.github.io/portfolio/projects/trustlens.html)
+
 </div>
 
+---
 
-## TrustLens Demo
-
-[![Watch the demo](https://img.youtube.com/vi/lZo7aWg6efI/mqdefault.jpg)](https://youtu.be/lZo7aWg6efI)
-
-▶**Watch the full demo:** https://youtu.be/lZo7aWg6efI
-
-#### Try it yourself
-
-Clone the repo and run the comprehensive showdown demo:
-
-```bash
-python demo.py
-```
+> **Your model has 92% accuracy. It's still not safe for deployment.**
+>
+> Accuracy measures what went right. TrustLens measures what can go wrong — in production, on subgroups, and at high confidence.
 
 ---
 
 ## Why TrustLens
 
-Most model evaluations stop at accuracy, AUC, or F1. Deployment decisions require more:
+Standard evaluation stops at accuracy. Silent failures happen when:
 
-- Can we trust model probabilities?
-- Are failures concentrated in high-confidence regions?
-- Is performance uneven across sensitive groups?
-- Are we shipping a model with hidden reliability risk?
+- A model is **overconfident** — "90% sure" but right only 60% of the time
+- Performance **collapses on subgroups** — gender, age, or region hidden inside a good aggregate score
+- The model is **confidently wrong** — high-confidence errors that indicate systemic risk
+- **Latent representations overlap** — classes bleed together where the model can't tell them apart
 
-TrustLens answers these questions in one pipeline and produces:
-
-- module-level diagnostics (calibration, failure, bias, representation)
-- a composite Trust Score (0-100)
-- penalty and blocker reasoning
-- a deployment verdict suitable for review and CI gating
+TrustLens surfaces all four with a single audit, and outputs a machine-readable deployment verdict.
 
 ---
 
 ## Quickstart
 
-### Install
-
 ```bash
 pip install trustlens
+# Extended visualization support
+pip install trustlens[full]
 ```
 
-### Analyze a Model
+Run a one-line audit to see why 94% accuracy isn't the full story:
+
+```python
+from trustlens import quick_analyze
+
+quick_analyze(dataset="breast_cancer")
+```
+
+```
+TRUST SCORE: 68/100 [D]
+Assessment : Low Trust — Blocked by high diagnostic risk
+
+  Base Score        : 76
+  Penalties Applied : -7.7 (Failure Risk)
+  Final Score       : 68
+
+→ Model shows high failure risk and is NOT ready for deployment.
+```
+
+---
+
+## How It Works
+
+TrustLens runs four diagnostic modules and combines them into a single **Trust Score (0–100)** with a CI/CD-ready deployment verdict.
+
+| Module | What It Catches |
+|---|---|
+|  **Calibration** | Confidence vs. correctness mismatch, overconfidence, ECE |
+|  **Fairness** | Subgroup performance gaps, equalized-odds violations |
+|  **Representation** | Latent space health, class separation, overlap detection |
+|  **Decision Engine** | Composite Trust Score + `Ready` / `Blocked` verdict |
+
+---
+
+## Full Audit
 
 ```python
 from trustlens import analyze
 
-report = analyze(model, X_test, y_test, y_prob=model.predict_proba(X_test))
-report.show()
+report = analyze(
+    model=clf,
+    X=X_test,
+    y_true=y_test,
+    y_prob=clf.predict_proba(X_test),
+    sensitive_features={"gender": gender_test, "region": region_test}
+)
+
+report.show()                  # human-readable summary
+report.save("trust_report/")   # full artifact export
 ```
 
-### Example Output
+### Output artifacts
 
-```text
-TRUST SCORE: 88/100 [B]
-Assessment : Good Trust - minor issues to address
-
-Score Summary:
-  Base Score        : 92
-  Penalties Applied : -4.0 [Calibration (-4.0)]
-  Final Score       : 88
+```
+trust_report/
+├── trust_score.json    ← deployment verdict & composite score
+├── report.json         ← raw diagnostic metrics
+├── metadata.json       ← environment, version, sample info
+├── report.txt          ← human-readable summary
+└── visuals/            ← per-module diagnostic plots (PNG)
 ```
 
-### Compare Candidates
+### CI/CD gating
 
-```python
-from trustlens import compare
+Gate model promotion on `trust_score.json` — no custom scripting needed:
 
-compare([report_model_a, report_model_b, report_model_c])
-```
-
-### Export Artifacts
-
-```python
-report.save("report.json")   # machine-readable
-report.save("report.txt")    # human-readable
-report.save("trust_report")  # full bundle with plots + metadata
-```
-
----
-
-## One-Line Demo
-
-```python
-from trustlens import quick_analyze
-quick_analyze(dataset="breast_cancer")
-```
-
----
-
-## Try a Full Audit (1-minute)
-
-```bash
-python examples/comprehensive_audit.py
-```
-
-End-to-end demo with:
-- calibration, failure, and bias analysis
-- fairness visualizations (`plot_bias(mode="all")`)
-- exportable reports
-
-👉 See [examples/](examples/) for all demos
-
----
-
-## Core Capabilities
-
-- **Calibration diagnostics**: Brier score, ECE, reliability curve data
-- **Failure diagnostics**: misclassification analysis and confidence-gap risk signals
-- **Bias and fairness diagnostics**: class imbalance, subgroup performance, equalized-odds checks
-- **Multi-feature fairness visualization**: pass multiple sensitive features (e.g., gender, age) and generate per-feature plots automatically with `plot_module("bias", data, save_dir="plots/")`
-- **Representation diagnostics**: embedding separability when embeddings are provided
-- **Decision engine**: weighted trust score with penalties and deployment blockers
-- **Reporting**: console summary, fairness visuals, plots, JSON/TXT export, model comparison utility
-
----
-
-## How the Decision Works
-
-TrustLens computes sub-scores across available dimensions, applies weights, then applies penalties and blockers for high-risk conditions.
-
-Use this ordering when reading output:
-
-1. Check `is_blocked` and verdict.
-2. Check final Trust Score and grade.
-3. Check penalties to identify dominant risk dimensions.
-4. Inspect module-level diagnostics for remediation.
-
-Deep dive: [Trust Score Explained](docs/trust_score_explained.md)
-
----
-
-## Documentation Map
-
-- Start: [Getting Started](docs/getting_started.md)
-- Concepts: [Features and Modules](docs/features.md)
-- Workflow guides: [Guides](docs/guides/model_comparison_workflow.md)
-- Limits and caveats: [Known Limitations](docs/known_limitations.md)
-- API docs: [API Reference](docs/api_reference.md)
-
-📂 Examples: [examples/](examples/) — quickstart, bias demo, full audit, and more
-
----
-
-## Use Cases
-
-TrustLens is designed for practical ML workflows:
-
-- release gating in CI
-- candidate model selection
-- fairness review before deployment
-- post-deployment reliability audits
-
-See [Use Cases](docs/use_cases.md) and [Guides](docs/guides/ci_deployment_gate.md).
-
----
-
-## Contributors
-
-<table>
-  <tr>
-    <td align="center">
-      <a href="https://github.com/Khanz9664">
-        <img src="https://github.com/Khanz9664.png" width="100px;" style="border-radius:50%;" alt="Khanz9664"/>
-        <br />
-        <sub><b>Khanz9664</b></sub>
-      </a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/jayssSmm">
-        <img src="https://github.com/jayssSmm.png" width="100px;" style="border-radius:50%;" alt="jayssSmm"/>
-        <br />
-        <sub><b>jayssSmm</b></sub>
-      </a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/WeiGuang-2099">
-        <img src="https://github.com/WeiGuang-2099.png" width="100px;" style="border-radius:50%;" alt="WeiGuang-2099"/>
-        <br />
-        <sub><b>WeiGuang-2099</b></sub>
-      </a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/CrepuscularIRIS">
-        <img src="https://github.com/CrepuscularIRIS.png" width="100px;" style="border-radius:50%;" alt="CrepuscularIRIS"/>
-        <br />
-        <sub><b>CrepuscularIRIS</b></sub>
-      </a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/komoike-oss28-ui">
-        <img src="https://github.com/komoike-oss28-ui.png" width="100px;" style="border-radius:50%;" alt="komoike-oss28-ui"/>
-        <br />
-        <sub><b>komoike-oss28-ui</b></sub>
-      </a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/sidharth-vijayan">
-        <img src="https://github.com/sidharth-vijayan.png" width="100px;" style="border-radius:50%;" alt="sidharth-vijayan"/>
-        <br />
-        <sub><b>sidharth-vijayan</b></sub>
-      </a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/MustansirNisar">
-        <img src="https://github.com/MustansirNisar.png" width="100px;" style="border-radius:50%;" alt="MustansirNisar"/>
-        <br />
-        <sub><b>MustansirNisar</b></sub>
-      </a>
-    </td>
-  </tr>
-</table>
-
-
-Want to see your name here? Start with a [`good first issue`](https://github.com/Khanz9664/TrustLens/issues).
-
----
-
-## Contributing
-
-Contributions are welcome across metrics, docs, tests, and integrations.
-
-- Read: [Contributing Guide](CONTRIBUTING.md)
-- Browse issues: [Open Issues](https://github.com/Khanz9664/TrustLens/issues)
-- Join discussions: [Discussions](https://github.com/Khanz9664/TrustLens/discussions)
-
----
-
-## Citation
-
-If you use TrustLens in research or production, cite:
-
-```bibtex
-@software{trustlens2026,
-  author = {Shahid Ul Islam},
-  title  = {TrustLens: Debug your ML models beyond accuracy},
-  year   = {2026},
-  url    = {https://github.com/Khanz9664/TrustLens},
+```json
+{
+  "score": 68,
+  "grade": "D",
+  "verdict": "Low Trust — Blocked by high failure risk",
+  "is_blocked": true
 }
 ```
 
 ---
 
-## Author
+## Diagnostics in Practice
 
-Shahid Ul Islam
-[GitHub](https://github.com/Khanz9664) · [Portfolio](https://khanz9664.github.io/portfolio/) · [LinkedIn](https://www.linkedin.com/in/shahid-ul-islam-13650998/)
+<div align="center">
+<table width="100%">
+  <tr>
+    <td width="50%" align="center">
+      <b>Calibration</b><br/>
+      <img src="assets/calibration_plot.png" width="90%" /><br/>
+      <sub>Does confidence align with correctness?</sub>
+    </td>
+    <td width="50%" align="center">
+      <b>Fairness & Bias</b><br/>
+      <img src="assets/fairness_gap_region.png" width="90%" /><br/>
+      <sub>Are subgroups treated equally?</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <b>Latent Space Health</b><br/>
+      <img src="assets/representation_embedding_2d.png" width="90%" /><br/>
+      <sub>Is class separation clean?</sub>
+    </td>
+    <td width="50%" align="center">
+      <b>Deployment Verdict</b><br/>
+      <img src="assets/summary_dashboard.png" width="90%" /><br/>
+      <sub>Is this model safe to ship?</sub>
+    </td>
+  </tr>
+</table>
+</div>
+
+---
+
+## Demo
+
+[![Watch the demo](https://img.youtube.com/vi/lZo7aWg6efI/mqdefault.jpg)](https://youtu.be/lZo7aWg6efI)
+
+15-minute walkthrough: diagnostics, trust scoring, fairness analysis, and visual dashboards.
+
+Want a deeper look at the architecture and design decisions? → [**Interactive Project Showcase**](https://khanz9664.github.io/portfolio/projects/trustlens.html)
+
+---
+
+## Run the Full Demo
+
+```bash
+python demo.py
+```
+
+Generates multi-model comparisons, fairness deep-dives, latent space projections, JSON audits, and visual dashboards across all modules.
+
+---
+
+## Contributing
+
+All contributions welcome — new metrics, diagnostic plugins, and visualizations.
+
+→ [**Contributing Guide**](CONTRIBUTING.md) · [**Open an Issue**](https://github.com/Khanz9664/TrustLens/issues) · [**Docs**](docs/index.md)
+
+<br/>
+
+<a href="https://github.com/Khanz9664"><img src="https://github.com/Khanz9664.png" width="36" style="border-radius:50%" /></a>
+<a href="https://github.com/jayssSmm"><img src="https://github.com/jayssSmm.png" width="36" style="border-radius:50%" /></a>
+<a href="https://github.com/WeiGuang-2099"><img src="https://github.com/WeiGuang-2099.png" width="36" style="border-radius:50%" /></a>
+<a href="https://github.com/CrepuscularIRIS"><img src="https://github.com/CrepuscularIRIS.png" width="36" style="border-radius:50%" /></a>
+<a href="https://github.com/komoike-oss28-ui"><img src="https://github.com/komoike-oss28-ui.png" width="36" style="border-radius:50%" /></a>
+<a href="https://github.com/sidharth-vijayan"><img src="https://github.com/sidharth-vijayan.png" width="36" style="border-radius:50%" /></a>
+<a href="https://github.com/MustansirNisar"><img src="https://github.com/MustansirNisar.png" width="36" style="border-radius:50%" /></a>
+
+---
+
+## Citation
+
+```bibtex
+@software{trustlens2026,
+  author = {Shahid Ul Islam},
+  title  = {TrustLens: Audit ML models beyond accuracy},
+  year   = {2026},
+  url    = {https://github.com/Khanz9664/TrustLens}
+}
+```
+
+<div align="center">
+<br/>
+Built by <a href="https://github.com/Khanz9664"><b>Shahid Ul Islam</b></a> &nbsp;·&nbsp;
+<a href="https://khanz9664.github.io/portfolio/">Portfolio</a> &nbsp;·&nbsp;
+<a href="https://www.linkedin.com/in/shahid-ul-islam-13650998/">LinkedIn</a>
+</div>
