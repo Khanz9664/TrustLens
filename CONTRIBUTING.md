@@ -85,6 +85,8 @@ Some modules (e.g., `explainability/`) are under active development and are **no
 
 → [**docs/EXPERIMENTAL.md**](docs/EXPERIMENTAL.md) — rules, promotion criteria, and what "experimental" means.
 
+Roadmaps for **XGBoost**, **Keras**, and **TensorFlow** integrations live in [section 10](#10-framework-integration-plans).
+
 ---
 
 ## Code of Conduct
@@ -105,6 +107,7 @@ As a contributor, you are expected to respect and follow our code of conduct to 
 7. [Writing Tests](#writing-tests)
 8. [Pull Request Guidelines](#pull-request-guidelines)
 9. [Reporting Issues](#reporting-issues)
+10. [Framework integration plans](#10-framework-integration-plans)
 
 ---
 
@@ -361,6 +364,20 @@ pytest -k "calibration"    # run matching tests
 pytest --cov=trustlens     # run with coverage
 ```
 
+### Framework-Specific Tests
+Some tests require optional dependencies. To run them locally, install the corresponding extra and use the pytest markers:
+
+```bash
+# Install the extra (example: xgboost)
+pip install -e ".[xgboost]"
+
+# Run only XGBoost tests
+pytest -m requires_xgboost
+
+# Run only TensorFlow tests
+pytest -m requires_tensorflow
+```
+
 ---
 
 ## 8. Pull Request Guidelines
@@ -387,6 +404,18 @@ Open an issue with:
 - **Expected vs. actual behaviour**
 
 We aim to respond within 48 hours. ⏱
+
+---
+
+## 10. Framework integration plans
+
+Use these when picking up or reviewing large integrations (optional backends, shared prediction resolver, CI). Each plan is **scoped to one library**:
+
+| Plan | Scope |
+|------|--------|
+| [docs/plans/IMPLEMENTATION_PLAN_XGBoost.md](docs/plans/IMPLEMENTATION_PLAN_XGBoost.md) | **XGBoost** — stable tabular path, `XGBClassifier`, resolver branch, optional extra, tests. |
+| [docs/plans/IMPLEMENTATION_PLAN_Keras.md](docs/plans/IMPLEMENTATION_PLAN_Keras.md) | **Keras** — `model.predict` semantics, shapes, `analyze_keras`, experimental API (see plan for `keras` vs `tf.keras` scope). |
+| [docs/plans/IMPLEMENTATION_PLAN_TensorFlow.md](docs/plans/IMPLEMENTATION_PLAN_TensorFlow.md) | **TensorFlow** — optional `tensorflow` extra, lazy imports, CI, SavedModel/runtime notes; cross-links Keras plan for Keras API details. |
 
 ---
 
