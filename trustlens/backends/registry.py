@@ -29,7 +29,7 @@ FRAMEWORK_MAPPING = {
 SUPPORTED_FRAMEWORKS = tuple(sorted(set(FRAMEWORK_MAPPING.values())))
 
 # Frameworks with concrete resolver implementations
-IMPLEMENTED_RESOLVERS = tuple(sorted({"sklearn"}))
+IMPLEMENTED_RESOLVERS = tuple(sorted({"sklearn", "xgboost"}))
 
 
 def detect_framework(model: Any, framework: Optional[str] = None) -> str:
@@ -86,10 +86,12 @@ def get_resolver(model: Any, framework: Optional[str] = None) -> Callable:
 
         return sklearn.resolve
 
+    if detected == "xgboost":
+        from trustlens.backends import xgboost
+
+        return xgboost.resolve
+
     # Note: Future backends will be added here
-    # elif detected == "xgboost":
-    #     from trustlens.backends import xgboost
-    #     return xgboost.resolve
 
     raise UnsupportedModelError(
         model_type=f"{type(model).__module__}.{type(model).__name__}",
