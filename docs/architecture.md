@@ -12,18 +12,26 @@ The architecture aims to solve three practical needs:
 
 ## High-Level Data Flow
 
-This diagram shows how inputs move from orchestration to metrics, scoring, and final reporting.
+This diagram shows how inputs move from orchestration through framework-specific resolvers to the agnostic metrics pipeline.
 
 ```mermaid
 graph TD
-    Input[Input: model, X, y_true, y_prob?, sensitive_features?] --> Validate[Validation & Prob Resolution]
-    Validate --> Orchestrator[api.analyze Orchestration]
+    Input[Input: model, X, y_true, y_prob?, sensitive_features?] --> API[api.analyze Orchestration]
+    API --> Registry[Backend Registry]
 
-    subgraph "Metrics Engine"
-        Orchestrator --> Calib[Calibration: Brier, ECE]
-        Orchestrator --> Fail[Failure: Confidence Gap]
-        Orchestrator --> Bias[Bias: Subgroup, Equalized Odds]
-        Orchestrator --> Rep[Representation: Silhouette]
+    subgraph "Prediction Resolution Layer"
+        Registry --> Detect[Framework Detection]
+        Detect --> Resolver[Framework Resolver: Sklearn/XGBoost]
+        Resolver --> Bundle[PredictionBundle: y_pred, y_prob, metadata]
+    end
+
+    Bundle --> Pipeline[Core Pipeline: Agnostic]
+
+    subgraph "Agnostic Metrics Engine"
+        Pipeline --> Calib[Calibration: Brier, ECE]
+        Pipeline --> Fail[Failure: Confidence Gap]
+        Pipeline --> Bias[Bias: Subgroup, Equalized Odds]
+        Pipeline --> Rep[Representation: Silhouette]
     end
 
     Calib --> Results[Results Dict]
@@ -36,28 +44,28 @@ graph TD
     Report --> Output[Console / Plots / Saved Files]
 ```
 
-**Implementation note**: `analyze()` resolves probabilities from `predict_proba` when available and only executes optional modules when required metadata is provided.
+**Implementation note**: `analyze()` uses the `Backend Registry` to automatically detect the framework and resolve predictions into a standardized `PredictionBundle`. This ensures the core metrics pipeline remains 100% framework-agnostic.
 
 ## Component Interactions
 
-The interaction model is centered around a structured `results` dictionary.
+The system is decoupled into four primary layers.
 
 ```mermaid
 graph LR
-    API["api.py: Orchestrator"] -- "dict: results" --> Metrics["metrics/: Compute Nodes"]
-    Metrics -- "dict: raw metrics" --> API
-    API -- "dict: final results" --> Report["report.py: TrustReport"]
+    API["api.py: Orchestration"] -- "model" --> Backends["backends/: Framework Resolvers"]
+    Backends -- "PredictionBundle" --> Pipeline["core/pipeline.py: Execution Engine"]
+    Pipeline -- "dict: results" --> Report["report.py: TrustReport"]
     Report -- "dict: results" --> Score["trust_score.py: Scoring Engine"]
     Score -- "TrustScoreResult" --> Report
-    Report -- "Insights/Patterns" --> User[User/Developer]
 ```
 
 ### Data Contracts
 
-1. **API to metrics**: normalized arrays (`y_true`, `y_pred`, `y_prob`) and optional metadata.
-2. **Metrics to API**: module-scoped dictionaries with scalar values and plot-friendly arrays.
-3. **API to report**: consolidated `results` plus model and data references.
-4. **Report to scorer**: score computation from `results` including penalties and blockers.
+1. **API to Backends**: Model reference, feature matrix `X`, and optional manual overrides (`y_pred`, `y_prob`).
+2. **Backends to Pipeline**: `PredictionBundle` containing standardized numpy arrays, framework identifier, and audit metadata.
+3. **Pipeline to Metrics**: Normalized arrays (`y_true`, `y_pred`, `y_prob`) and optional metadata.
+4. **Pipeline to Report**: Consolidated `results` plus audit provenance (framework version, resolver details).
+5. **Report to Scorer**: Score computation from `results` including penalties and blockers.
 
 ## Execution Sequence
 
@@ -67,21 +75,19 @@ This sequence shows one `analyze()` call from input to `TrustReport`.
 sequenceDiagram
     participant User
     participant API as api.analyze
-    participant Metrics as metrics/
-    participant Score as trust_score.py
+    participant Registry as Backend Registry
+    participant Backend as backends/
+    participant Pipeline as core.pipeline
     participant Report as TrustReport
 
     User->>API: model, X, y_true
-    API->>API: Resolve y_prob (predict_proba)
-    Note over API, Metrics: Conditional: Bias runs only if sensitive_features provided
-    Note over API, Metrics: Conditional: Rep runs only if embeddings provided
-    API->>Metrics: Dispatch Module Jobs
-    Metrics-->>API: Sub-metric Payloads
-    API->>Report: Initialize(results, data)
-    Report->>Score: compute_trust_score(results)
-    Score->>Score: Apply Penalties / Blockers
-    Score-->>Report: TrustScoreResult
-    Report->>Report: Generate Insights & Patterns
+    API->>Registry: get_resolver(model)
+    Registry-->>API: Resolver function
+    API->>Backend: resolve(model, X)
+    Backend-->>API: PredictionBundle
+    API->>Pipeline: _run_analysis_pipeline(Bundle)
+    Pipeline->>Pipeline: Dispatch Agnostic Modules
+    Pipeline->>Report: Initialize(results, Bundle.metadata)
     Report-->>User: TrustReport Object
 ```
 
@@ -89,28 +95,33 @@ sequenceDiagram
 
 ### Orchestration Layer (`api.py`)
 
-- validates basic input assumptions
-- resolves probabilities when possible
-- dispatches enabled modules
-- assembles the final `results` payload
+- Coordinates framework detection and prediction resolution.
+- Validates high-level input shapes and data consistency.
+- Delegates to the framework-agnostic core pipeline.
 
-### Metrics Layer (`metrics/`)
+### Framework Resolvers (`backends/`)
 
-- computes calibration, failure, bias, and representation diagnostics
-- keeps each metric family independent and testable
-- returns structured outputs for scoring and visualization
+- Handles framework-specific prediction logic (e.g., `predict_proba`).
+- Normalizes output shapes (e.g., binary `(n,)` → `(n, 2)`).
+- Captures audit metadata (framework version, model type).
+- Blocks unsupported tasks (e.g., regression or ranking).
 
-### Scoring Layer (`trust_score.py`)
+### Core Pipeline (`trustlens/core/pipeline.py`)
 
-- computes sub-scores and weighted composite score
-- redistributes weights for missing dimensions
-- applies penalties and deployment blockers
+- **Framework-agnostic** execution engine.
+- Dispatches enabled metrics modules.
+- Manages progress tracking and resource isolation.
 
-### Reporting Layer (`report.py`)
+### Metrics Layer (`trustlens/metrics/`)
 
-- packages run metadata and module outputs
-- generates textual and visual summaries
-- surfaces patterns and decision-oriented insights
+- Pure math/stat functions for diagnostics.
+- Independent of models; operates entirely on labels and probabilities.
+
+### Reporting Layer (`trustlens/report.py`)
+
+- Packages diagnostic outputs with full backend provenance.
+- Generates textual and visual summaries.
+- Supports unified JSON serialization for experiment trackers.
 
 ### Comparison Layer (`comparison.py`)
 

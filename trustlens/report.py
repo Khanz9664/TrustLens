@@ -792,8 +792,7 @@ class TrustReport:
         Guarantees:
         - Returns matplotlib.figure.Figure
         - Raises ValueError when embeddings were not supplied to ``analyze()``
-        - Projection falls back gracefully (UMAP -> t-SNE -> PCA) when optional
-          libraries are missing
+        - Projection falls back gracefully (UMAP -> t-SNE -> PCA) when optional libraries are missing
 
         Parameters
         ----------
@@ -855,7 +854,8 @@ class TrustReport:
         ``mode`` and ``multi_feature`` are independent dimensions; the return
         shape is fully determined by their combination, with no flattening.
 
-        Guarantees:
+        **Guarantees**
+
         - Return shape is fixed by the ``(mode, multi_feature)`` combination
           (see the table below). The structure never collapses across calls.
         - Multi-feature outputs never contain ``None`` values; missing
@@ -909,8 +909,7 @@ class TrustReport:
         save_path : str, optional
             If provided, saves the figure(s) to this path. Only honored when
             ``multi_feature=False`` (single-feature behavior).
-            - Single modes: Treated as full file path. Defaults to ``.png`` if
-              extension missing.
+            - Single modes: Treated as full file path. Defaults to ``.png`` if extension missing.
             - ``mode="all"``: Treated as base name. Appends suffixes and ``.png``.
             When ``multi_feature=True``, ``save_path`` is ignored (per-feature
             saving is intentionally not exposed here; use the lower-level
@@ -921,10 +920,13 @@ class TrustReport:
 
         Returns
         -------
-        matplotlib.figure.Figure
-            | dict[str, matplotlib.figure.Figure | None]
-            | dict[str, matplotlib.figure.Figure]
-            | dict[str, dict[str, matplotlib.figure.Figure]]
+        matplotlib.figure.Figure | dict
+            The return type depends on the ``(mode, multi_feature)`` combination.
+            Possible shapes:
+            - ``Figure``
+            - ``dict[str, Figure | None]``
+            - ``dict[str, Figure]``
+            - ``dict[str, dict[str, Figure]]``
             See the return-shape table above.
 
         Notes

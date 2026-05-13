@@ -16,7 +16,7 @@ Sound familiar? You're not alone.
 
 TrustLens makes those failures visible — before they reach production. Beyond standard metrics, machine learning practitioners need to understand the "certainty of failure" and the distribution of errors across subgroups.
 
-### Why standard metrics fall short
+## Why standard metrics fall short
 Most ML pipelines rely on Accuracy, F1, or RMSE. While useful, these metrics are aggregate scores that hide systematic flaws:
 - **Miscalibration**: A model saying "I'm 99% sure" when it's only right 60% of the time.
 - **Silent Bias**: High overall accuracy that masks significant performance drops for minority classes.

@@ -100,14 +100,15 @@ As a contributor, you are expected to respect and follow our code of conduct to 
 
 1. [Development Setup](#development-setup)
 2. [Project Structure](#project-structure)
-3. [Adding a New Metric](#adding-a-new-metric)
-4. [Adding a New Visualization](#adding-a-new-visualization)
-5. [Writing a Plugin](#writing-a-plugin)
-6. [Coding Standards](#coding-standards)
-7. [Writing Tests](#writing-tests)
-8. [Pull Request Guidelines](#pull-request-guidelines)
-9. [Reporting Issues](#reporting-issues)
-10. [Framework integration plans](#10-framework-integration-plans)
+3. [Adding a New Backend](#adding-a-new-backend)
+4. [Adding a New Metric](#adding-a-new-metric)
+5. [Adding a New Visualization](#adding-a-new-visualization)
+6. [Writing a Plugin](#writing-a-plugin)
+7. [Coding Standards](#coding-standards)
+8. [Writing Tests](#writing-tests)
+9. [Pull Request Guidelines](#pull-request-guidelines)
+10. [Reporting Issues](#reporting-issues)
+11. [Framework integration plans](#11-framework-integration-plans)
 
 ---
 
@@ -159,34 +160,81 @@ python -c "from trustlens import analyze; print(' TrustLens ready')"
 
 ---
 
-## 2. Project Structure
+---
+
+## 3. Project Structure
 
 ```
 trustlens/
  api.py          ← analyze() entry point
- report.py         ← TrustReport result container
- utils.py         ← shared helpers
- metrics/
-  calibration.py    ← Brier Score, ECE, reliability curve
-  failure.py      ← misclassification, confidence gap
-  bias.py        ← imbalance, subgroup performance
-  representation.py  ← silhouette, CKA
- explainability/          # [Experimental] requires PyTorch
-  gradcam.py      ← Grad-CAM (PyTorch)
-  faithfulness.py   ← pixel deletion/insertion tests
- visualization/
-  calibration_plots.py
-  failure_plots.py
-  bias_plots.py
-  representation_plots.py
- plugins/
-   base.py        ← BasePlugin ABC
-   registry.py     ← PluginRegistry singleton
+ report.py       ← TrustReport result container
+ backends/       ← Framework Resolvers [NEW]
+   registry.py   ← Framework detection & dispatch
+   sklearn.py    ← Scikit-learn resolver
+   xgboost.py    ← XGBoost resolver
+ core/
+   pipeline.py   ← Framework-agnostic execution engine
+ metrics/        ← Agnostic diagnostic modules
+ visualization/  ← Agnostic plotting modules
+ plugins/        ← User-defined extensions
 ```
 
 ---
 
-## 3. Adding a New Metric
+## 4. Adding a New Backend
+
+TrustLens is framework-agnostic. To add support for a new library (e.g., CatBoost or PyTorch), follow these steps.
+
+### Step 1 — Create the backend file
+Create `trustlens/backends/myframework.py`.
+
+### Step 2 — Implement the `resolve()` function
+Your resolver must accept a model and features, and return a `PredictionBundle`. It is responsible for framework-specific prediction logic and normalization.
+
+```python
+# trustlens/backends/myframework.py
+from trustlens.backends.types import PredictionBundle
+
+def resolve(model, X, y_pred=None, y_prob=None):
+    # 1. Resolve probabilities (framework-specific)
+    if y_prob is None:
+        y_prob = model.predict_proba(X)
+
+    # 2. Normalize probabilities (Contract: always (n, classes))
+    # For binary, convert (n,) -> (n, 2)
+
+    # 3. Resolve class predictions
+    if y_pred is None:
+        y_pred = model.predict(X)
+
+    # 4. Return the standard bundle
+    return PredictionBundle(
+        y_pred=y_pred,
+        y_prob=y_prob,
+        framework="myframework",
+        metadata={
+            "resolver": "myframework",
+            "framework_version": "1.2.3"
+        }
+    )
+```
+
+### Step 3 — Register the framework
+Update `trustlens/backends/registry.py`:
+
+1. Add your framework to `FRAMEWORK_MAPPING` for auto-detection.
+2. Add your framework name to `IMPLEMENTED_RESOLVERS`.
+3. Update `get_resolver()` to return your `resolve` function.
+
+### Step 4 — Add integration tests
+Create `tests/test_backend_myframework.py`. Ensure it covers:
+- Automatic framework detection.
+- Prediction resolution (shapes and types).
+- Gating/blocking unsupported tasks (e.g., regression).
+
+---
+
+## 5. Adding a New Metric
 
 Here is the step-by-step workflow for adding a new metric.
 
@@ -278,7 +326,7 @@ Add a docstring entry to `docs/api_reference.rst` and mention it in the changelo
 
 ---
 
-## 4. Adding a New Visualization
+## 6. Adding a New Visualization
 
 Visualization functions go in `trustlens/visualization/`.
 
@@ -303,7 +351,7 @@ dispatch["mycategory"] = _plot_mycategory
 
 ---
 
-## 5. Writing a Plugin
+## 7. Writing a Plugin
 
 Full plugin authoring guide: see `trustlens/plugins/__init__.py`.
 
@@ -331,7 +379,7 @@ report = analyze(model, X, y, plugins=["my_metric"])
 
 ---
 
-## 6. Coding Standards
+## 8. Coding Standards
 
 - **Python 3.9+** — use type hints, `from __future__ import annotations`
 - **Ruff** for linting (config in `pyproject.toml`)
@@ -350,7 +398,7 @@ mypy trustlens/
 
 ---
 
-## 7. Writing Tests
+## 9. Writing Tests
 
 - Place tests in `tests/` mirroring the source structure
 - Use `pytest` fixtures for shared setup
@@ -380,7 +428,7 @@ pytest -m requires_tensorflow
 
 ---
 
-## 8. Pull Request Guidelines
+## 10. Pull Request Guidelines
 
 1. **One PR per feature/fix** — keep changes focused
 2. **Branch naming**: `feature/my-feature`, `fix/bug-description`, `docs/update-readme`
@@ -394,7 +442,7 @@ pytest -m requires_tensorflow
 
 ---
 
-## 9. Reporting Issues
+## 11. Reporting Issues
 
 Found a bug? Have a feature request?
 
@@ -407,7 +455,7 @@ We aim to respond within 48 hours. ⏱
 
 ---
 
-## 10. Framework integration plans
+## 12. Framework integration plans
 
 Use these when picking up or reviewing large integrations (optional backends, shared prediction resolver, CI). Each plan is **scoped to one library**:
 

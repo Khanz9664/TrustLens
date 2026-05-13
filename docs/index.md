@@ -17,7 +17,7 @@ This documentation is organized around real workflows used by ML engineers, not 
 - Investigate reliability and risk dimensions: [Features and Modules](features.md)
 - Use TrustLens in production workflows: [Guides](guides/model_comparison_workflow.md)
 - Understand what is and is not supported: [Known Limitations](known_limitations.md)
-- Extend the system safely: [Architecture](architecture.md), [Contributing](../CONTRIBUTING.md)
+- Extend the system safely: [Architecture](architecture.md), [Contributing](https://github.com/Khanz9664/TrustLens/blob/main/CONTRIBUTING.md)
 
 ## Documentation Map
 
@@ -52,9 +52,9 @@ This documentation is organized around real workflows used by ML engineers, not 
 - [Architecture](architecture.md)
 - [Design Principles](DESIGN_PRINCIPLES.md)
 - [Experimental Modules](EXPERIMENTAL.md)
-- [Contributing Guide](../CONTRIBUTING.md)
-- [Roadmap](../ROADMAP.md)
-- [Code of Conduct](../CODE_OF_CONDUCT.md)
+- [Contributing Guide](https://github.com/Khanz9664/TrustLens/blob/main/CONTRIBUTING.md)
+- [Roadmap](https://github.com/Khanz9664/TrustLens/blob/main/ROADMAP.md)
+- [Code of Conduct](https://github.com/Khanz9664/TrustLens/blob/main/CODE_OF_CONDUCT.md)
 
 ```{toctree}
 :maxdepth: 2
@@ -65,6 +65,7 @@ overview
 problem
 audience
 features
+use_cases
 trust_score_explained
 known_limitations
 guides/model_comparison_workflow
@@ -74,6 +75,12 @@ api_reference
 architecture
 DESIGN_PRINCIPLES
 EXPERIMENTAL
+FUTURE_EXTENSIONS
+PAGE_TEMPLATE
+internal/prediction_contract
+plans/IMPLEMENTATION_PLAN_XGBoost
+plans/IMPLEMENTATION_PLAN_Keras
+plans/IMPLEMENTATION_PLAN_TensorFlow
 ```
 
 ## Indices and Tables

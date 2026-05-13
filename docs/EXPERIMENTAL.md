@@ -29,4 +29,4 @@ A module is promoted from `Experimental` to `Core` when it meets the following s
 ---
 
 ## Contributing to Experimental
-We welcome contributions to experimental modules! See [Contributing](../CONTRIBUTING.md) for how to get involved.
+We welcome contributions to experimental modules! See [Contributing](https://github.com/Khanz9664/TrustLens/blob/main/CONTRIBUTING.md) for how to get involved.
