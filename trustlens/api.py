@@ -13,55 +13,20 @@ Usage
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Optional
 
 import numpy as np
 
-from trustlens.metrics.bias import (
-    class_imbalance_report,
-    equalized_odds,
-    subgroup_performance,
-)
-from trustlens.metrics.calibration import (
-    brier_score,
-    expected_calibration_error,
-    reliability_curve,
-)
-from trustlens.metrics.failure import (
-    confidence_gap,
-    misclassification_summary,
-)
-from trustlens.metrics.representation import (
-    embedding_separability,
-)
-from trustlens.plugins.registry import PluginRegistry
+from trustlens.backends.registry import get_resolver
+from trustlens.core.pipeline import _run_analysis_pipeline
 from trustlens.report import TrustReport
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Pipeline Module Registry
-#
-# STABLE (allowed in the pipeline):
-#   calibration, failure, bias, representation
-#
-# EXPERIMENTAL (do NOT import or wire into this file):
-#   explainability (gradcam, faithfulness) — requires PyTorch
-#   metrics.faithfulness — wrapper over explainability
-#
-# Before adding a new module to the pipeline:
-#   1. Confirm it meets promotion criteria in docs/EXPERIMENTAL.md
-#   2. Ensure it has no heavy required dependencies (use try/except)
-#   3. Add it to _ALL_MODULES below and write a dispatch block
-#   4. Get maintainer approval via PR review
-# ---------------------------------------------------------------------------
 
-# ---------------------------------------------------------------------------
-# Public API
-# ---------------------------------------------------------------------------
-
-
-def quick_analyze(model=None, X=None, y=None, dataset="iris", framework="sklearn") -> TrustReport:
+def quick_analyze(
+    model=None, X=None, y=None, dataset="iris", framework: Optional[str] = None
+) -> TrustReport:
     """
     Zero-friction entry point for TrustLens.
     If no model/data provided, auto-loads a basic dataset to demonstrate output.
@@ -98,7 +63,7 @@ def quick_analyze(model=None, X=None, y=None, dataset="iris", framework="sklearn
     print(f"\nTrustLens Analysis: {dataset}")
     print(f"Status: Loading demo model and {dataset} validation data...")
 
-    report = analyze(model=model, X=X, y_true=y, verbose=False)
+    report = analyze(model=model, X=X, y_true=y, framework=framework, verbose=False)
 
     report.show()
     report.summary_plot()
@@ -109,12 +74,14 @@ def analyze(
     model: Any,
     X: np.ndarray,
     y_true: np.ndarray,
-    y_prob: np.ndarray | None = None,
+    y_pred: Optional[np.ndarray] = None,
+    y_prob: Optional[np.ndarray] = None,
     *,
-    embeddings: np.ndarray | None = None,
-    sensitive_features: dict[str, np.ndarray] | None = None,
-    modules: list[str] | None = None,
-    plugins: list[str] | None = None,
+    framework: Optional[str] = None,
+    embeddings: Optional[np.ndarray] = None,
+    sensitive_features: Optional[dict[str, np.ndarray]] = None,
+    modules: Optional[list[str]] = None,
+    plugins: Optional[list[str]] = None,
     verbose: bool = True,
 ) -> TrustReport:
     """
@@ -123,26 +90,29 @@ def analyze(
     Parameters
     ----------
     model : Any
-      Trained sklearn-compatible model (must expose ``predict`` and,
-      optionally, ``predict_proba``).
+      Trained machine learning model.
     X : np.ndarray
       Validation feature matrix, shape (n_samples, n_features).
     y_true : np.ndarray
       Ground-truth labels, shape (n_samples,).
+    y_pred : np.ndarray, optional
+      Predicted class labels, shape (n_samples,).
+      If None, TrustLens will automatically resolve predictions via the backend system.
     y_prob : np.ndarray, optional
       Predicted class probabilities, shape (n_samples, n_classes).
-      If None, TrustLens will call ``model.predict_proba(X)`` if available.
+      If None, TrustLens will automatically resolve probabilities via the backend system.
+    framework : str, optional
+      Explicitly specify the model framework (e.g., 'sklearn', 'xgboost').
+      If None, TrustLens will attempt to auto-detect the framework.
     embeddings : np.ndarray, optional
       Latent representations / embeddings for representation analysis,
       shape (n_samples, embedding_dim).
     sensitive_features : dict, optional
       Mapping of feature name → 1-D array for bias/subgroup analysis.
-      Example: ``{"gender": gender_array, "age_group": age_array}``
     modules : list[str], optional
-      Subset of analysis modules to run. Defaults to all available:
-      ``["calibration", "failure", "bias", "representation"]``.
+      Subset of analysis modules to run.
     plugins : list[str], optional
-      Names of registered plugins to activate (see Plugin Registry).
+      Names of registered plugins to activate.
     verbose : bool
       Print progress updates. Default True.
 
@@ -150,158 +120,30 @@ def analyze(
     -------
     TrustReport
       Populated report object with metrics, plots, and narrative summaries.
-
-    Examples
-    --------
-    >>> from trustlens import analyze
-    >>> report = analyze(clf, X_val, y_val, y_prob=proba)
-    >>> report.show()         # interactive view
-    >>> report.save("trust_report/") # persist to disk
     """
-    _log = logger.info if verbose else logger.debug
-
     if len(y_true) < 30:
-        print("Warning: Small dataset (n < 30) detected. Calibration metrics may be unreliable.")
+        logger.warning("Small dataset (n < 30) detected. Calibration metrics may be unreliable.")
 
     # ------------------------------------------------------------------
-    # 1. Resolve probability predictions
+    # 1. Resolve predictions via Backend Registry
     # ------------------------------------------------------------------
-    if y_prob is None:
-        if hasattr(model, "predict_proba"):
-            _log("Calling model.predict_proba() …")
-            y_prob = model.predict_proba(X)
-        else:
-            raise ValueError("y_prob is required when model does not expose predict_proba().")
-
-    y_pred = model.predict(X)
+    resolver = get_resolver(model, framework=framework)
+    bundle = resolver(model, X, y_pred=y_pred, y_prob=y_prob)
 
     # ------------------------------------------------------------------
-    # 2. Determine which modules to run
+    # 2. Delegate to Core Pipeline
     # ------------------------------------------------------------------
-    _ALL_MODULES = ["calibration", "failure", "bias", "representation"]
-    active_modules = modules or _ALL_MODULES
-
-    results: dict[str, Any] = {}
-
-    # ------------------------------------------------------------------
-    # Progress Tracking
-    # ------------------------------------------------------------------
-    try:
-        from tqdm import tqdm
-
-        pbar = tqdm(active_modules, desc="Analysing Model", unit="module", leave=False)
-    except ImportError:
-        pbar = active_modules
-
-    # ------------------------------------------------------------------
-    # 3. Calibration module
-    # ------------------------------------------------------------------
-    if "calibration" in active_modules:
-        print("Running calibration analysis...")
-        if hasattr(pbar, "set_postfix"):
-            pbar.set_postfix(module="calibration")
-        # For binary classification use positive-class probabilities.
-        # For multi-class, compute one-vs-rest brier score (macro average).
-        if y_prob.ndim == 2 and y_prob.shape[1] == 2:
-            y_prob_pos = y_prob[:, 1]
-        else:
-            y_prob_pos = y_prob  # kept as-is; metrics handle multi-class
-
-        results["calibration"] = {
-            "brier_score": brier_score(y_true, y_prob_pos),
-            "ece": expected_calibration_error(y_true, y_prob_pos),
-            "reliability_curve": reliability_curve(y_true, y_prob_pos),
-        }
-
-    # ------------------------------------------------------------------
-    # 4. Failure analysis module
-    # ------------------------------------------------------------------
-    if "failure" in active_modules:
-        print("Running failure analysis...")
-        if hasattr(pbar, "set_postfix"):
-            pbar.set_postfix(module="failure")
-        results["failure"] = {
-            "misclassification_summary": misclassification_summary(y_true, y_pred, y_prob),
-            "confidence_gap": confidence_gap(y_true, y_pred, y_prob),
-        }
-
-    # ------------------------------------------------------------------
-    # 5. Bias detection module
-    # ------------------------------------------------------------------
-    if "bias" in active_modules:
-        print("Running bias analysis...")
-        if hasattr(pbar, "set_postfix"):
-            pbar.set_postfix(module="bias")
-        results["bias"] = {
-            "class_imbalance": class_imbalance_report(y_true),
-        }
-        if sensitive_features:
-            results["bias"]["subgroup_performance"] = subgroup_performance(
-                y_true, y_pred, sensitive_features
-            )
-            # Equalized odds requires a binary target (0, 1) and features with >1 subgroup
-            is_binary = set(np.unique(y_true)).issubset({0, 1})
-            meaningful_features = {
-                k: v for k, v in sensitive_features.items() if len(np.unique(v)) > 1
-            }
-
-            if is_binary and meaningful_features:
-                try:
-                    results["bias"]["equalized_odds"] = equalized_odds(
-                        y_true, y_pred, meaningful_features
-                    )
-                except Exception as e:
-                    logger.warning("Skipped equalized_odds computation: %s", e)
-                    results["bias"]["equalized_odds"] = {
-                        "status": "skipped",
-                        "reason": "computation_error",
-                        "details": str(e)[:200],
-                    }
-            else:
-                results["bias"]["equalized_odds"] = {
-                    "status": "skipped",
-                    "reason": "invalid_input",
-                    "details": "requires binary target and multi-group sensitive features",
-                }
-
-    # ------------------------------------------------------------------
-    # 6. Representation analysis module
-    # ------------------------------------------------------------------
-    if "representation" in active_modules and embeddings is not None:
-        print("Running representation analysis...")
-        if hasattr(pbar, "set_postfix"):
-            pbar.set_postfix(module="representation")
-        results["representation"] = {
-            "separability": embedding_separability(embeddings, y_true),
-        }
-
-    # ------------------------------------------------------------------
-    # 7. Activate plugins
-    # ------------------------------------------------------------------
-    if plugins:
-        registry = PluginRegistry()
-        for plugin_name in plugins:
-            _log(f"Activating plugin: {plugin_name}")
-            plugin = registry.get(plugin_name)
-            results[f"plugin_{plugin_name}"] = plugin.run(
-                model=model,
-                X=X,
-                y_true=y_true,
-                y_pred=y_pred,
-                y_prob=y_prob,
-            )
-
-    # ------------------------------------------------------------------
-    # 8. Build and return TrustReport
-    # ------------------------------------------------------------------
-    _log("Assembling report …")
-    report = TrustReport(
-        results=results,
+    return _run_analysis_pipeline(
         model=model,
         X=X,
         y_true=y_true,
-        y_pred=y_pred,
-        y_prob=y_prob,
+        y_pred=bundle.y_pred,
+        y_prob=bundle.y_prob,
+        framework=bundle.framework,
+        backend_metadata=bundle.metadata,
         embeddings=embeddings,
+        sensitive_features=sensitive_features,
+        modules=modules,
+        plugins=plugins,
+        verbose=verbose,
     )
-    return report

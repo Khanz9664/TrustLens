@@ -39,9 +39,13 @@ def test_save_json_valid_content(sample_report, tmp_path):
     with open(path, encoding="utf-8") as f:
         data = json.load(f)
 
-    assert "calibration" in data
-    assert data["calibration"]["ece"] == 0.02
-    assert "failure" in data
+    # New unified schema (PR 6)
+    assert "results" in data
+    assert "metadata" in data
+    assert "trust_score" in data
+    assert "calibration" in data["results"]
+    assert data["results"]["calibration"]["ece"] == 0.02
+    assert "failure" in data["results"]
 
 
 def test_save_txt_creates_file(sample_report, tmp_path):

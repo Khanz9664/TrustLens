@@ -1,6 +1,6 @@
 """
-trustlens.visualization.fairness.
-==================================
+Fairness Visualizations
+=======================
 Visualizations for fairness diagnostics across subgroups.
 
 Built on top of ``equalized_odds()`` and ``subgroup_performance()`` outputs.

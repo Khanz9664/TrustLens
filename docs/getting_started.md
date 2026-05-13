@@ -2,14 +2,18 @@
 
 TrustLens is designed to be **zero-friction**. This guide will get you from zero to a production-grade model audit in less than two minutes.
 
-## Prerequisites
+## Framework Support
 
-TrustLens works with any model that exposes standard scikit-learn style methods:
+TrustLens works out-of-the-box with common ML frameworks:
 
-* `.predict(X)`: Returns class labels.
-* `.predict_proba(X)`: Returns class probabilities (required for calibration analysis).
+* **scikit-learn**: All classifiers inheriting from `ClassifierMixin`.
+* **XGBoost**: Both `XGBClassifier` and raw `Booster` objects.
 
-If your model does not expose `predict_proba`, you must provide the probabilities manually to the `analyze()` function.
+The library **automatically detects** your framework. If you use a different framework (like PyTorch or TensorFlow), you can still use TrustLens by providing predictions manually:
+
+```python
+report = analyze(model, X, y, y_pred=my_preds, y_prob=my_probs)
+```
 
 ## Installation
 

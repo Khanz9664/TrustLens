@@ -44,6 +44,18 @@ TrustLens surfaces all four with a single audit, and outputs a machine-readable 
 
 ---
 
+## Supported Frameworks
+
+TrustLens uses a **Prediction Resolver Architecture** to automatically handle different ML frameworks:
+
+- **scikit-learn** — Full support for all `ClassifierMixin` estimators.
+- **XGBoost** — Native support for `XGBClassifier` and raw `Booster` objects.
+- **Planned** — LightGBM, CatBoost, PyTorch, TensorFlow/Keras.
+
+TrustLens **automatically detects** your model's framework. You don't need to change your code when switching from sklearn to XGBoost.
+
+---
+
 ## Quickstart
 
 ```bash
@@ -88,28 +100,65 @@ TrustLens runs four diagnostic modules and combines them into a single **Trust S
 
 ## Full Audit
 
+### Automatic Detection (Sklearn / XGBoost)
+
 ```python
 from trustlens import analyze
+from xgboost import XGBClassifier
 
+model = XGBClassifier().fit(X_train, y_train)
+
+# TrustLens automatically detects XGBoost and resolves predictions
 report = analyze(
-    model=clf,
+    model=model,
     X=X_test,
     y_true=y_test,
-    y_prob=clf.predict_proba(X_test),
-    sensitive_features={"gender": gender_test, "region": region_test}
+    sensitive_features={"gender": gender_test}
 )
 
-report.show()                  # human-readable summary
-report.save("trust_report/")   # full artifact export
+report.show()
 ```
 
-### Output artifacts
+### Manual Prediction Override
+
+For external inference systems or unsupported frameworks, you can pass predictions directly:
+
+```python
+report = analyze(
+    model=None, # optional when passing y_pred/y_prob
+    X=X_test,
+    y_true=y_test,
+    y_pred=external_preds,
+    y_prob=external_probs
+)
+```
+
+### Audit Metadata & Provenance
+
+Every report tracks its own backend provenance for auditability:
+
+```python
+print(report.metadata["framework"])  # "xgboost"
+print(report.metadata["backend"])    # {'resolver': 'xgboost', 'framework_version': '2.0.3', ...}
+```
+
+### Save & Export
+
+```python
+# Save as a unified JSON artifact (best for experiment trackers)
+report.save("report.json")
+
+# Save as a full directory bundle (best for human review)
+report.save("trust_report/")
+```
+
+### Output artifacts (Directory Bundle)
 
 ```
 trust_report/
 ├── trust_score.json    ← deployment verdict & composite score
 ├── report.json         ← raw diagnostic metrics
-├── metadata.json       ← environment, version, sample info
+├── metadata.json       ← environment, version, backend provenance
 ├── report.txt          ← human-readable summary
 └── visuals/            ← per-module diagnostic plots (PNG)
 ```
