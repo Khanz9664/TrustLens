@@ -53,6 +53,8 @@ class TrustReport:
         y_pred: np.ndarray,
         y_prob: np.ndarray,
         embeddings: np.ndarray | None = None,
+        framework: str | None = None,
+        backend_metadata: dict[str, Any] | None = None,
     ) -> None:
         self.results = results
         self.model = model
@@ -61,6 +63,8 @@ class TrustReport:
         self.y_pred = y_pred
         self.y_prob = y_prob
         self.embeddings = embeddings
+        self.framework = framework
+        self.backend_metadata = backend_metadata or {}
         self.metadata = self._build_metadata()
 
         # Compute Trust Score immediately so it's always available
@@ -127,7 +131,7 @@ class TrustReport:
         """Collect run-level metadata."""
         from trustlens import __version__
 
-        return {
+        meta = {
             "trustlens_version": __version__,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "n_samples": int(len(self.y_true)),
@@ -135,6 +139,14 @@ class TrustReport:
             "model_class": type(self.model).__name__,
             "modules_run": list(self.results.keys()),
         }
+
+        if self.framework:
+            meta["framework"] = self.framework
+
+        if self.backend_metadata:
+            meta["backend"] = self.backend_metadata
+
+        return meta
 
     def _print_score_methodology(self) -> None:
         """Display the mathematical composition and notes section."""
@@ -1217,11 +1229,16 @@ class TrustReport:
         # 1. Single-file JSON export
         if path.lower().endswith(".json"):
             p.parent.mkdir(parents=True, exist_ok=True)
-            p.write_text(
-                json.dumps(self._to_serializable(self.results), indent=2),
-                encoding="utf-8",
-            )
-            logger.info("Report JSON saved to: %s", p)
+            # Unified structure for single-file artifact
+            data = {
+                "results": self._to_serializable(self.results),
+                "metadata": self.metadata,
+                "trust_score": self.trust_score.score,
+                "grade": self.trust_score.grade,
+                "sub_scores": self.trust_score.sub_scores,
+            }
+            p.write_text(json.dumps(data, indent=2), encoding="utf-8")
+            logger.info("Unified Report JSON saved to: %s", p)
             return p
 
         # 2. Single-file TXT export
@@ -1302,6 +1319,9 @@ class TrustReport:
         flat = flatten_dict(self._to_serializable(self.results))
         flat["trust_score"] = self.trust_score.score
         flat["trust_grade"] = self.trust_score.grade
+        flat["framework"] = self.metadata.get("framework", "unknown")
+        flat["trustlens_version"] = self.metadata["trustlens_version"]
+
         for dim, score in self.trust_score.sub_scores.items():
             flat[f"trust_{dim}_score"] = score
         return flat

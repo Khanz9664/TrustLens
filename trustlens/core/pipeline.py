@@ -45,6 +45,8 @@ def _run_analysis_pipeline(
     sensitive_features: Optional[dict[str, np.ndarray]] = None,
     modules: Optional[list[str]] = None,
     plugins: Optional[list[str]] = None,
+    framework: Optional[str] = None,
+    backend_metadata: Optional[dict[str, Any]] = None,
     verbose: bool = True,
 ) -> TrustReport:
     """
@@ -184,5 +186,7 @@ def _run_analysis_pipeline(
         y_pred=y_pred,
         y_prob=y_prob,
         embeddings=embeddings,
+        framework=framework,
+        backend_metadata=backend_metadata,
     )
     return report

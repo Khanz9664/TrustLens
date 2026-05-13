@@ -139,6 +139,8 @@ def analyze(
         y_true=y_true,
         y_pred=bundle.y_pred,
         y_prob=bundle.y_prob,
+        framework=bundle.framework,
+        backend_metadata=bundle.metadata,
         embeddings=embeddings,
         sensitive_features=sensitive_features,
         modules=modules,
