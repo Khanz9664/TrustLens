@@ -64,11 +64,8 @@ def detect_framework(model: Any, framework: Optional[str] = None) -> str:
                 return identifier
 
     # 3. Capability fallback (conservative)
-    has_predict = hasattr(model, "predict")
-    has_proba = hasattr(model, "predict_proba")
-
-    if has_predict and has_proba:
-        logger.debug("Detected sklearn-like model via capability (predict + predict_proba)")
+    if hasattr(model, "predict") or hasattr(model, "predict_proba"):
+        logger.debug("Detected sklearn-like model via capability")
         return "sklearn"
 
     # 4. Fail clearly

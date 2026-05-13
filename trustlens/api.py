@@ -17,13 +17,16 @@ from typing import Any, Optional
 
 import numpy as np
 
+from trustlens.backends.registry import get_resolver
 from trustlens.core.pipeline import _run_analysis_pipeline
 from trustlens.report import TrustReport
 
 logger = logging.getLogger(__name__)
 
 
-def quick_analyze(model=None, X=None, y=None, dataset="iris", framework="sklearn") -> TrustReport:
+def quick_analyze(
+    model=None, X=None, y=None, dataset="iris", framework: Optional[str] = None
+) -> TrustReport:
     """
     Zero-friction entry point for TrustLens.
     If no model/data provided, auto-loads a basic dataset to demonstrate output.
@@ -60,7 +63,7 @@ def quick_analyze(model=None, X=None, y=None, dataset="iris", framework="sklearn
     print(f"\nTrustLens Analysis: {dataset}")
     print(f"Status: Loading demo model and {dataset} validation data...")
 
-    report = analyze(model=model, X=X, y_true=y, verbose=False)
+    report = analyze(model=model, X=X, y_true=y, framework=framework, verbose=False)
 
     report.show()
     report.summary_plot()
@@ -71,8 +74,10 @@ def analyze(
     model: Any,
     X: np.ndarray,
     y_true: np.ndarray,
+    y_pred: Optional[np.ndarray] = None,
     y_prob: Optional[np.ndarray] = None,
     *,
+    framework: Optional[str] = None,
     embeddings: Optional[np.ndarray] = None,
     sensitive_features: Optional[dict[str, np.ndarray]] = None,
     modules: Optional[list[str]] = None,
@@ -85,26 +90,29 @@ def analyze(
     Parameters
     ----------
     model : Any
-      Trained sklearn-compatible model (must expose ``predict`` and,
-      optionally, ``predict_proba``).
+      Trained machine learning model.
     X : np.ndarray
       Validation feature matrix, shape (n_samples, n_features).
     y_true : np.ndarray
       Ground-truth labels, shape (n_samples,).
+    y_pred : np.ndarray, optional
+      Predicted class labels, shape (n_samples,).
+      If None, TrustLens will automatically resolve predictions via the backend system.
     y_prob : np.ndarray, optional
       Predicted class probabilities, shape (n_samples, n_classes).
-      If None, TrustLens will call ``model.predict_proba(X)`` if available.
+      If None, TrustLens will automatically resolve probabilities via the backend system.
+    framework : str, optional
+      Explicitly specify the model framework (e.g., 'sklearn', 'xgboost').
+      If None, TrustLens will attempt to auto-detect the framework.
     embeddings : np.ndarray, optional
       Latent representations / embeddings for representation analysis,
       shape (n_samples, embedding_dim).
     sensitive_features : dict, optional
       Mapping of feature name → 1-D array for bias/subgroup analysis.
-      Example: ``{"gender": gender_array, "age_group": age_array}``
     modules : list[str], optional
-      Subset of analysis modules to run. Defaults to all available:
-      ``["calibration", "failure", "bias", "representation"]``.
+      Subset of analysis modules to run.
     plugins : list[str], optional
-      Names of registered plugins to activate (see Plugin Registry).
+      Names of registered plugins to activate.
     verbose : bool
       Print progress updates. Default True.
 
@@ -112,30 +120,15 @@ def analyze(
     -------
     TrustReport
       Populated report object with metrics, plots, and narrative summaries.
-
-    Examples
-    --------
-    >>> from trustlens import analyze
-    >>> report = analyze(clf, X_val, y_val, y_prob=proba)
-    >>> report.show()         # interactive view
-    >>> report.save("trust_report/") # persist to disk
     """
-    _log = logger.info if verbose else logger.debug
-
     if len(y_true) < 30:
-        print("Warning: Small dataset (n < 30) detected. Calibration metrics may be unreliable.")
+        logger.warning("Small dataset (n < 30) detected. Calibration metrics may be unreliable.")
 
     # ------------------------------------------------------------------
-    # 1. Resolve probability predictions (To be refactored in PR 2/3)
+    # 1. Resolve predictions via Backend Registry
     # ------------------------------------------------------------------
-    if y_prob is None:
-        if hasattr(model, "predict_proba"):
-            _log("Calling model.predict_proba() …")
-            y_prob = model.predict_proba(X)
-        else:
-            raise ValueError("y_prob is required when model does not expose predict_proba().")
-
-    y_pred = model.predict(X)
+    resolver = get_resolver(model, framework=framework)
+    bundle = resolver(model, X, y_pred=y_pred, y_prob=y_prob)
 
     # ------------------------------------------------------------------
     # 2. Delegate to Core Pipeline
@@ -144,8 +137,8 @@ def analyze(
         model=model,
         X=X,
         y_true=y_true,
-        y_pred=y_pred,
-        y_prob=y_prob,
+        y_pred=bundle.y_pred,
+        y_prob=bundle.y_prob,
         embeddings=embeddings,
         sensitive_features=sensitive_features,
         modules=modules,

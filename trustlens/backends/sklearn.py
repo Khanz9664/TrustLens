@@ -28,7 +28,10 @@ def resolve(
     from sklearn.base import is_classifier
 
     # 1. Classifier Validation (PR 2 Contract enforcement)
-    if not is_classifier(model):
+    # We recognize classifiers via sklearn's helper or via common classification attributes
+    is_clf = is_classifier(model) or hasattr(model, "classes_") or hasattr(model, "predict_proba")
+
+    if not is_clf:
         raise NotImplementedError(
             f"TrustLens currently supports classification models only. "
             f"Model type '{type(model).__name__}' is not a recognized classifier."
@@ -38,6 +41,8 @@ def resolve(
     if y_prob is None:
         if hasattr(model, "predict_proba"):
             y_prob = model.predict_proba(X)
+        else:
+            raise ValueError("y_prob is required when model does not expose predict_proba().")
 
     # 3. Normalize Probabilities (Contract Enforcement)
     # Binary: (n,) or (n, 1) -> (n, 2)
