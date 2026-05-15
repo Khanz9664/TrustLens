@@ -48,8 +48,10 @@ This release marks the transition of TrustLens from a scikit-learn-specific libr
 - Improved classifier detection to support custom mock objects and non-BaseEstimator wrappers.
 - Fixed Sphinx build warnings related to non-consecutive header levels and broken links.
 - Corrected relative links in `docs/index.md` and `docs/EXPERIMENTAL.md`.
-- Fixed CI failures by bumping mypy `python_version` to `3.10` while maintaining Python 3.9 runtime compatibility.
-- Resolved type shadowing and incompatible assignment errors in `GradCAM.generate`.
+- Fixed CI failures by updating mypy configuration for Python 3.9 EOL compliance.
+- Resolved type-shadowing and incompatible assignment errors in `GradCAM`.
+- Hardened prediction resolver registry with explicit type hints and improved error handling.
+- Fully propagated `Optional[y_prob]` support through the core pipeline, plugin architecture, and visualization dashboard, ensuring robust handling of non-probabilistic models.
 
 ### Compatibility / Migration
 - **No breaking changes** for existing scikit-learn users.

@@ -9,7 +9,7 @@ Every plugin must subclass ``BasePlugin`` and implement ``run()``.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Optional
 
 import numpy as np
 
@@ -55,7 +55,7 @@ class BasePlugin(ABC):
         X: np.ndarray,
         y_true: np.ndarray,
         y_pred: np.ndarray,
-        y_prob: np.ndarray,
+        y_prob: Optional[np.ndarray],
         **kwargs: Any,
     ) -> dict[str, Any]:
         """

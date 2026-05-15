@@ -40,7 +40,7 @@ def _run_analysis_pipeline(
     X: np.ndarray,
     y_true: np.ndarray,
     y_pred: np.ndarray,
-    y_prob: np.ndarray,
+    y_prob: Optional[np.ndarray] = None,
     embeddings: Optional[np.ndarray] = None,
     sensitive_features: Optional[dict[str, np.ndarray]] = None,
     modules: Optional[list[str]] = None,

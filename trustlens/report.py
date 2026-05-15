@@ -21,7 +21,7 @@ import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Optional, cast
 
 import numpy as np
 
@@ -53,7 +53,7 @@ class TrustReport:
         X: np.ndarray,
         y_true: np.ndarray,
         y_pred: np.ndarray,
-        y_prob: np.ndarray,
+        y_prob: Optional[np.ndarray],
         embeddings: np.ndarray | None = None,
         framework: str | None = None,
         backend_metadata: dict[str, Any] | None = None,
@@ -168,6 +168,8 @@ class TrustReport:
 
     def _max_confidence(self) -> np.ndarray:
         """Return per-sample max predicted confidence."""
+        if self.y_prob is None:
+            return np.zeros(len(self.y_true))
         yp = np.asarray(self.y_prob)
         return cast(np.ndarray, yp.max(axis=1) if yp.ndim == 2 else yp)
 

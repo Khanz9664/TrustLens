@@ -109,7 +109,7 @@ def detect_framework(model: Any, framework: Optional[str] = None) -> str:
     )
 
 
-def get_resolver(model: Any, framework: Optional[str] = None) -> Callable:
+def get_resolver(model: Any, framework: Optional[str] = None) -> Callable[..., PredictionBundle]:
     """
     Detect the framework and return the corresponding resolver function.
     """

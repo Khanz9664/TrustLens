@@ -158,7 +158,7 @@ ignore = [
 convention = "numpy"
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.10"  # Mypy 1.19+ dropped 3.9 (EOL). Project maintains 3.10 runtime support.
 warn_return_any = true
 warn_unused_configs = true
 ignore_missing_imports = true

@@ -63,7 +63,7 @@ def plot_summary_dashboard(
     results: dict[str, Any],
     y_true: np.ndarray,
     y_pred: np.ndarray,
-    y_prob: np.ndarray,
+    y_prob: np.ndarray | None,
     model_name: str = "Model",
     save_path: str | None = None,
 ) -> plt.Figure:
@@ -328,10 +328,22 @@ def _draw_confidence_gap(
     results: dict,
     y_true: np.ndarray,
     y_pred: np.ndarray,
-    y_prob: np.ndarray,
+    y_prob: np.ndarray | None,
 ) -> None:
     """Confidence distribution: correct vs. incorrect."""
     ax.set_title("Confidence Gap", fontsize=11, fontweight="bold", color=_C["dark"], pad=6)
+
+    if y_prob is None:
+        ax.text(
+            0.5,
+            0.5,
+            "Not available",
+            ha="center",
+            va="center",
+            transform=ax.transAxes,
+            color=_C["gray"],
+        )
+        return
 
     yp = np.asarray(y_prob)
     max_conf = yp.max(axis=1) if yp.ndim == 2 else yp
@@ -391,9 +403,10 @@ def _draw_error_distribution(
     ax: plt.Axes,
     y_true: np.ndarray,
     y_pred: np.ndarray,
-    y_prob: np.ndarray,
+    y_prob: np.ndarray | None,
 ) -> None:
     """Per-class error rate bar chart."""
+    _ = y_prob  # Optional for this plot, handled by y_true/y_pred
     ax.set_title("Error Rate by Class", fontsize=11, fontweight="bold", color=_C["dark"], pad=6)
 
     y_true = np.asarray(y_true)
