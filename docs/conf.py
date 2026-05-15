@@ -1,6 +1,8 @@
 import os
 import sys
 
+from trustlens._version import __version__
+
 sys.path.insert(0, os.path.abspath(".."))
 
 # -- Project information -----------------------------------------------------
@@ -8,6 +10,8 @@ sys.path.insert(0, os.path.abspath(".."))
 project = "TrustLens"
 copyright = "2026, Shahid Ul Islam"
 author = "Shahid Ul Islam"
+version = __version__
+release = __version__
 
 # -- General configuration ---------------------------------------------------
 

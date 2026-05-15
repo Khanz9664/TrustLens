@@ -461,7 +461,7 @@ Use these when picking up or reviewing large integrations (optional backends, sh
 
 | Plan | Scope |
 |------|--------|
-| [docs/plans/IMPLEMENTATION_PLAN_XGBoost.md](docs/plans/IMPLEMENTATION_PLAN_XGBoost.md) | **XGBoost** — stable tabular path, `XGBClassifier`, resolver branch, optional extra, tests. |
+| [docs/plans/IMPLEMENTATION_PLAN_XGBoost.md](docs/plans/IMPLEMENTATION_PLAN_XGBoost.md) | **XGBoost [INTEGRATED]** — Native support added in v0.4.0. See `docs/internal/prediction_contract.md` for current backend standards. |
 | [docs/plans/IMPLEMENTATION_PLAN_Keras.md](docs/plans/IMPLEMENTATION_PLAN_Keras.md) | **Keras** — `model.predict` semantics, shapes, `analyze_keras`, experimental API (see plan for `keras` vs `tf.keras` scope). |
 | [docs/plans/IMPLEMENTATION_PLAN_TensorFlow.md](docs/plans/IMPLEMENTATION_PLAN_TensorFlow.md) | **TensorFlow** — optional `tensorflow` extra, lazy imports, CI, SavedModel/runtime notes; cross-links Keras plan for Keras API details. |
 

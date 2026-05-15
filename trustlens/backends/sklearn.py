@@ -28,8 +28,20 @@ def resolve(
     from sklearn.base import is_classifier
 
     # 1. Classifier Validation (PR 2 Contract enforcement)
-    # We recognize classifiers via sklearn's helper or via common classification attributes
-    is_clf = is_classifier(model) or hasattr(model, "classes_") or hasattr(model, "predict_proba")
+    # We recognize classifiers via sklearn's helper (if safe) or via common classification attributes
+    is_clf = False
+    try:
+        is_clf = is_classifier(model)
+    except Exception:
+        pass
+
+    if not is_clf:
+        # Fallback for non-standard or mock objects
+        is_clf = (
+            getattr(model, "_estimator_type", None) == "classifier"
+            or hasattr(model, "classes_")
+            or hasattr(model, "predict_proba")
+        )
 
     if not is_clf:
         raise NotImplementedError(

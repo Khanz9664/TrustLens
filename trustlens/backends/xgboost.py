@@ -20,15 +20,36 @@ def resolve(
     Prediction resolver for XGBoost models.
     Supports XGBClassifier and raw Booster objects.
     """
+    import json
+
     import xgboost as xgb
 
-    # 1. Regression blocking
-    # Check objective for regression tasks
+    # 1. Objective Detection & Regression blocking
     objective = ""
     if hasattr(model, "objective"):
+        # XGBClassifier path
         objective = str(model.objective)
     elif hasattr(model, "get_params"):
+        # Scikit-learn wrapper path
         objective = str(model.get_params().get("objective", ""))
+    elif isinstance(model, xgb.Booster):
+        # Raw Booster path: extract from config
+        try:
+            config = json.loads(model.save_config())
+            # Path in JSON config: learner -> objective
+            obj_data = config.get("learner", {}).get("objective")
+            if isinstance(obj_data, dict):
+                objective = obj_data.get("name", "")
+            else:
+                objective = str(obj_data or "")
+
+            if not objective:
+                # Fallback for older versions
+                objective = str(config.get("objective", ""))
+        except Exception:
+            objective = ""
+
+    objective = str(objective)
 
     if objective.startswith(("reg:", "rank:")):
         raise NotImplementedError(
@@ -38,11 +59,15 @@ def resolve(
 
     # 2. Resolve Probabilities
     if y_prob is None:
-        if hasattr(model, "predict_proba"):
+        if isinstance(model, xgb.Booster):
+            # Raw Booster requires DMatrix
+            dmat = xgb.DMatrix(X)
+            y_prob = model.predict(dmat)
+        elif hasattr(model, "predict_proba"):
             # XGBClassifier path
             y_prob = model.predict_proba(X)
         elif hasattr(model, "predict"):
-            # Raw Booster path
+            # Generic predict fallback
             y_prob = model.predict(X)
         else:
             raise ValueError(
@@ -51,8 +76,6 @@ def resolve(
             )
 
     # 3. Normalize Probabilities
-    # XGBoost binary prediction can be (n,) probabilities.
-    # Convert to (n, 2) for consistency with the PredictionBundle contract.
     y_prob = np.asarray(y_prob)
     if y_prob.ndim == 1:
         # Binary case: [p] -> [1-p, p]
@@ -84,6 +107,7 @@ def resolve(
         "resolver": "xgboost",
         "framework_version": getattr(xgb, "__version__", "unknown"),
         "model_type": type(model).__name__ if not isinstance(model, xgb.Booster) else "Booster",
+        "objective": objective,
     }
 
     return PredictionBundle(

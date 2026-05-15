@@ -12,8 +12,7 @@ Core capabilities include:
 - Trust Score (0–100 composite reliability metric)
 """
 
-__version__ = "0.3.0"
-
+from ._version import __version__
 from .api import analyze, quick_analyze
 from .comparison import compare
 from .report import TrustReport

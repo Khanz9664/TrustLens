@@ -65,6 +65,10 @@ def _run_analysis_pipeline(
     active_modules = modules or _ALL_MODULES
 
     results: dict[str, Any] = {}
+    missing_components: list[str] = []
+
+    if y_prob is None:
+        missing_components.append("probabilities")
 
     # ------------------------------------------------------------------
     # Progress Tracking
@@ -80,33 +84,79 @@ def _run_analysis_pipeline(
     # 2. Calibration module
     # ------------------------------------------------------------------
     if "calibration" in active_modules:
-        print("Running calibration analysis...")
-        if hasattr(pbar, "set_postfix"):
-            pbar.set_postfix(module="calibration")
-        # For binary classification use positive-class probabilities.
-        # For multi-class, compute one-vs-rest brier score (macro average).
-        if y_prob.ndim == 2 and y_prob.shape[1] == 2:
-            y_prob_pos = y_prob[:, 1]
-        else:
-            y_prob_pos = y_prob  # kept as-is; metrics handle multi-class
+        if y_prob is not None:
+            print("Running calibration analysis...")
+            if hasattr(pbar, "set_postfix"):
+                pbar.set_postfix(module="calibration")
 
-        results["calibration"] = {
-            "brier_score": brier_score(y_true, y_prob_pos),
-            "ece": expected_calibration_error(y_true, y_prob_pos),
-            "reliability_curve": reliability_curve(y_true, y_prob_pos),
-        }
+            # Calibration logic based on task type
+            if y_prob.ndim == 2 and y_prob.shape[1] > 2:
+                # MULTICLASS: Top-label calibration (ECE) and Multiclass Brier Score
+                n_classes = y_prob.shape[1]
+                confidences = np.max(y_prob, axis=1)
+                correct_mask = (y_true == y_pred).astype(float)
+
+                # Multiclass Brier Score: 1/N * sum(sum((p_ic - o_ic)^2))
+                # We can compute this efficiently
+                y_true_one_hot = np.eye(n_classes)[y_true.astype(int)]
+                mbrier = np.mean(np.sum((y_prob - y_true_one_hot) ** 2, axis=1))
+
+                results["calibration"] = {
+                    "brier_score": float(mbrier),
+                    "ece": expected_calibration_error(correct_mask, confidences),
+                    "reliability_curve": reliability_curve(correct_mask, confidences),
+                }
+            else:
+                # BINARY or 1D probabilities
+                if y_prob.ndim == 2 and y_prob.shape[1] == 2:
+                    y_prob_pos = y_prob[:, 1]
+                else:
+                    y_prob_pos = y_prob
+
+                results["calibration"] = {
+                    "brier_score": brier_score(y_true, y_prob_pos),
+                    "ece": expected_calibration_error(y_true, y_prob_pos),
+                    "reliability_curve": reliability_curve(y_true, y_prob_pos),
+                }
+        else:
+            logger.warning("Skipped calibration: y_prob is missing.")
+            results["calibration"] = {
+                "status": "skipped",
+                "reason": "missing_probabilities",
+                "details": "Calibration requires probabilistic predictions.",
+            }
+            missing_components.append("calibration_metrics")
 
     # ------------------------------------------------------------------
     # 3. Failure analysis module
     # ------------------------------------------------------------------
     if "failure" in active_modules:
-        print("Running failure analysis...")
-        if hasattr(pbar, "set_postfix"):
-            pbar.set_postfix(module="failure")
-        results["failure"] = {
-            "misclassification_summary": misclassification_summary(y_true, y_pred, y_prob),
-            "confidence_gap": confidence_gap(y_true, y_pred, y_prob),
-        }
+        if y_prob is not None:
+            print("Running failure analysis...")
+            if hasattr(pbar, "set_postfix"):
+                pbar.set_postfix(module="failure")
+            results["failure"] = {
+                "misclassification_summary": misclassification_summary(y_true, y_pred, y_prob),
+                "confidence_gap": confidence_gap(y_true, y_pred, y_prob),
+            }
+        else:
+            logger.warning(
+                "Degraded failure analysis: y_prob is missing. Confidence metrics skipped."
+            )
+            # Provide a minimal summary that doesn't need probabilities
+            incorrect_mask = y_true != y_pred
+            results["failure"] = {
+                "status": "degraded",
+                "reason": "missing_probabilities",
+                "misclassification_summary": {
+                    "__overall__": {
+                        "total_errors": int(incorrect_mask.sum()),
+                        "overall_error_rate": round(float(incorrect_mask.mean()), 4),
+                    }
+                },
+                "confidence_gap": {"gap": 0.0, "status": "skipped"},
+            }
+            missing_components.append("failure_confidence_metrics")
 
     # ------------------------------------------------------------------
     # 4. Bias detection module
@@ -178,6 +228,15 @@ def _run_analysis_pipeline(
     # 7. Build and return TrustReport
     # ------------------------------------------------------------------
     _log("Assembling report …")
+
+    # Enrich metadata with degraded state information
+    if backend_metadata is None:
+        backend_metadata = {}
+
+    if missing_components:
+        backend_metadata["degraded_mode"] = True
+        backend_metadata["missing_components"] = missing_components
+
     report = TrustReport(
         results=results,
         model=model,

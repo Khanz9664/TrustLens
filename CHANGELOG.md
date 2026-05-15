@@ -10,28 +10,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **XGBoost Framework Support**: Native integration for `XGBClassifier` and raw `Booster` objects, including automatic framework detection and task-specific resolution logic.
-- **Prediction Resolver Architecture**: Decoupled framework-specific prediction logic into a pluggable backend system (`trustlens.backends`), enabling zero-change support for multiple ML libraries.
-- **Backend Registry**: Centralized dispatch system in `trustlens/backends/registry.py` for framework detection, resolver retrieval, and prediction normalization.
-- **Audit Provenance Tracking**: Enhanced `TrustReport` metadata to include backend-specific provenance (resolver type, framework version, model class) for full evaluation auditability.
-- **Unified JSON Artifact Export**: `TrustReport.save("report.json")` now produces a single, self-contained JSON artifact containing results, metadata, and trust scores, optimized for experiment tracking platforms like MLflow or W&B.
-- **Manual Prediction Overrides**: Restored full support for `y_pred` and `y_prob` manual overrides in `analyze()`, allowing evaluation of external serving systems or unsupported frameworks.
-- **Strict Task Blocking**: Implemented automatic rejection of regression and ranking models in backends (e.g., blocking `XGBRegressor` via objective-prefix checks) to ensure metric integrity.
-- **Standardized Backend Contract**: Defined the `PredictionBundle` dataclass to enforce a strict data contract between backends and the core pipeline.
-- **Contributor Guide for Backends**: New section in `CONTRIBUTING.md` detailing the workflow for adding support for new frameworks (e.g., CatBoost, PyTorch).
+
 
 ### Improved
-- **Architectural Decoupling**: Fully refactored `trustlens/api.py` and `trustlens/core/pipeline.py` to be framework-agnostic, removing all direct dependencies on `scikit-learn` in the core pipeline.
-- **Probability Normalization**: Implemented standard normalization logic across resolvers to ensure consistency (e.g., binary probability conversion from `(n,)` to `(n, 2)`).
-- **Documentation Build Integrity**: Fixed 26 Sphinx warnings/errors, resolved broken relative links to root project artifacts, and corrected docstring indentation for a zero-warning build.
-- **Architecture Documentation**: Overhauled `docs/architecture.md` with new Mermaid diagrams reflecting the resolver dispatch flow and backend registry.
-- **Getting Started Guide**: Updated documentation to reflect multi-framework support, auto-detection capabilities, and manual override patterns.
-- **Test Coverage**: Added comprehensive integration tests for XGBoost (detection, resolution, pipeline integration, and regressor rejection). All 250 tests passing.
+
 
 ### Fixed
-- **API Parity**: Restored missing `y_pred` parameter in `analyze()` to maintain full parity with legacy workflows and researcher-led manual overrides.
-- **Logger Cleanliness**: Removed unused `_log` variables in `api.py` and converted `print` warnings to standard `logger.warning` calls for cleaner library behavior.
-- **Docstring Syntax**: Corrected indentation and list formatting in `report.py` and `fairness.py` docstrings to satisfy Sphinx/Docutils requirements and resolve duplicate ID conflicts.
+
+
+### Compatibility / Migration
+
+
+---
+
+## [v0.4.0] - 2026-05-15
+
+### Major Architectural Milestone: Framework-Agnostic Core
+This release marks the transition of TrustLens from a scikit-learn-specific library to a framework-agnostic trustworthiness platform.
+
+### Added
+- **Prediction Resolver Architecture**: A new plugin-based backend system for resolving predictions across different ML frameworks.
+- **XGBoost Support**: Native support for `XGBClassifier` and raw `Booster` objects (including DMatrix conversion and objective-based task blocking).
+- **Manual Override Mode**: Full support for `model=None` workflows where users provide `y_pred` and `y_prob` manually.
+- **Degraded Mode Transparency**: Explicit metadata tracking for missing components (`degraded_mode`, `missing_components`) when probabilistic data is unavailable.
+- **Hardened Prediction Contract**: Strict validation for non-finite values (NaN/Inf) and probability range enforcement with EPS tolerance.
+- **Unified JSON Artifact Export**: `TrustReport.save("report.json")` now produces a single, self-contained JSON artifact containing results, metadata, and trust scores.
+
+### Improved
+- **Architectural Decoupling**: Fully refactored `trustlens/api.py` and `trustlens/core/pipeline.py` to be framework-agnostic.
+- **Lazy Loading**: Framework-specific dependencies (like XGBoost) are now loaded lazily, ensuring a minimal footprint for scikit-learn users.
+- **CI/CD Pipeline**: Added Python 3.13 support, security auditing (`pip-audit`), and automated build validation.
+- **Documentation**: Fully synchronized Sphinx documentation, including new internal RFCs for backend developers.
+
+### Fixed
+- **Multiclass Brier Score**: Fixed a core metric bug where calibration analysis assumed binary probabilities for all models. TrustLens now correctly computes the Multiclass Brier Score (Mean Squared Error across all classes) for N-class problems.
+- Fixed numerical instability in calibration metrics via automatic probability clipping.
+- Improved classifier detection to support custom mock objects and non-BaseEstimator wrappers.
+- Fixed Sphinx build warnings related to non-consecutive header levels and broken links.
+- Corrected relative links in `docs/index.md` and `docs/EXPERIMENTAL.md`.
+
+### Compatibility / Migration
+- **No breaking changes** for existing scikit-learn users.
+- `analyze()` remains backward compatible; existing workflows will continue to work unchanged while benefiting from improved internal validation.
 
 ## [0.3.0] — 2026-05-06
 

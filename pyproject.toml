@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "trustlens"
 dynamic = ["version"]
-description = "Analyze machine learning model reliability beyond accuracy."
+description = "Audit ML models beyond accuracy — calibration, fairness, latent health, and deployment verdicts."
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.9"
 license = "MIT"
@@ -52,11 +52,15 @@ LinkedIn = "https://www.linkedin.com/in/shahid-ul-islam-13650998/"
 Instagram = "https://instagram.com/shaddy9664"
 
 [project.optional-dependencies]
+xgboost = [
+    "xgboost>=1.7",
+]
 torch = [
     "torch>=2.0",
     "torchvision>=0.15",
 ]
 full = [
+    "xgboost>=1.7",
     "torch>=2.0",
     "torchvision>=0.15",
     "shap>=0.42",
@@ -84,7 +88,7 @@ docs = [
 exclude = ["tests*", "docs*", "examples*"]
 
 [tool.setuptools.dynamic]
-version = { attr = "trustlens.__version__" }
+version = { attr = "trustlens._version.__version__" }
 
 [tool.pytest.ini_options]
 minversion = "7.0"

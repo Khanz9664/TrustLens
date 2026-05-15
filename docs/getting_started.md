@@ -9,11 +9,15 @@ TrustLens works out-of-the-box with common ML frameworks:
 * **scikit-learn**: All classifiers inheriting from `ClassifierMixin`.
 * **XGBoost**: Both `XGBClassifier` and raw `Booster` objects.
 
-The library **automatically detects** your framework. If you use a different framework (like PyTorch or TensorFlow), you can still use TrustLens by providing predictions manually:
+The library **automatically detects** your framework. If you use a different framework or external inference system, you can still use TrustLens by providing predictions manually:
 
 ```python
-report = analyze(model, X, y, y_pred=my_preds, y_prob=my_probs)
+# Pass model=None if you only have results, not the model object
+report = analyze(None, X, y, y_pred=my_preds, y_prob=my_probs)
 ```
+
+> [!NOTE]
+> **Degraded Mode**: If you provide `y_pred` but not `y_prob`, TrustLens enters "Degraded Mode". It will skip confidence-based metrics (like calibration) while still auditing accuracy and fairness.
 
 ## Installation
 

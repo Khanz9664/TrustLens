@@ -12,6 +12,9 @@ Calibration checks whether predicted probabilities match real-world outcomes.
 
 Use calibration results when your downstream decision threshold depends on confidence quality rather than raw class labels.
 
+> [!TIP]
+> **Multiclass Support**: TrustLens v0.4.0 supports multiclass calibration using top-label Expected Calibration Error (ECE) and class-wise Mean Squared Error (Multiclass Brier Score).
+
 ## Failure Analysis Module
 
 Failure analysis focuses on risk concentration, not only total error rate.

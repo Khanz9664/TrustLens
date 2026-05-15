@@ -89,8 +89,8 @@ def analyze(
 
     Parameters
     ----------
-    model : Any
-      Trained machine learning model.
+    model : Any, optional
+      Trained machine learning model. Can be None if ``y_pred`` or ``y_prob`` are provided manually.
     X : np.ndarray
       Validation feature matrix, shape (n_samples, n_features).
     y_true : np.ndarray
@@ -126,7 +126,10 @@ def analyze(
 
     # ------------------------------------------------------------------
     # 1. Resolve predictions via Backend Registry
-    # ------------------------------------------------------------------
+    # Short-circuit if both overrides are provided
+    if y_pred is not None and y_prob is not None:
+        framework = "manual"
+
     resolver = get_resolver(model, framework=framework)
     bundle = resolver(model, X, y_pred=y_pred, y_prob=y_prob)
 

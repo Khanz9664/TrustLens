@@ -10,7 +10,9 @@ import logging
 from collections.abc import Callable
 from typing import Any, Optional
 
-from trustlens.backends.types import UnsupportedModelError
+import numpy as np
+
+from trustlens.backends.types import PredictionBundle, UnsupportedModelError
 
 logger = logging.getLogger(__name__)
 
@@ -23,24 +25,56 @@ FRAMEWORK_MAPPING = {
     "keras": "keras",
     "torch": "pytorch",
     "catboost": "catboost",
+    "manual": "manual",
 }
 
 # Frameworks we can theoretically detect/support
 SUPPORTED_FRAMEWORKS = tuple(sorted(set(FRAMEWORK_MAPPING.values())))
 
 # Frameworks with concrete resolver implementations
-IMPLEMENTED_RESOLVERS = tuple(sorted({"sklearn", "xgboost"}))
+IMPLEMENTED_RESOLVERS = tuple(sorted({"sklearn", "xgboost", "manual"}))
+
+
+def manual_resolve(
+    model: Any,
+    X: np.ndarray,
+    y_pred: Optional[np.ndarray] = None,
+    y_prob: Optional[np.ndarray] = None,
+) -> PredictionBundle:
+    """
+    Passthrough resolver for manual overrides.
+    """
+    if y_pred is None:
+        if y_prob is not None:
+            # Derive y_pred from y_prob if missing
+            y_pred = np.argmax(np.asarray(y_prob), axis=1)
+        else:
+            raise ValueError("Manual override requires either y_pred or y_prob.")
+
+    metadata = {
+        "resolver": "manual_override",
+        "model_type": type(model).__name__ if model is not None else "None",
+    }
+
+    # At this point y_pred is guaranteed to be a numpy array
+    return PredictionBundle(
+        y_pred=np.asarray(y_pred),
+        y_prob=np.asarray(y_prob) if y_prob is not None else None,
+        framework="manual",
+        metadata=metadata,
+    )
 
 
 def detect_framework(model: Any, framework: Optional[str] = None) -> str:
     """
     Detect the ML framework for a given model using deterministic priority.
-
-    Priority:
-    1. Explicit override (validated)
-    2. Module-name inspection (prefix-based, no eager imports)
-    3. Capability fallback (predict, predict_proba)
     """
+    # 0. Handle None model (Manual Override path)
+    if model is None:
+        if framework is not None:
+            return framework.lower()
+        return "manual"
+
     # 1. Explicit override
     if framework is not None:
         normalized = framework.lower()
@@ -90,6 +124,9 @@ def get_resolver(model: Any, framework: Optional[str] = None) -> Callable:
         from trustlens.backends import xgboost
 
         return xgboost.resolve
+
+    if detected == "manual":
+        return manual_resolve
 
     # Note: Future backends will be added here
 

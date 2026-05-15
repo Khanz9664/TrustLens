@@ -42,6 +42,9 @@ class PredictionBundle:
                 "Consult docs/internal/prediction_contract.md for details."
             )
 
+        if np.any(~np.isfinite(self.y_pred)):
+            raise ValueError("y_pred contains non-finite values (NaN or Inf).")
+
         if self.y_prob is not None:
             if self.y_prob.ndim != 2:
                 raise ValueError(
@@ -54,6 +57,20 @@ class PredictionBundle:
                     f"Sample count mismatch: y_pred has {len(self.y_pred)} samples, "
                     f"but y_prob has {len(self.y_prob)} samples."
                 )
+
+            if np.any(~np.isfinite(self.y_prob)):
+                raise ValueError("y_prob contains non-finite values (NaN or Inf).")
+
+            # Range check with tolerance for numerical instability (e.g. 1.0000000001)
+            eps = 1e-9
+            if np.any((self.y_prob < -eps) | (self.y_prob > 1.0 + eps)):
+                raise ValueError(
+                    f"y_prob contains values significantly outside [0, 1] range. "
+                    f"Min: {np.min(self.y_prob)}, Max: {np.max(self.y_prob)}"
+                )
+
+            # Safe clipping for downstream metrics
+            self.y_prob = np.clip(self.y_prob, 0.0, 1.0)
 
 
 class UnsupportedModelError(Exception):

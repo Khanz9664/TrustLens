@@ -46,5 +46,15 @@ metadata = {
 
 ---
 
-## 5. Non-Standard Frameworks
-- **Ranking / Anomaly Detection**: If a framework does not provide probabilities, the backend must provide a valid `y_pred` and set `y_prob` to a placeholder or zeros (while documenting the limitation in `metadata`).
+## 5. Manual Overrides (`model=None`)
+TrustLens supports auditing prediction data without a direct model reference.
+- **Contract**: If `model=None` is passed to `analyze()`, the `manual` resolver is used.
+- **Requirement**: Either `y_pred` or `y_prob` must be provided.
+- **Derivation**: If `y_prob` is provided but `y_pred` is missing, `y_pred` will be derived via `argmax`.
+
+---
+
+## 6. Degraded Mode Transparency
+When critical components (like `y_prob`) are missing, TrustLens enters a **Degraded Mode**.
+- **Audit Trail**: Metadata will include `"degraded_mode": True` and a list of `"missing_components"`.
+- **Module Behavior**: Analysis modules must skip confidence-based metrics (e.g., Calibration, ECE) and report a `"skipped"` status instead of crashing.

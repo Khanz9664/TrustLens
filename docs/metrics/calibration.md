@@ -17,7 +17,7 @@ Calibration metrics test whether that assumption is true.
 
 - `y_true`: ground-truth labels
 - `y_prob`: predicted probabilities
-- calibration utilities are primarily designed for probabilistic classification
+- **Multiclass Support**: TrustLens v0.4.0 supports multiclass calibration using top-label ECE and Multiclass Brier Score.
 
 ## Output and Interpretation
 
