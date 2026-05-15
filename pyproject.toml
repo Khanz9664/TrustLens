@@ -85,7 +85,7 @@ docs = [
 ]
 
 [tool.setuptools.packages.find]
-exclude = ["tests*", "docs*", "examples*"]
+exclude = ["tests*","scratch*", "docs*", "examples*"]
 
 [tool.setuptools.dynamic]
 version = { attr = "trustlens._version.__version__" }
