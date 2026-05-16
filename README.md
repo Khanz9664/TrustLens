@@ -98,6 +98,16 @@ TrustLens runs four diagnostic modules and combines them into a single **Trust S
 
 ---
 
+## Scientific Validation
+
+TrustLens is more than a visualization tool—it is a statistically grounded diagnostic framework. We have systematically validated its behavior across 6 model architectures and multiple data corruption scenarios (noise, imbalance, bias).
+
+**Key Finding**: TrustLens empirically decouples **Accuracy** from **Trust**, flagging high-accuracy models that exhibit high reliability risks (the "Overconfidence Zone").
+
+**[View the Model Zoo Benchmark](examples/trustlens_model_zoo_benchmark.ipynb)**
+
+---
+
 ## Full Audit
 
 ### Automatic Detection (Sklearn / XGBoost)
