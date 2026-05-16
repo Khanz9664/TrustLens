@@ -5,12 +5,13 @@
 
 ---
 
-## Current State (v0.3.0)
+## Current State (v0.4.0)
 
 - ✅ Stable ML evaluation pipeline (calibration, failure, bias, representation)
 - ✅ Head-to-head model comparison API (`trustlens.compare`)
 - ✅ Decision-ready Trust Score with penalty reasoning
-- ✅ Multi-feature fairness and 2D embedding diagnostics
+- ✅ Framework-agnostic prediction resolver architecture (XGBoost, LightGBM, CatBoost)
+- ✅ Scientific Validation: Model Zoo Benchmark for accuracy/trust decoupling
 - ✅ Professional contributor infrastructure and documentation
 
 ---
@@ -23,13 +24,14 @@
 
 ---
 
-## Active Work (v0.3.x)
+## Active Work (v0.5.0)
 
 These are high-priority items currently being developed or targeted for the next release.
 
 - [ ] **Policy Profiles** (Issue #56) — *Context-aware scoring (Strict/Lenient)*
 - [ ] **TrustComparison** (Issue #57) — *Differential reliability audits*
-- [ ] **XGBoost Support** — *Native prediction resolver for XGBClassifier*
+- [x] **XGBoost Support** — *Native prediction resolver architecture*
+- [x] **Model Zoo Benchmark** — *Scientific validation of trust diagnostics*
 - [~] **Deep Learning Backends** — *Experimental Keras & TensorFlow integration*
 - [~] **HTML Report Export** (Issue #19) — *[OPEN]*
 - [ ] **Maximum Calibration Error (MCE)** (Issue #1)
@@ -60,7 +62,7 @@ The minimal set of features required to be genuinely useful to practitioners.
 
 ## Phase 2: Core Expansion — *Going Deeper*
 
-**Target: v0.3.x (ongoing)**
+**Status: COMPLETE (v0.4.0)**
 
 > **Focus:** High-impact ML features that integrate directly into the `analyze()` pipeline.
 
@@ -87,7 +89,7 @@ The minimal set of features required to be genuinely useful to practitioners.
 - [ ] **Intrinsic Dimensionality** estimation for embeddings
 
 ### Framework Support
-- [ ] **XGBoost Integration** — Native `analyze()` support for `XGBClassifier`
+- [x] **XGBoost Integration** — Native `analyze()` support for `XGBClassifier`
 - [~] **Keras Experimental** — Sequential and functional model support
 - [~] **TensorFlow Experimental** — SavedModel loading and lazy import hygiene
 
@@ -95,7 +97,7 @@ The minimal set of features required to be genuinely useful to practitioners.
 
 ## Phase 3: Comparative & Research — *Frontier Methods*
 
-**Target: v0.3.x / v0.4.0**
+**Target: v0.5.x**
 
 Methods primarily of interest to ML researchers pushing state-of-the-art and production diffing.
 
