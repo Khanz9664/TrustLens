@@ -35,7 +35,7 @@ jobs:
           elif [[ "${{ github.event_name }}" == "schedule" ]]; then
             echo 'matrix={"os": ["ubuntu-latest", "windows-latest", "macos-latest"], "python-version": ["3.10", "3.12"]}' >> $GITHUB_OUTPUT
           else
-            echo 'matrix={"os": ["ubuntu-latest"], "python-version": ["3.10", "3.12"]}' >> $GITHUB_OUTPUT
+            echo 'matrix={"os": ["ubuntu-latest", "macos-latest"], "python-version": ["3.10", "3.12"]}' >> $GITHUB_OUTPUT
           fi
 
   lint:
