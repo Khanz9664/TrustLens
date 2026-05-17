@@ -87,8 +87,22 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
       - name: Install OpenMP (macOS)
-        if: runner.os == 'macOS'
-        run: brew install libomp
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          export HOMEBREW_NO_AUTO_UPDATE=1
+          brew install libomp || true
+          
+          # XGBoost looks in specific paths depending on how the wheel was built. 
+          # Ensure libomp.dylib is discoverable in all typical locations.
+          sudo mkdir -p /opt/homebrew/opt/libomp/lib
+          sudo mkdir -p /usr/local/opt/libomp/lib
+          
+          # Find where brew actually installed it
+          ACTUAL_LIBOMP=$(brew --prefix libomp)/lib/libomp.dylib
+          
+          sudo ln -sf $ACTUAL_LIBOMP /opt/homebrew/opt/libomp/lib/libomp.dylib
+          sudo ln -sf $ACTUAL_LIBOMP /usr/local/opt/libomp/lib/libomp.dylib
+          sudo ln -sf $ACTUAL_LIBOMP /usr/local/lib/libomp.dylib
       - name: Install dependencies
         run: |
           pip install -e ".[dev,full]"
