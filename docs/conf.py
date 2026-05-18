@@ -1,5 +1,6 @@
 import os
 import sys
+from typing import Any
 
 # Add project root to Python path
 sys.path.insert(0, os.path.abspath(".."))
@@ -62,11 +63,11 @@ html_static_path = ["_static"]
 html_baseurl = "https://khanz9664.github.io/trustlensdocs/"
 
 # Prevent GitHub Pages path issues
-html_theme_options = {}
+html_theme_options: dict[str, Any] = {}
 
 # Ensure clean relative asset loading
-html_css_files = []
-html_js_files = []
+html_css_files: list[str] = []
+html_js_files: list[str] = []
 
 # GitHub integration (optional but useful)
 html_context = {
