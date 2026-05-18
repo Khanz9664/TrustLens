@@ -19,7 +19,7 @@
 
 <br/>
 
-[**Quickstart**](#quickstart) · [**How It Works**](#how-it-works) · [**Demo Video**](https://youtu.be/lZo7aWg6efI) · [**Docs**](docs/index.md) · [**Project Showcase**](https://khanz9664.github.io/portfolio/projects/trustlens.html)
+[**Quickstart**](#quickstart) · [**How It Works**](#how-it-works) · [**Demo Video**](https://youtu.be/lZo7aWg6efI) · [**Docs**](https://khanz9664.github.io/trustlensdocs/) · [**Project Showcase**](https://khanz9664.github.io/portfolio/projects/trustlens.html)
 
 </div>
 
@@ -53,6 +53,18 @@ TrustLens uses a **Prediction Resolver Architecture** to automatically handle di
 - **Planned** — LightGBM, CatBoost, PyTorch, TensorFlow/Keras.
 
 TrustLens **automatically detects** your model's framework. You don't need to change your code when switching from sklearn to XGBoost.
+
+---
+
+## 📚 Documentation
+
+Explore the full TrustLens documentation:
+
+- 🚀 [Getting Started](https://khanz9664.github.io/trustlensdocs/getting_started.html)
+- 🏛️ [Architecture Guide](https://khanz9664.github.io/trustlensdocs/architecture.html)
+- 📖 [API Reference](https://khanz9664.github.io/trustlensdocs/api_reference.html)
+- 🧪 [Real-world Use Cases](https://khanz9664.github.io/trustlensdocs/use_cases.html)
+- ⚖️ [Trust Score Explained](https://khanz9664.github.io/trustlensdocs/trust_score_explained.html)
 
 ---
 
@@ -245,7 +257,7 @@ Generates multi-model comparisons, fairness deep-dives, latent space projections
 
 All contributions welcome — new metrics, diagnostic plugins, and visualizations.
 
-→ [**Contributing Guide**](CONTRIBUTING.md) · [**Open an Issue**](https://github.com/Khanz9664/TrustLens/issues) · [**Docs**](docs/index.md)
+→ [**Contributing Guide**](CONTRIBUTING.md) · [**Open an Issue**](https://github.com/Khanz9664/TrustLens/issues) · [**Docs**](https://khanz9664.github.io/trustlensdocs/)
 
 <br/>
 
