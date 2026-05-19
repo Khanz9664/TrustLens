@@ -3,18 +3,8 @@ name: CI
 on:
   push:
     branches: [main]
-    branches: [main]
   pull_request:
     branches: [main]
-  schedule:
-    - cron: "0 0 * * 0" # Weekly on Sundays
-
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
-
-permissions:
-  contents: read
   schedule:
     - cron: "0 0 * * 0" # Weekly on Sundays
 
@@ -27,7 +17,6 @@ permissions:
 
 env:
   TQDM_DISABLE: "1"
-  FORCE_COLOR: "1"
   FORCE_COLOR: "1"
 
 jobs:
@@ -59,47 +48,7 @@ jobs:
           python-version: "3.11"
           cache: pip
       - name: Install lint dependencies
-        run: |
-          pip install pre-commit ruff
-      - name: Run pre-commit
-        run: pre-commit run --all-files
-      - name: Ruff check
-        run: ruff check .
-      - name: Ruff format
-        run: ruff format --check .
-
-  typecheck:
-    name: Type Checking
-  setup-matrix:
-    name: Setup Test Matrix
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
-    steps:
-      - id: set-matrix
-        run: |
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            echo 'matrix={"os": ["ubuntu-latest"], "python-version": ["3.10", "3.12"]}' >> $GITHUB_OUTPUT
-          elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
-            echo 'matrix={"os": ["ubuntu-latest"], "python-version": ["3.9", "3.10", "3.11", "3.12", "3.13"]}' >> $GITHUB_OUTPUT
-          elif [[ "${{ github.event_name }}" == "schedule" ]]; then
-            echo 'matrix={"os": ["ubuntu-latest", "windows-latest", "macos-latest"], "python-version": ["3.10", "3.12"]}' >> $GITHUB_OUTPUT
-          else
-            echo 'matrix={"os": ["ubuntu-latest"], "python-version": ["3.10", "3.12"]}' >> $GITHUB_OUTPUT
-          fi
-
-  lint:
-    name: Linting
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
-      - name: Install lint dependencies
-        run: |
-          pip install pre-commit ruff
+        run: pip install pre-commit ruff
       - name: Run pre-commit
         run: pre-commit run --all-files
       - name: Ruff check
@@ -117,8 +66,7 @@ jobs:
           python-version: "3.11"
           cache: pip
       - name: Install dependencies
-        run: |
-          pip install -e ".[dev]"
+        run: pip install -e ".[dev]"
       - name: Run mypy
         run: mypy trustlens/ --follow-imports=skip
 
@@ -130,25 +78,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.setup-matrix.outputs.matrix) }}
-      matrix: ${{ fromJson(needs.setup-matrix.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
       - name: Install dependencies
-        run: |
-          pip install -e ".[dev,full]"
+        run: pip install -e ".[dev,full]"
       - name: Run tests with coverage
-        run: |
-          pytest tests/ --cov=trustlens --cov-report=xml --junitxml=junit.xml -v
-          pytest tests/ --cov=trustlens --cov-report=xml --junitxml=junit.xml -v
+        run: pytest tests/ --cov=trustlens --cov-report=xml --junitxml=junit.xml -v
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
-        if: runner.os == 'Linux'
         if: runner.os == 'Linux'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -178,8 +119,7 @@ jobs:
           pip install .
           pip install numpy==1.23 scikit-learn==1.2 matplotlib==3.6 scipy==1.9
       - name: Smoke test
-        run: |
-          python -c "import trustlens; from trustlens import quick_analyze; quick_analyze(dataset='iris')"
+        run: python -c "import trustlens; from trustlens import quick_analyze; quick_analyze(dataset='iris')"
 
   security:
     name: Security Audit
@@ -198,56 +138,7 @@ jobs:
         run: pip install pip-audit
       - name: Run pip-audit
         run: |
-          # Upgrade mistune to fix CVEs
           pip install --upgrade mistune>=3.2.1
-          # Ignore environment-specific pip vulnerabilities (upstream issues)
-          pip-audit --ignore-vuln CVE-2025-8869 --ignore-vuln CVE-2026-1703 --ignore-vuln CVE-2026-3219 --ignore-vuln CVE-2026-6357
-      - name: Upload Test Results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-results-${{ matrix.os }}-${{ matrix.python-version }}
-          path: |
-            coverage.xml
-            junit.xml
-
-  dependency-compat:
-    name: Dependency Compatibility
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.9"
-          cache: pip
-      - name: Install minimum dependencies
-        run: |
-          pip install .
-          pip install numpy==1.23 scikit-learn==1.2 matplotlib==3.6 scipy==1.9
-      - name: Smoke test
-        run: |
-          python -c "import trustlens; from trustlens import quick_analyze; quick_analyze(dataset='iris')"
-
-  security:
-    name: Security Audit
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
-      - name: Upgrade pip
-        run: python -m pip install --upgrade pip
-      - name: Install dependencies
-        run: pip install .[dev,full,docs]
-      - name: Install pip-audit
-        run: pip install pip-audit
-      - name: Run pip-audit
-        run: |
-          # Upgrade mistune to fix CVEs
-          pip install --upgrade mistune>=3.2.1
-          # Ignore environment-specific pip vulnerabilities (upstream issues)
           pip-audit --ignore-vuln CVE-2025-8869 --ignore-vuln CVE-2026-1703 --ignore-vuln CVE-2026-3219 --ignore-vuln CVE-2026-6357
 
   build:
@@ -270,8 +161,7 @@ jobs:
       - name: Install wheel
         run: pip install dist/*.whl
       - name: Smoke test
-        run: |
-          python -c "import trustlens; from trustlens import analyze, quick_analyze; quick_analyze(dataset='iris')"
+        run: python -c "import trustlens; from trustlens import analyze, quick_analyze; quick_analyze(dataset='iris')"
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
