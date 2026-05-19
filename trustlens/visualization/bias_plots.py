@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import matplotlib.pyplot as plt
 
+
 def plot_class_distribution(
     imbalance_data: dict,
     save_path: str | None = None,
