@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 from trustlens.visualization.bias_plots import plot_class_distribution
-from trustlens.metrics.bias import class_imbalance_report, equalized_odds, equalized_odds, subgroup_performance
+from trustlens.metrics.bias import class_imbalance_report, subgroup_performance
 
 
 class TestClassImbalanceReport:
