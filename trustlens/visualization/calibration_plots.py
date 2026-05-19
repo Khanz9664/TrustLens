@@ -137,8 +137,7 @@ def plot_reliability_diagram(
             fig.savefig(save_path, dpi=theme.fig_defaults["savefig_dpi"], bbox_inches="tight")
 
         if show:
-            if "agg" not in plt.get_backend().lower():
-                plt.show()
+            plt.show()
 
         plt.close(fig)
         return fig

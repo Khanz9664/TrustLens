@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Model Zoo Benchmark**: Introduced a comprehensive scientific validation notebook (`examples/trustlens_model_zoo_benchmark.ipynb`) that systematically evaluates TrustLens across 6 model architectures and multiple data corruption scenarios with statistical aggregation.
 
-- **Centralized Visualization Styling**: Introduced an internal `trustlens/visualization/style.py` as the single source of truth for color palettes, semantic colors (severity, deployment verdict, grade, direction), typography, grid, and figure defaults. Added an `apply_style()` context manager that scopes `matplotlib.rcParams` mutations to a `with` block, preventing global state leakage when TrustLens is used inside notebooks or larger ML pipelines. Existing plotting modules are being migrated to the centralized system without changing visual output. (closes #57)
+- **Centralized Visualization Styling**: Introduced an internal `trustlens/visualization/style.py` as the single source of truth for color palettes, semantic colors (severity, deployment verdict, grade, direction), typography, grid, and figure defaults. Added an `apply_style()` context manager that scopes `matplotlib.rcParams` mutations to a `with` block, preventing global state leakage when TrustLens is used inside notebooks or larger ML pipelines. Existing plotting modules are being migrated to the centralized system without changing visual output. (refs #57)
 
 ### Improved
 

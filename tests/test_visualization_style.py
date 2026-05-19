@@ -218,6 +218,11 @@ class TestGetCategoricalColors:
         custom = Theme(palette=["#000000", "#FFFFFF"])
         assert get_categorical_colors(3, theme=custom) == ["#000000", "#FFFFFF", "#000000"]
 
+    def test_empty_palette_raises(self) -> None:
+        custom = Theme(palette=[])
+        with pytest.raises(ValueError, match="non-empty"):
+            get_categorical_colors(3, theme=custom)
+
 
 class TestModuleSurface:
     """Ensure the module exposes its documented internal surface."""

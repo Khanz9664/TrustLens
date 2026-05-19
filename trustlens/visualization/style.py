@@ -337,10 +337,12 @@ def get_categorical_colors(n: int, theme: Theme | None = None) -> list[str]:
     Raises
     ------
     ValueError
-        When ``n < 0``.
+        When ``n < 0`` or when the theme's palette is empty.
     """
     if n < 0:
         raise ValueError(f"n must be non-negative, got {n}")
     active = theme if theme is not None else DEFAULT_THEME
     palette = active.palette
+    if not palette:
+        raise ValueError("theme palette must be non-empty")
     return [palette[i % len(palette)] for i in range(n)]
