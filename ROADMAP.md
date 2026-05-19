@@ -1,7 +1,6 @@
 # TrustLens Roadmap
 
 > Last updated: May 2026
-> Last updated: May 2026
 > This roadmap reflects our current priorities. Community feedback shapes every phase.
 
 ---
@@ -73,9 +72,9 @@ The minimal set of features required to be genuinely useful to practitioners.
 - [x] **Jupyter Rich Display** (`_repr_html_`) (Issue #24)
 - [x] **Progress Bars** via `tqdm` (Issue #28)
 - [x] **Subgroup ECE** (calibration per demographic group)
-- [~] **HTML Report Export** (Issue #19) — [OPEN]
+- [~] **HTML Report Export** — carried over into active development
 - [ ] **Temperature Scaling** (Issue #18)
-- [ ] **Maximum Calibration Error (MCE)** (Issue #1)
+- [ ] **Maximum Calibration Error (MCE)** — carried over into active development
 
 ### Nice to Have
 - [ ] **Multi-class ECE** (label-wise decomposition)
@@ -96,7 +95,6 @@ The minimal set of features required to be genuinely useful to practitioners.
 
 ---
 
-## Phase 3: Comparative & Research — *Frontier Methods*
 ## Phase 3: Comparative & Research — *Frontier Methods*
 
 **Target: v0.5.x**
