@@ -26,6 +26,7 @@ themes. External consumers should not rely on the constants here directly.
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -235,9 +236,11 @@ def apply_style(theme: Theme | None = None) -> Iterator[Theme]:
         try:
             plt.style.use(active.base_style)
         except OSError:
-            # Style sheet missing on this matplotlib install; continue with
-            # rcParams updates only.
-            pass
+            warnings.warn(
+                f"TrustLens base style {active.base_style!r} could not be loaded; "
+                "continuing with rcParams updates only.",
+                stacklevel=2,
+            )
         mpl.rcParams.update(
             {
                 "font.family": active.typography["font_family"],

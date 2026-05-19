@@ -157,6 +157,12 @@ class TestApplyStyle:
             assert mpl.rcParams["font.family"] == mid
         assert mpl.rcParams["font.family"] == original
 
+    def test_apply_style_warns_on_unknown_base_style(self) -> None:
+        custom = Theme(name="bad", base_style="this-style-does-not-exist")
+        with pytest.warns(UserWarning, match="could not be loaded"):
+            with apply_style(custom):
+                pass
+
 
 class TestStyledFigure:
     """Validate the styled_figure helper."""

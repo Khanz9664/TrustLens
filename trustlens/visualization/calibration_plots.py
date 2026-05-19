@@ -56,7 +56,15 @@ def plot_reliability_diagram(
     Returns
     -------
     matplotlib.figure.Figure
+
+    Raises
+    ------
+    ValueError
+        When ``n_bins`` is less than 1.
     """
+    if n_bins < 1:
+        raise ValueError(f"n_bins must be >= 1, got {n_bins}")
+
     with apply_style() as theme:
         blue = theme.brand["blue"]
         orange = theme.brand["orange"]
