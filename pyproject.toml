@@ -47,6 +47,9 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/Khanz9664/TrustLens"
 Source = "https://github.com/Khanz9664/TrustLens"
+Documentation = "https://khanz9664.github.io/trustlensdocs/"
+Repository = "https://github.com/Khanz9664/TrustLens"
+Issues = "https://github.com/Khanz9664/TrustLens/issues"
 Portfolio = "https://khanz9664.github.io/portfolio/"
 LinkedIn = "https://www.linkedin.com/in/shahid-ul-islam-13650998/"
 Instagram = "https://instagram.com/shaddy9664"
