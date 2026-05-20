@@ -72,9 +72,9 @@ The minimal set of features required to be genuinely useful to practitioners.
 - [x] **Jupyter Rich Display** (`_repr_html_`) (Issue #24)
 - [x] **Progress Bars** via `tqdm` (Issue #28)
 - [x] **Subgroup ECE** (calibration per demographic group)
-- [~] **HTML Report Export** — carried over into active development
+- [~] **HTML Report Export** (Issue #19) — [OPEN]
 - [ ] **Temperature Scaling** (Issue #18)
-- [ ] **Maximum Calibration Error (MCE)** — carried over into active development
+- [ ] **Maximum Calibration Error (MCE)** (Issue #1)
 
 ### Nice to Have
 - [ ] **Multi-class ECE** (label-wise decomposition)
