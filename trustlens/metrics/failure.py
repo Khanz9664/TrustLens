@@ -81,7 +81,9 @@ def misclassification_summary(
         # Indices of top-5 most confident mistakes (high-confidence errors)
         if len(miscls_confidences) > 0:
             topk = min(5, len(miscls_confidences))
-            top_mistake_indices = np.argsort(miscls_confidences)[-topk:][::-1].tolist()
+            local_indices = np.argsort(miscls_confidences)[-topk:][::-1]
+            global_indices = np.where(cls_incorrect)[0]
+            top_mistake_indices = global_indices[local_indices].tolist()
         else:
             top_mistake_indices = []
 
