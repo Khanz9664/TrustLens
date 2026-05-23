@@ -77,7 +77,12 @@ def brier_score(
     y_prob = np.asarray(y_prob, dtype=float)
 
     if y_true.shape != y_prob.shape:
-        raise ValueError(f"Shape mismatch: y_true {y_true.shape} vs y_prob {y_prob.shape}.")
+        raise ValueError(
+            "Invalid input shapes for brier_score: "
+            f"y_true has shape {y_true.shape}, but y_prob has shape {y_prob.shape}. "
+            "Both arrays must be 1D and have the same length, for example "
+            "y_true shape (n_samples,) and y_prob shape (n_samples,)."
+        )
 
     unique_labels = np.unique(y_true)
     if not set(unique_labels.tolist()).issubset({0.0, 1.0}):
