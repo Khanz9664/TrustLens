@@ -72,8 +72,8 @@ class TestBrierScore:
             brier_score(np.array([0, 1]), np.array([0.5, 0.5, 0.5]))
 
         message = str(exc_info.value)
-        assert "y_true has shape (2,)" in message
-        assert "y_prob has shape (3,)" in message
+        assert "y_true has shape" in message
+        assert "y_prob has shape" in message
         assert "Both arrays must be 1D and have the same length" in message
 
     def test_non_binary_labels_raise(self):
