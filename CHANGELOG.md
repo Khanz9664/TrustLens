@@ -12,15 +12,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Model Zoo Benchmark**: Introduced a comprehensive scientific validation notebook (`examples/trustlens_model_zoo_benchmark.ipynb`) that systematically evaluates TrustLens across 6 model architectures and multiple data corruption scenarios with statistical aggregation.
 
-
-### Improved
-
-
 ### Fixed
+- Fixed incorrect `top_mistake_indices` in `misclassification_summary()` to return **global dataset indices** instead of local filtered subset positions, improving downstream EDA and debugging workflows for high-confidence model errors. (PR #104) Thanks @dicnunz 🙌
+- Fixed `Security Audit` CI failures caused by newly published upstream dependency vulnerabilities by updating `pip-audit` handling and ignore rules for unresolved ecosystem CVEs/PYSEC advisories. (PR #105)
+- Fixed the visual narrative of the **Accuracy vs Trust (“Decoupling”)** analysis to more clearly communicate the relationship between predictive performance and trustworthiness in the benchmark notebook. (PR #100)
 
+### Documentation
+- Added hosted TrustLens documentation website integration across the repository, including README links, package metadata (`pyproject.toml`), and documentation navigation improvements. (PR #101)
 
-### Compatibility / Migration
+### Improvements
+- Improved validation feedback in `brier_score()` with clearer and more beginner-friendly error messages for invalid input shape mismatches, making debugging easier for users. (PR #106) Thanks @JavadTe 🙌
+- Improved macOS CI reliability by resolving `xgboost.core.XGBoostError` related to missing `libomp.dylib` discovery during GitHub Actions execution. (PR #96)
+- Improved cross-platform CI stability and macOS workflow reliability. (PR #97)
 
+### Maintenance
+- Added a temporary CI trigger workflow to validate and debug macOS GitHub Actions behavior during infrastructure stabilization. (PR #98, later superseded and closed)
 
 ---
 
