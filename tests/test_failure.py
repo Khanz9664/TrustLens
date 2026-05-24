@@ -49,6 +49,25 @@ class TestMisclassificationSummary:
         summary = misclassification_summary(y_true, y_true, np.eye(2)[y_true])
         assert summary["__overall__"]["total_errors"] == 0
 
+    def test_top_mistake_indices_are_global_dataset_indices(self):
+        y_true = np.array([0, 0, 0, 1, 1, 1])
+        y_pred = np.array([0, 1, 0, 1, 0, 1])
+        y_prob = np.array(
+            [
+                [0.9, 0.1],
+                [0.2, 0.8],
+                [0.7, 0.3],
+                [0.1, 0.9],
+                [0.9, 0.1],
+                [0.2, 0.8],
+            ]
+        )
+
+        summary = misclassification_summary(y_true, y_pred, y_prob)
+
+        assert summary[0]["top_mistake_indices"] == [1]
+        assert summary[1]["top_mistake_indices"] == [4]
+
 
 class TestConfidenceGap:
     def test_gap_nonnegative_for_good_model(self, binary_data):

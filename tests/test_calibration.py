@@ -67,9 +67,14 @@ class TestBrierScore:
         bs = brier_score(y_true, y_prob)
         assert 0.15 < bs < 0.40, f"Expected ~0.25, got {bs}"
 
-    def test_shape_mismatch_raises(self):
-        with pytest.raises(ValueError, match="Shape mismatch"):
+    def test_shape_mismatch_raises_clear_error(self):
+        with pytest.raises(ValueError, match="Invalid input shapes for brier_score") as exc_info:
             brier_score(np.array([0, 1]), np.array([0.5, 0.5, 0.5]))
+
+        message = str(exc_info.value)
+        assert "y_true has shape" in message
+        assert "y_prob has shape" in message
+        assert "Both arrays must be 1D and have the same length" in message
 
     def test_non_binary_labels_raise(self):
         with pytest.raises(ValueError, match="binary labels"):
