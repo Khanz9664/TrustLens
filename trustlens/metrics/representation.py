@@ -35,6 +35,7 @@ __all__ = [
     "centered_kernel_alignment",
 ]
 
+
 def embedding_separability(
     embeddings: np.ndarray,
     y_true: np.ndarray,

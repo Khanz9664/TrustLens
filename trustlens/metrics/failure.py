@@ -20,6 +20,7 @@ __all__ = [
     "confidence_gap",
 ]
 
+
 def misclassification_summary(
     y_true: np.ndarray,
     y_pred: np.ndarray,

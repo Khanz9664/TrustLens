@@ -27,6 +27,7 @@ __all__ = [
     "equalized_odds",
 ]
 
+
 def class_imbalance_report(y_true: np.ndarray) -> dict:
     """
     Summarize the class distribution in ``y_true``.
