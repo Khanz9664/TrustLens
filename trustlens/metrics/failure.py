@@ -15,6 +15,10 @@ from __future__ import annotations
 
 import numpy as np
 
+__all__ = [
+    "misclassification_summary",
+    "confidence_gap",
+]
 
 def misclassification_summary(
     y_true: np.ndarray,

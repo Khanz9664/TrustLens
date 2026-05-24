@@ -21,6 +21,11 @@ from typing import Optional
 import numpy as np
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, recall_score
 
+__all__ = [
+    "class_imbalance_report",
+    "subgroup_performance",
+    "equalized_odds",
+]
 
 def class_imbalance_report(y_true: np.ndarray) -> dict:
     """
