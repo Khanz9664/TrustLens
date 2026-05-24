@@ -268,6 +268,8 @@ All contributions welcome — new metrics, diagnostic plugins, and visualization
 <a href="https://github.com/komoike-oss28-ui"><img src="https://github.com/komoike-oss28-ui.png" width="36" style="border-radius:50%" /></a>
 <a href="https://github.com/sidharth-vijayan"><img src="https://github.com/sidharth-vijayan.png" width="36" style="border-radius:50%" /></a>
 <a href="https://github.com/MustansirNisar"><img src="https://github.com/MustansirNisar.png" width="36" style="border-radius:50%" /></a>
+<a href="https://github.com/dicnunz"><img src="https://github.com/dicnunz.png" width="36" style="border-radius:50%" /></a>
+<a href="https://github.com/JavadTe"><img src="https://github.com/JavadTe.png" width="36" style="border-radius:50%" /></a>
 
 ---
 

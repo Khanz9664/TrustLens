@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved macOS CI reliability by resolving `xgboost.core.XGBoostError` related to missing `libomp.dylib` discovery during GitHub Actions execution. (PR #96)
 - Improved cross-platform CI stability and macOS workflow reliability. (PR #97)
 
+### Changed
+- Added explicit `__all__` exports to metrics modules (`calibration`, `failure`, `bias`, `representation`) to improve API clarity and consistency. Thanks @JavadTe 🙌
+
 ### Maintenance
 - Added a temporary CI trigger workflow to validate and debug macOS GitHub Actions behavior during infrastructure stabilization. (PR #98, later superseded and closed)
 
