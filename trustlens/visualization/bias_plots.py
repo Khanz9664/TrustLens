@@ -31,6 +31,51 @@ def plot_class_distribution(
     -------
     matplotlib.figure.Figure
     """
+    if len(imbalance_data["class_counts"]) == 1:
+        plt.style.use("seaborn-v0_8-whitegrid")
+
+        fig, ax = plt.subplots(figsize=(6, 4))
+
+        class_counts = imbalance_data["class_counts"]
+
+        classes = list(class_counts.keys())
+        counts = list(class_counts.values())
+
+        ax.bar(
+            [str(classes[0])],
+            [counts[0]],
+            color="#F5784B",
+            edgecolor="white",
+            linewidth=1.2,
+        )
+
+        ax.set_title(
+            "Class Distribution (Single class detected)",
+            fontsize=13,
+            fontweight="bold",
+        )
+
+        ax.set_xlabel("Class Label")
+        ax.set_ylabel("Sample Count")
+
+        ax.annotate(
+            "Warning: only one class present",
+            xy=(0, counts[0]),
+            xytext=(0, counts[0] * 0.9),
+            ha="center",
+            fontsize=10,
+            color="red",
+        )
+
+        if save_path:
+            fig.savefig(save_path, dpi=150, bbox_inches="tight")
+
+        if show:
+            if "agg" not in plt.get_backend().lower():
+                plt.show()
+
+        plt.close(fig)
+        return fig
     plt.style.use("seaborn-v0_8-whitegrid")
     PALETTE = [
         "#4B8BF5",
