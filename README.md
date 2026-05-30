@@ -56,7 +56,7 @@ TrustLens **automatically detects** your model's framework. You don't need to ch
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 Explore the full TrustLens documentation:
 
@@ -270,6 +270,7 @@ All contributions welcome — new metrics, diagnostic plugins, and visualization
 <a href="https://github.com/MustansirNisar"><img src="https://github.com/MustansirNisar.png" width="36" style="border-radius:50%" /></a>
 <a href="https://github.com/dicnunz"><img src="https://github.com/dicnunz.png" width="36" style="border-radius:50%" /></a>
 <a href="https://github.com/JavadTe"><img src="https://github.com/JavadTe.png" width="36" style="border-radius:50%" /></a>
+<a href="https://github.com/q404365631"><img src="https://github.com/q404365631.png" width="36" style="border-radius:50%" /></a>
 
 ---
 
