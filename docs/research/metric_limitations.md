@@ -24,5 +24,5 @@ The Bias module evaluates disparity across defined subgroups (e.g., via Equalize
 ## 4. Representation Score (Silhouette)
 The Representation module utilizes Silhouette scores to assess the clustering quality of the model's latent embeddings.
 - **Limitation**: The Silhouette score inherently prefers convex, hyper-spherical clusters.
-- **Edge Case**: Complex, non-linear manifold topologies (common in advanced vision models or LLMs) may receive artificially low Silhouette scores despite being highly separable by a downstream non-linear classifier. 
+- **Edge Case**: Complex, non-linear manifold topologies (common in advanced vision models or LLMs) may receive artificially low Silhouette scores despite being highly separable by a downstream non-linear classifier.
 - **Assumption**: The module requires explicit access to internal model representations. For API-based black-box models, this module cannot be executed, and the framework gracefully degrades to omit the penalty.

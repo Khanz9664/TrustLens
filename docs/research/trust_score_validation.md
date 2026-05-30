@@ -7,7 +7,7 @@ This document provides the scientific defense of the TrustLens Trust Score, deta
 
 ## The Insufficiency of Accuracy
 
-In traditional machine learning workflows, Accuracy, F1-Score, or ROC-AUC are used as primary deployment gates. However, the TrustLens benchmark empirically demonstrates that models can maintain high accuracy while silently failing in production-critical dimensions. 
+In traditional machine learning workflows, Accuracy, F1-Score, or ROC-AUC are used as primary deployment gates. However, the TrustLens benchmark empirically demonstrates that models can maintain high accuracy while silently failing in production-critical dimensions.
 
 Specifically, a model might achieve 95% accuracy but suffer from:
 1. **Severe Overconfidence**: Incorrect predictions are made with near 1.0 probability.
@@ -28,9 +28,9 @@ To validate the Trust Score, we mapped the traditional Accuracy metric against t
 
 ## Tradeoffs Between Modules
 
-The Trust Score is not a simple average. It employs a **penalty-based aggregation** strategy. If a model performs exceptionally well on Calibration but fails completely on Fairness, the final Trust Score is aggressively pulled down. 
+The Trust Score is not a simple average. It employs a **penalty-based aggregation** strategy. If a model performs exceptionally well on Calibration but fails completely on Fairness, the final Trust Score is aggressively pulled down.
 
-This design choice reflects a core scientific philosophy: **Trustworthiness is a weakest-link problem.** A model is only as safe as its most severe vulnerability. 
+This design choice reflects a core scientific philosophy: **Trustworthiness is a weakest-link problem.** A model is only as safe as its most severe vulnerability.
 
 ### Sub-score Influences
 - **Calibration (35% weight)**: Penalizes divergence between predicted probabilities and empirical correctness (e.g., ECE).

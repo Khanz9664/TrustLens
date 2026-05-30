@@ -36,10 +36,10 @@ Our fairness and robustness experiments rely heavily on controlled synthetic per
 The current TrustLens metrics, particularly the Calibration and Failure modules, are strictly evaluated under binary classification assumptions in this benchmark. The degradation slopes and metric behaviors may behave unpredictably in multi-class or multi-label environments.
 
 ### 3. Sensitive Attribute Simulation and Fairness Assumptions
-The Bias module assumes that all relevant sensitive attributes are explicitly known, perfectly measured, and provided during evaluation. TrustLens cannot detect bias against unmeasured groups or intersectional identities absent from the configuration. 
+The Bias module assumes that all relevant sensitive attributes are explicitly known, perfectly measured, and provided during evaluation. TrustLens cannot detect bias against unmeasured groups or intersectional identities absent from the configuration.
 
 ### 4. Calibration Dependence on Probability Quality
-The Failure and Calibration metrics inherently assume that the model provides meaningful probability outputs (e.g., via `predict_proba`). If a model outputs hard labels (or broken probabilities like `[1.0, 0.0]`), the framework's confidence gap calculations become invalid. 
+The Failure and Calibration metrics inherently assume that the model provides meaningful probability outputs (e.g., via `predict_proba`). If a model outputs hard labels (or broken probabilities like `[1.0, 0.0]`), the framework's confidence gap calculations become invalid.
 
 ### 5. ECE Binning Instability
 Our calibration penalty relies on Expected Calibration Error (ECE), which is notoriously sensitive to the number of bins and the binning strategy (uniform vs. quantile). Minor changes to binning hyperparameters could artificially inflate or deflate the calibration penalty.

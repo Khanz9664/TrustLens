@@ -8,14 +8,14 @@ A critical aspect of scientific evaluation is understanding when an auditing fra
 ## 1. The "Blind Spot" Failure (Missing Sensitive Attributes)
 **Scenario:** A model exhibits severe bias against a specific demographic, but TrustLens awards it a high Bias Score and a passing Trust Score.
 
-**Why it happens:** TrustLens can only audit what it can measure. If the `sensitive_features` array provided to the auditor does not contain the specific demographic proxy (or if the bias is occurring along an unmeasured intersectional boundary), the Bias module will report no disparity. 
+**Why it happens:** TrustLens can only audit what it can measure. If the `sensitive_features` array provided to the auditor does not contain the specific demographic proxy (or if the bias is occurring along an unmeasured intersectional boundary), the Bias module will report no disparity.
 
 **Guidance:** TrustLens is not a substitute for comprehensive data governance. The Bias Score certifies parity *only* with respect to the explicitly provided sensitive features.
 
 ## 2. The "Artificially Confident" Failure (Broken Probabilities)
 **Scenario:** A model is highly inaccurate and frequently fails silently, yet TrustLens fails to adequately penalize its Failure Score.
 
-**Why it happens:** Some model architectures (or poorly implemented wrappers) output hard labels (e.g., `[1.0, 0.0]`) instead of true continuous probabilities. In these cases, the `max()` confidence of every prediction is exactly `1.0`. While this destroys the Calibration Score (triggering a heavy penalty there), the Failure Score's "Confidence Gap" computation requires a continuous distribution to calculate meaningful density shifts. 
+**Why it happens:** Some model architectures (or poorly implemented wrappers) output hard labels (e.g., `[1.0, 0.0]`) instead of true continuous probabilities. In these cases, the `max()` confidence of every prediction is exactly `1.0`. While this destroys the Calibration Score (triggering a heavy penalty there), the Failure Score's "Confidence Gap" computation requires a continuous distribution to calculate meaningful density shifts.
 
 **Guidance:** Ensure that `y_prob` inputs are genuine softmax/sigmoid probability outputs, not one-hot encoded argmax predictions.
 

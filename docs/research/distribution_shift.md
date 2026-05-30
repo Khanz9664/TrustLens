@@ -27,7 +27,7 @@ To evaluate the framework's sensitivity to fairness degradation, the benchmark i
 
 ## Confidence Gap Behavior Under Imbalance
 
-When a class imbalance shift occurs (where one class overwhelmingly dominates the deployment distribution), models often become highly overconfident in the majority class and confidently wrong on the minority class. 
+When a class imbalance shift occurs (where one class overwhelmingly dominates the deployment distribution), models often become highly overconfident in the majority class and confidently wrong on the minority class.
 
 The TrustLens **Failure Score** isolates this behavior by measuring the gap between confidence on correct vs. incorrect predictions.
 
