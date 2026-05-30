@@ -39,6 +39,16 @@ This documentation is organized around real workflows used by ML engineers, not 
 - [CI and Deployment Gate Workflow](guides/ci_deployment_gate.md)
 - [Fairness Audit Workflow](guides/fairness_audit_workflow.md)
 
+### Research & Validation
+
+- [Why TrustLens?](research/why_trustlens.md)
+- [Benchmark Results](research/benchmark_results.md)
+- [Methodology](research/methodology.md)
+- [Trust Score Validation](research/trust_score_validation.md)
+- [Distribution Shift](research/distribution_shift.md)
+- [Metric Limitations](research/metric_limitations.md)
+- [Failure Modes](research/failure_modes.md)
+
 ### Reference
 
 - [API Reference](api_reference.md)
@@ -71,6 +81,13 @@ known_limitations
 guides/model_comparison_workflow
 guides/ci_deployment_gate
 guides/fairness_audit_workflow
+research/why_trustlens
+research/benchmark_results
+research/methodology
+research/trust_score_validation
+research/distribution_shift
+research/metric_limitations
+research/failure_modes
 api_reference
 architecture
 DESIGN_PRINCIPLES
