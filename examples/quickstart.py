@@ -97,6 +97,12 @@ def main():
     print("\n[4/4] Report Summary:")
     report.show()
 
+    print("\n" + "=" * 40)
+    print("DEPLOYMENT RECOMMENDATION EXPLANATION")
+    print("=" * 40)
+    print(report.deployment_summary)
+    print("=" * 40 + "\n")
+
     # Visualize fairness deep-dive
     print("\n[*] Generating fairness summary plot...")
     report.plot_bias(mode="summary", save_path="examples/output/quickstart_bias.png")
