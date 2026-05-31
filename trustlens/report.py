@@ -128,8 +128,8 @@ class TrustReport:
     @property
     def deployment_explanation(self) -> dict[str, Any]:
         """Provide a structured explanation for the deployment verdict."""
-        ts = self.trust_score
-        verdict = "BLOCK" if ts.is_blocked else ("CAUTION" if ts.grade in ["B", "C"] else "PASS")
+grade_map = {"A": "PASS", "B": "CAUTION", "C": "CAUTION", "D": "BLOCK"}
+        verdict = "BLOCK" if ts.is_blocked else grade_map.get(ts.grade, "PASS")
 
         reasons = []
         recommendations = []
