@@ -128,7 +128,8 @@ class TrustReport:
     @property
     def deployment_explanation(self) -> dict[str, Any]:
         """Provide a structured explanation for the deployment verdict."""
-grade_map = {"A": "PASS", "B": "CAUTION", "C": "CAUTION", "D": "BLOCK"}
+        ts = self.trust_score
+        grade_map = {"A": "PASS", "B": "CAUTION", "C": "CAUTION", "D": "BLOCK"}
         verdict = "BLOCK" if ts.is_blocked else grade_map.get(ts.grade, "PASS")
 
         reasons = []
@@ -1419,8 +1420,12 @@ grade_map = {"A": "PASS", "B": "CAUTION", "C": "CAUTION", "D": "BLOCK"}
         # Flatten deployment explanation for MLflow/W&B tracking
         exp = self.deployment_explanation
         flat["deployment_verdict"] = exp["verdict"]
-flat["deployment_primary_risk_metric"] = exp["primary_risk"].get("metric") if exp["primary_risk"] else None
-        flat["deployment_primary_risk_value"] = exp["primary_risk"].get("value") if exp["primary_risk"] else None
+        flat["deployment_primary_risk_metric"] = (
+            exp["primary_risk"].get("metric") if exp["primary_risk"] else None
+        )
+        flat["deployment_primary_risk_value"] = (
+            exp["primary_risk"].get("value") if exp["primary_risk"] else None
+        )
 
         for dim, score in self.trust_score.sub_scores.items():
             flat[f"trust_{dim}_score"] = score
