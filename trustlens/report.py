@@ -125,6 +125,98 @@ class TrustReport:
                 lines.append(f"  - {label:<16}: {name} (-{val:.1f})")
         return lines
 
+    @property
+    def deployment_explanation(self) -> dict[str, Any]:
+        """Provide a structured explanation for the deployment verdict."""
+        ts = self.trust_score
+        verdict = "BLOCK" if ts.is_blocked else ("CAUTION" if ts.grade in ["B", "C"] else "PASS")
+        
+        reasons = []
+        recommendations = []
+        penalties = getattr(ts, "penalties_applied", {})
+        
+        # Recommendations mapping
+        rec_map = {
+            "calibration": "Consider probability calibration techniques such as temperature scaling or isotonic regression before deployment.",
+            "fairness": "Investigate subgroup performance disparities and consider fairness constraints before deployment.",
+            "failure": "Inspect high-confidence misclassifications and verify confidence-weighted error distributions.",
+            "representation": "Review latent embedding quality; poor representation may indicate failure to capture fundamental class separation."
+        }
+        
+        # Map dimension to standard penalty name logic
+        dim_to_penalty_key = {
+            "calibration": "Calibration",
+            "failure": "Failure",
+            "bias": "Fairness",
+            "representation": "Representation"
+        }
+        
+        # Case-insensitive penalty key matching
+        penalties_lower = {k.lower(): (k, v) for k, v in penalties.items()}
+        
+        for dim in self.trust_score.sub_scores.keys():
+            expected_penalty_key = dim_to_penalty_key.get(dim, dim.title())
+            
+            if expected_penalty_key.lower() in penalties_lower:
+                actual_key, _ = penalties_lower[expected_penalty_key.lower()]
+                reasons.append({"status": "fail", "message": f"{actual_key} penalty applied"})
+                # Map back to our recommendation keys
+                rec_key = "fairness" if dim == "bias" else dim
+                if rec_key in rec_map:
+                    recommendations.append(rec_map[rec_key])
+            else:
+                reasons.append({"status": "pass", "message": f"{expected_penalty_key} assessment completed"})
+
+        if not recommendations:
+            recommendations.append("Model meets all trustworthiness criteria for deployment.")
+
+        # Determine primary risk
+        primary_risk = None
+        if penalties:
+            # Largest penalty
+            matched_key = max(penalties.items(), key=lambda x: x[1])[0]
+            primary_risk = {"metric": matched_key, "value": penalties[matched_key]}
+        elif ts.sub_scores:
+            # Lowest sub-score
+            lowest_dim = min(ts.sub_scores.items(), key=lambda x: x[1])[0]
+            primary_risk = {"metric": dim_to_penalty_key.get(lowest_dim, lowest_dim.title()), "value": ts.sub_scores[lowest_dim]}
+        
+        return {
+            "verdict": verdict,
+            "reasons": reasons,
+            "primary_risk": primary_risk,
+            "recommendations": recommendations
+        }
+
+    @property
+    def deployment_summary(self) -> str:
+        """Format the deployment explanation into a human-readable string."""
+        exp = self.deployment_explanation
+        lines = [
+            f"Deployment Verdict: {exp['verdict']}",
+            "",
+            "Reasons:"
+        ]
+        for reason in exp["reasons"]:
+            icon = "✗" if reason["status"] == "fail" else "✓"
+            lines.append(f"{icon} {reason['message']}")
+            
+        if exp["primary_risk"]:
+            lines.extend([
+                "",
+                "Primary Risk:",
+                str(exp["primary_risk"]["metric"])
+            ])
+            
+        lines.extend([
+            "",
+            "Recommendations:"
+        ])
+        for rec in exp["recommendations"]:
+            lines.append(f"• {rec}")
+            
+        return "\n".join(lines)
+
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
@@ -1242,6 +1334,7 @@ class TrustReport:
                 "trust_score": self.trust_score.score,
                 "grade": self.trust_score.grade,
                 "sub_scores": self.trust_score.sub_scores,
+                "deployment_explanation": self.deployment_explanation,
             }
             p.write_text(json.dumps(data, indent=2), encoding="utf-8")
             logger.info("Unified Report JSON saved to: %s", p)
@@ -1281,6 +1374,7 @@ class TrustReport:
                     "sub_scores": ts.sub_scores,
                     "weights_used": ts.weights_used,
                     "breakdown": ts.breakdown,
+                    "deployment_explanation": self.deployment_explanation,
                 },
                 indent=2,
             ),
@@ -1327,6 +1421,13 @@ class TrustReport:
         flat["trust_grade"] = self.trust_score.grade
         flat["framework"] = self.metadata.get("framework", "unknown")
         flat["trustlens_version"] = self.metadata["trustlens_version"]
+        
+        # Flatten deployment explanation for MLflow/W&B tracking
+        exp = self.deployment_explanation
+        flat["deployment_verdict"] = exp["verdict"]
+        if exp["primary_risk"]:
+            flat["deployment_primary_risk_metric"] = exp["primary_risk"]["metric"]
+            flat["deployment_primary_risk_value"] = exp["primary_risk"]["value"]
 
         for dim, score in self.trust_score.sub_scores.items():
             flat[f"trust_{dim}_score"] = score
