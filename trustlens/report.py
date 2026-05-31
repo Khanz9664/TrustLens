@@ -130,33 +130,33 @@ class TrustReport:
         """Provide a structured explanation for the deployment verdict."""
         ts = self.trust_score
         verdict = "BLOCK" if ts.is_blocked else ("CAUTION" if ts.grade in ["B", "C"] else "PASS")
-        
+
         reasons = []
         recommendations = []
         penalties = getattr(ts, "penalties_applied", {})
-        
+
         # Recommendations mapping
         rec_map = {
             "calibration": "Consider probability calibration techniques such as temperature scaling or isotonic regression before deployment.",
             "fairness": "Investigate subgroup performance disparities and consider fairness constraints before deployment.",
             "failure": "Inspect high-confidence misclassifications and verify confidence-weighted error distributions.",
-            "representation": "Review latent embedding quality; poor representation may indicate failure to capture fundamental class separation."
+            "representation": "Review latent embedding quality; poor representation may indicate failure to capture fundamental class separation.",
         }
-        
+
         # Map dimension to standard penalty name logic
         dim_to_penalty_key = {
             "calibration": "Calibration",
             "failure": "Failure",
             "bias": "Fairness",
-            "representation": "Representation"
+            "representation": "Representation",
         }
-        
+
         # Case-insensitive penalty key matching
         penalties_lower = {k.lower(): (k, v) for k, v in penalties.items()}
-        
+
         for dim in self.trust_score.sub_scores.keys():
             expected_penalty_key = dim_to_penalty_key.get(dim, dim.title())
-            
+
             if expected_penalty_key.lower() in penalties_lower:
                 actual_key, _ = penalties_lower[expected_penalty_key.lower()]
                 reasons.append({"status": "fail", "message": f"{actual_key} penalty applied"})
@@ -165,7 +165,9 @@ class TrustReport:
                 if rec_key in rec_map:
                     recommendations.append(rec_map[rec_key])
             else:
-                reasons.append({"status": "pass", "message": f"{expected_penalty_key} assessment completed"})
+                reasons.append(
+                    {"status": "pass", "message": f"{expected_penalty_key} assessment completed"}
+                )
 
         if not recommendations:
             recommendations.append("Model meets all trustworthiness criteria for deployment.")
@@ -179,42 +181,34 @@ class TrustReport:
         elif ts.sub_scores:
             # Lowest sub-score
             lowest_dim = min(ts.sub_scores.items(), key=lambda x: x[1])[0]
-            primary_risk = {"metric": dim_to_penalty_key.get(lowest_dim, lowest_dim.title()), "value": ts.sub_scores[lowest_dim]}
-        
+            primary_risk = {
+                "metric": dim_to_penalty_key.get(lowest_dim, lowest_dim.title()),
+                "value": ts.sub_scores[lowest_dim],
+            }
+
         return {
             "verdict": verdict,
             "reasons": reasons,
             "primary_risk": primary_risk,
-            "recommendations": recommendations
+            "recommendations": recommendations,
         }
 
     @property
     def deployment_summary(self) -> str:
         """Format the deployment explanation into a human-readable string."""
         exp = self.deployment_explanation
-        lines = [
-            f"Deployment Verdict: {exp['verdict']}",
-            "",
-            "Reasons:"
-        ]
+        lines = [f"Deployment Verdict: {exp['verdict']}", "", "Reasons:"]
         for reason in exp["reasons"]:
             icon = "✗" if reason["status"] == "fail" else "✓"
             lines.append(f"{icon} {reason['message']}")
-            
+
         if exp["primary_risk"]:
-            lines.extend([
-                "",
-                "Primary Risk:",
-                str(exp["primary_risk"]["metric"])
-            ])
-            
-        lines.extend([
-            "",
-            "Recommendations:"
-        ])
+            lines.extend(["", "Primary Risk:", str(exp["primary_risk"]["metric"])])
+
+        lines.extend(["", "Recommendations:"])
         for rec in exp["recommendations"]:
             lines.append(f"• {rec}")
-            
+
         return "\n".join(lines)
 
     # ------------------------------------------------------------------
@@ -1421,7 +1415,7 @@ class TrustReport:
         flat["trust_grade"] = self.trust_score.grade
         flat["framework"] = self.metadata.get("framework", "unknown")
         flat["trustlens_version"] = self.metadata["trustlens_version"]
-        
+
         # Flatten deployment explanation for MLflow/W&B tracking
         exp = self.deployment_explanation
         flat["deployment_verdict"] = exp["verdict"]
