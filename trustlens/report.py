@@ -1419,9 +1419,8 @@ grade_map = {"A": "PASS", "B": "CAUTION", "C": "CAUTION", "D": "BLOCK"}
         # Flatten deployment explanation for MLflow/W&B tracking
         exp = self.deployment_explanation
         flat["deployment_verdict"] = exp["verdict"]
-        if exp["primary_risk"]:
-            flat["deployment_primary_risk_metric"] = exp["primary_risk"]["metric"]
-            flat["deployment_primary_risk_value"] = exp["primary_risk"]["value"]
+flat["deployment_primary_risk_metric"] = exp["primary_risk"].get("metric") if exp["primary_risk"] else None
+        flat["deployment_primary_risk_value"] = exp["primary_risk"].get("value") if exp["primary_risk"] else None
 
         for dim, score in self.trust_score.sub_scores.items():
             flat[f"trust_{dim}_score"] = score
