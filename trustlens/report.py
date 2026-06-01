@@ -1511,12 +1511,21 @@ class TrustReport:
         exp = self.deployment_explanation
         fail_icon = "<span style='color: #d32f2f; font-weight: bold;'>✗</span>"
         pass_icon = "<span style='color: #2e7d32; font-weight: bold;'>✓</span>"
-        
+
         reasons_html = "".join(
-            [f'<li style="margin-bottom: 4px;">{fail_icon if r["status"] == "fail" else pass_icon} {r["message"]}</li>' for r in exp["reasons"]]
+            [
+                f'<li style="margin-bottom: 4px;">{fail_icon if r["status"] == "fail" else pass_icon} {r["message"]}</li>'
+                for r in exp["reasons"]
+            ]
         )
-        pr_html = f'<div style="font-size: 13px; font-weight: 700; color: {_C["gray"]}; margin-top: 15px; margin-bottom: 4px; text-transform: uppercase;">Primary Risk</div><div style="font-size: 14px; color: #d32f2f; font-weight: 600;">{exp["primary_risk"]["metric"]}</div>' if exp["primary_risk"] else ""
-        recs_html = "".join([f'<li style="margin-bottom: 4px;">{r}</li>' for r in exp["recommendations"]])
+        pr_html = (
+            f'<div style="font-size: 13px; font-weight: 700; color: {_C["gray"]}; margin-top: 15px; margin-bottom: 4px; text-transform: uppercase;">Primary Risk</div><div style="font-size: 14px; color: #d32f2f; font-weight: 600;">{exp["primary_risk"]["metric"]}</div>'
+            if exp["primary_risk"]
+            else ""
+        )
+        recs_html = "".join(
+            [f'<li style="margin-bottom: 4px;">{r}</li>' for r in exp["recommendations"]]
+        )
 
         html += f"""
             <div style="background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 15px; margin-bottom: 25px;">

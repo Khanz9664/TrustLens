@@ -140,6 +140,7 @@ def test_serialization_includes_explanation(mock_report):
     assert flat_dict["deployment_verdict"] == "PASS"
     assert "deployment_primary_risk_metric" in flat_dict
 
+
 def test_show_contains_deployment_summary(mock_report, capsys):
     mock_report.trust_score = TrustScoreResult(
         score=75,
@@ -156,6 +157,7 @@ def test_show_contains_deployment_summary(mock_report, capsys):
     assert "Primary Risk:" in captured.out
     assert "Investigate subgroup performance disparities" in captured.out
 
+
 def test_deployment_summary_in_text_report(mock_report):
     mock_report.trust_score = TrustScoreResult(
         score=75,
@@ -171,6 +173,7 @@ def test_deployment_summary_in_text_report(mock_report):
     assert "Primary Risk:" in text
     assert "Investigate subgroup performance disparities" in text
 
+
 def test_deployment_summary_in_html_report(mock_report):
     mock_report.trust_score = TrustScoreResult(
         score=75,
@@ -182,6 +185,7 @@ def test_deployment_summary_in_html_report(mock_report):
     )
 
     import matplotlib.pyplot as plt
+
     fig, ax = plt.subplots()
     mock_report.summary_plot = lambda show=False: fig
 
