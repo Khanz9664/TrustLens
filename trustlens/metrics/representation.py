@@ -30,6 +30,11 @@ from typing import cast
 import numpy as np
 from sklearn.metrics import silhouette_score
 
+__all__ = [
+    "embedding_separability",
+    "centered_kernel_alignment",
+]
+
 
 def embedding_separability(
     embeddings: np.ndarray,

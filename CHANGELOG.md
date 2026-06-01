@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Model Zoo Benchmark**: Introduced a comprehensive scientific validation notebook (`examples/trustlens_model_zoo_benchmark.ipynb`) that systematically evaluates TrustLens across 6 model architectures and multiple data corruption scenarios with statistical aggregation.
 - **Centralized Visualization Styling**: Introduced an internal `trustlens/visualization/style.py` as the single source of truth for color palettes, semantic colors (severity, deployment verdict, grade, direction), typography, grid, and figure defaults. Added an `apply_style()` context manager that scopes `matplotlib.rcParams` mutations to a `with` block, preventing global state leakage when TrustLens is used inside notebooks or larger ML pipelines. Existing plotting modules are being migrated to the centralized system without changing visual output (so far: `calibration_plots.py`, `failure_plots.py`, `bias_plots.py`, `representation_plots.py`). (refs #57)
-
+- **Deployment Recommendation Explanations**: Added `TrustReport.deployment_explanation` and `TrustReport.deployment_summary` to provide structured deployment verdict explanations, identify primary risks, and surface actionable recommendations based on Trust Score penalties and sub-scores.
 
 ### Fixed
 - Fixed incorrect `top_mistake_indices` in `misclassification_summary()` to return **global dataset indices** instead of local filtered subset positions, improving downstream EDA and debugging workflows for high-confidence model errors. (PR #104) Thanks @dicnunz 🙌
@@ -20,12 +20,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed the visual narrative of the **Accuracy vs Trust (“Decoupling”)** analysis to more clearly communicate the relationship between predictive performance and trustworthiness in the benchmark notebook. (PR #100)
 
 ### Documentation
+- **Research & Validation Layer**: Added a comprehensive, research-grade documentation section (`docs/research/`) featuring empirical benchmark results, scientific trust score validation, robustness under distribution shift, metric limitations, and explicitly outlined failure modes.
+- **Methodology & Threats to Validity**: Introduced a brutally honest `methodology.md` page detailing benchmark experimental setup and transparently acknowledging limitations such as reliance on synthetic datasets and binary classification constraints.
+- **Why TrustLens**: Added a `why_trustlens.md` page to directly compare TrustLens against traditional metrics (like Accuracy and ROC-AUC) using tangible failure case studies.
+- Generated publication-quality (300 DPI) visual assets demonstrating TrustLens's behavior under noise, calibration degradation, and severe class imbalance, inheriting the project's centralized visual styling.
+- Added a complete, copy-paste runnable example to the analyze() docstring that demonstrates: Dataset creation using make_classification, Train/test split, Training a RandomForestClassifier, Predicting probabilities, Running analyze(), Displaying results with report.show(). Thanks @q404365631
 - Added hosted TrustLens documentation website integration across the repository, including README links, package metadata (`pyproject.toml`), and documentation navigation improvements. (PR #101)
 
 ### Improvements
 - Improved validation feedback in `brier_score()` with clearer and more beginner-friendly error messages for invalid input shape mismatches, making debugging easier for users. (PR #106) Thanks @JavadTe 🙌
 - Improved macOS CI reliability by resolving `xgboost.core.XGBoostError` related to missing `libomp.dylib` discovery during GitHub Actions execution. (PR #96)
 - Improved cross-platform CI stability and macOS workflow reliability. (PR #97)
+
+### Changed
+- Added explicit `__all__` exports to metrics modules (`calibration`, `failure`, `bias`, `representation`) to improve API clarity and consistency. Thanks @JavadTe 🙌
 
 ### Maintenance
 - Added a temporary CI trigger workflow to validate and debug macOS GitHub Actions behavior during infrastructure stabilization. (PR #98, later superseded and closed)
