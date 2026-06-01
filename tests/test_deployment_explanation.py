@@ -139,3 +139,53 @@ def test_serialization_includes_explanation(mock_report):
     assert "deployment_verdict" in flat_dict
     assert flat_dict["deployment_verdict"] == "PASS"
     assert "deployment_primary_risk_metric" in flat_dict
+
+def test_show_contains_deployment_summary(mock_report, capsys):
+    mock_report.trust_score = TrustScoreResult(
+        score=75,
+        grade="C",
+        verdict="Moderate Trust",
+        sub_scores={"calibration": 90.0, "bias": 60.0},
+        penalties_applied={"Fairness": 15.0},
+        is_blocked=False,
+    )
+
+    mock_report.show()
+    captured = capsys.readouterr()
+    assert "Deployment Verdict: CAUTION" in captured.out
+    assert "Primary Risk:" in captured.out
+    assert "Investigate subgroup performance disparities" in captured.out
+
+def test_deployment_summary_in_text_report(mock_report):
+    mock_report.trust_score = TrustScoreResult(
+        score=75,
+        grade="C",
+        verdict="Moderate Trust",
+        sub_scores={"calibration": 90.0, "bias": 60.0},
+        penalties_applied={"Fairness": 15.0},
+        is_blocked=False,
+    )
+
+    text = mock_report._generate_text_report()
+    assert "Deployment Verdict: CAUTION" in text
+    assert "Primary Risk:" in text
+    assert "Investigate subgroup performance disparities" in text
+
+def test_deployment_summary_in_html_report(mock_report):
+    mock_report.trust_score = TrustScoreResult(
+        score=75,
+        grade="C",
+        verdict="Moderate Trust",
+        sub_scores={"calibration": 90.0, "bias": 60.0},
+        penalties_applied={"Fairness": 15.0},
+        is_blocked=False,
+    )
+
+    import matplotlib.pyplot as plt
+    fig, ax = plt.subplots()
+    mock_report.summary_plot = lambda show=False: fig
+
+    html = mock_report._repr_html_()
+    assert "Deployment Verdict:" in html
+    assert "Fairness" in html
+    assert "Investigate subgroup performance disparities" in html

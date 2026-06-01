@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Model Zoo Benchmark**: Introduced a comprehensive scientific validation notebook (`examples/trustlens_model_zoo_benchmark.ipynb`) that systematically evaluates TrustLens across 6 model architectures and multiple data corruption scenarios with statistical aggregation.
 - **Deployment Recommendation Explanations**: Added `TrustReport.deployment_explanation` and `TrustReport.deployment_summary` to provide structured deployment verdict explanations, identify primary risks, and surface actionable recommendations based on Trust Score penalties and sub-scores.
+- **Deployment Recommendation UX**: Deployment recommendations are now surfaced directly in `TrustReport.show()`, text exports, and HTML report views. Users now receive deployment verdicts, primary risk identification, and actionable recommendations without needing to access `deployment_summary` manually.
 
 ### Fixed
 - Fixed incorrect `top_mistake_indices` in `misclassification_summary()` to return **global dataset indices** instead of local filtered subset positions, improving downstream EDA and debugging workflows for high-confidence model errors. (PR #104) Thanks @dicnunz 🙌

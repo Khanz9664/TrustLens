@@ -297,6 +297,8 @@ class TrustReport:
             for line in explanation:
                 print(line)
 
+        print(f"\n{self.deployment_summary}")
+
         # Print Key Observations/Insights
         print("\nKey Observations:")
         insights = self._generate_insights()
@@ -355,6 +357,9 @@ class TrustReport:
         if explanation:
             lines.append("")
             lines.extend(explanation)
+
+        lines.append("")
+        lines.extend(self.deployment_summary.split("\n"))
 
         lines.append("\nKey Observations:")
         insights = self._generate_insights()
@@ -1500,6 +1505,37 @@ class TrustReport:
             <div style="background-color: #f8f9fa; border-radius: 12px; padding: 15px; margin-bottom: 25px; border-left: 5px solid {gc};">
                 <div style="font-size: 15px; font-weight: 600; color: {_C["dark"]}; margin-bottom: 5px;">Overall Assessment</div>
                 <div style="font-size: 14px; color: #444;">{ts.verdict}</div>
+            </div>
+        """
+
+        exp = self.deployment_explanation
+        fail_icon = "<span style='color: #d32f2f; font-weight: bold;'>✗</span>"
+        pass_icon = "<span style='color: #2e7d32; font-weight: bold;'>✓</span>"
+        
+        reasons_html = "".join(
+            [f'<li style="margin-bottom: 4px;">{fail_icon if r["status"] == "fail" else pass_icon} {r["message"]}</li>' for r in exp["reasons"]]
+        )
+        pr_html = f'<div style="font-size: 13px; font-weight: 700; color: {_C["gray"]}; margin-top: 15px; margin-bottom: 4px; text-transform: uppercase;">Primary Risk</div><div style="font-size: 14px; color: #d32f2f; font-weight: 600;">{exp["primary_risk"]["metric"]}</div>' if exp["primary_risk"] else ""
+        recs_html = "".join([f'<li style="margin-bottom: 4px;">{r}</li>' for r in exp["recommendations"]])
+
+        html += f"""
+            <div style="background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 15px; margin-bottom: 25px;">
+                <div style="font-size: 15px; font-weight: 600; color: {_C["dark"]}; margin-bottom: 8px;">Deployment Verdict: <span style="font-weight: 700;">{exp["verdict"]}</span></div>
+                {pr_html}
+                <div style="display: flex; gap: 30px; margin-top: 15px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <div style="font-size: 13px; font-weight: 700; color: {_C["gray"]}; margin-bottom: 8px; text-transform: uppercase;">Reasons</div>
+                        <ul style="margin: 0; padding-left: 0; list-style-type: none; font-size: 13.5px; color: #333; line-height: 1.5;">
+                            {reasons_html}
+                        </ul>
+                    </div>
+                    <div style="flex: 1; min-width: 250px;">
+                        <div style="font-size: 13px; font-weight: 700; color: {_C["gray"]}; margin-bottom: 8px; text-transform: uppercase;">Recommendations</div>
+                        <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: #333; line-height: 1.5;">
+                            {recs_html}
+                        </ul>
+                    </div>
+                </div>
             </div>
 
             <div style="margin-bottom: 20px;">
