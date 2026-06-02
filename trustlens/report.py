@@ -1521,7 +1521,7 @@ class TrustReport:
             ]
         )
         pr_html = (
-            f'<div style="font-size: 13px; font-weight: 700; color: {_C["gray"]}; margin-top: 15px; margin-bottom: 4px; text-transform: uppercase;">Primary Risk</div><div style="font-size: 14px; color: #d32f2f; font-weight: 600;">{exp["primary_risk"]["metric"]}</div>'
+            f'<div style="font-size: 13px; font-weight: 700; color: {BRAND_COLORS["gray"]}; margin-top: 15px; margin-bottom: 4px; text-transform: uppercase;">Primary Risk</div><div style="font-size: 14px; color: #d32f2f; font-weight: 600;">{exp["primary_risk"]["metric"]}</div>'
             if exp["primary_risk"]
             else ""
         )
@@ -1531,17 +1531,17 @@ class TrustReport:
 
         html += f"""
             <div style="background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 15px; margin-bottom: 25px;">
-                <div style="font-size: 15px; font-weight: 600; color: {_C["dark"]}; margin-bottom: 8px;">Deployment Verdict: <span style="font-weight: 700;">{exp["verdict"]}</span></div>
+                <div style="font-size: 15px; font-weight: 600; color: {BRAND_COLORS["dark"]}; margin-bottom: 8px;">Deployment Verdict: <span style="font-weight: 700;">{exp["verdict"]}</span></div>
                 {pr_html}
                 <div style="display: flex; gap: 30px; margin-top: 15px; flex-wrap: wrap;">
                     <div style="flex: 1; min-width: 200px;">
-                        <div style="font-size: 13px; font-weight: 700; color: {_C["gray"]}; margin-bottom: 8px; text-transform: uppercase;">Reasons</div>
+                        <div style="font-size: 13px; font-weight: 700; color: {BRAND_COLORS["gray"]}; margin-bottom: 8px; text-transform: uppercase;">Reasons</div>
                         <ul style="margin: 0; padding-left: 0; list-style-type: none; font-size: 13.5px; color: #333; line-height: 1.5;">
                             {reasons_html}
                         </ul>
                     </div>
                     <div style="flex: 1; min-width: 250px;">
-                        <div style="font-size: 13px; font-weight: 700; color: {_C["gray"]}; margin-bottom: 8px; text-transform: uppercase;">Recommendations</div>
+                        <div style="font-size: 13px; font-weight: 700; color: {BRAND_COLORS["gray"]}; margin-bottom: 8px; text-transform: uppercase;">Recommendations</div>
                         <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: #333; line-height: 1.5;">
                             {recs_html}
                         </ul>
