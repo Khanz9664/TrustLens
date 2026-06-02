@@ -69,6 +69,8 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from trustlens.visualization.style import BRAND_COLORS
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
@@ -224,7 +226,7 @@ class TrustScoreResult:
 
     def _repr_html_(self) -> str:
         """Rich HTML representation for Jupyter notebooks."""
-        from trustlens.visualization.summary_plot import _C, _color_for_grade, _color_for_score
+        from trustlens.visualization.summary_plot import _color_for_grade, _color_for_score
 
         gc = _color_for_grade(self.grade)
 
@@ -234,7 +236,7 @@ class TrustScoreResult:
                     border: 1px solid {gc}40; background-color: #ffffff;
                     box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin: 10px 0;">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
-                <div style="font-size: 14px; font-weight: 600; color: {_C["gray"]}; text-transform: uppercase; letter-spacing: 0.5px;">
+                <div style="font-size: 14px; font-weight: 600; color: {BRAND_COLORS["gray"]}; text-transform: uppercase; letter-spacing: 0.5px;">
                     Trust Analysis Result
                 </div>
                 <div style="padding: 4px 12px; border-radius: 20px; background-color: {gc}; color: white;
@@ -245,15 +247,15 @@ class TrustScoreResult:
 
             <div style="display: flex; align-items: baseline; margin-bottom: 8px;">
                 <span style="font-size: 48px; font-weight: 800; color: {gc}; line-height: 1;">{self.score}</span>
-                <span style="font-size: 20px; font-weight: 600; color: {_C["gray"]}; margin-left: 4px;">/100</span>
+                <span style="font-size: 20px; font-weight: 600; color: {BRAND_COLORS["gray"]}; margin-left: 4px;">/100</span>
             </div>
 
-            <div style="font-size: 16px; font-weight: 600; color: {_C["dark"]}; margin-bottom: 20px;">
+            <div style="font-size: 16px; font-weight: 600; color: {BRAND_COLORS["dark"]}; margin-bottom: 20px;">
                 {self.verdict}
             </div>
 
             <div style="border-top: 1px solid #f0f0f0; pt: 15px;">
-                <div style="font-size: 12px; font-weight: 700; color: {_C["gray"]}; margin: 12px 0 8px 0; text-transform: uppercase;">
+                <div style="font-size: 12px; font-weight: 700; color: {BRAND_COLORS["gray"]}; margin: 12px 0 8px 0; text-transform: uppercase;">
                     Dimension Breakdown
                 </div>
         """
@@ -263,7 +265,7 @@ class TrustScoreResult:
             html += f"""
                 <div style="margin-bottom: 10px;">
                     <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px;">
-                        <span style="color: {_C["dark"]}; font-weight: 500;">{dim.capitalize()}</span>
+                        <span style="color: {BRAND_COLORS["dark"]}; font-weight: 500;">{dim.capitalize()}</span>
                         <span style="color: {sc}; font-weight: 700;">{score:.1f}</span>
                     </div>
                     <div style="width: 100%; height: 6px; background-color: #f0f0f0; border-radius: 3px; overflow: hidden;">

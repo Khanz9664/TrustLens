@@ -25,6 +25,8 @@ from typing import Any, Optional, cast
 
 import numpy as np
 
+from trustlens.visualization.style import BRAND_COLORS
+
 from ._version import __version__
 
 logger = logging.getLogger(__name__)
@@ -1465,7 +1467,7 @@ class TrustReport:
 
         import matplotlib.pyplot as plt
 
-        from trustlens.visualization.summary_plot import _C, _color_for_grade
+        from trustlens.visualization.summary_plot import _color_for_grade
 
         # 1. Generate the summary plot into a buffer
         fig = self.summary_plot(show=False)
@@ -1486,19 +1488,19 @@ class TrustReport:
 
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px;">
                 <div>
-                    <h2 style="margin: 0; color: {_C["dark"]}; font-size: 24px; font-weight: 800;">TrustLens Analysis Report</h2>
-                    <div style="font-size: 14px; color: {_C["gray"]}; margin-top: 4px;">
+                    <h2 style="margin: 0; color: {BRAND_COLORS["dark"]}; font-size: 24px; font-weight: 800;">TrustLens Analysis Report</h2>
+                    <div style="font-size: 14px; color: {BRAND_COLORS["gray"]}; margin-top: 4px;">
                         {self.metadata["model_class"]} &bull; {self.metadata["n_samples"]:,} samples &bull; {self.metadata["timestamp"][:19].replace("T", " ")}
                     </div>
                 </div>
                 <div style="text-align: right;">
-                    <div style="font-size: 42px; font-weight: 800; color: {gc}; line-height: 1;">{ts.score}<span style="font-size: 18px; color: {_C["gray"]}; font-weight: 600;">/100</span></div>
+                    <div style="font-size: 42px; font-weight: 800; color: {gc}; line-height: 1;">{ts.score}<span style="font-size: 18px; color: {BRAND_COLORS["gray"]}; font-weight: 600;">/100</span></div>
                     <div style="font-size: 14px; font-weight: 700; color: {gc}; text-transform: uppercase;">Grade {ts.grade}</div>
                 </div>
             </div>
 
             <div style="background-color: #f8f9fa; border-radius: 12px; padding: 15px; margin-bottom: 25px; border-left: 5px solid {gc};">
-                <div style="font-size: 15px; font-weight: 600; color: {_C["dark"]}; margin-bottom: 5px;">Overall Assessment</div>
+                <div style="font-size: 15px; font-weight: 600; color: {BRAND_COLORS["dark"]}; margin-bottom: 5px;">Overall Assessment</div>
                 <div style="font-size: 14px; color: #444;">{ts.verdict}</div>
             </div>
 
@@ -1508,7 +1510,7 @@ class TrustReport:
 
             <div style="display: flex; gap: 20px; flex-wrap: wrap;">
                 <div style="flex: 1; min-width: 250px;">
-                    <div style="font-size: 13px; font-weight: 700; color: {_C["gray"]}; margin-bottom: 12px; text-transform: uppercase;">Key Observations</div>
+                    <div style="font-size: 13px; font-weight: 700; color: {BRAND_COLORS["gray"]}; margin-bottom: 12px; text-transform: uppercase;">Key Observations</div>
                     <ul style="margin: 0; padding-left: 20px; font-size: 13.5px; color: #333; line-height: 1.6;">
         """
 
