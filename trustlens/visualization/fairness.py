@@ -14,16 +14,7 @@ import re
 
 import matplotlib.pyplot as plt
 
-PALETTE = [
-    "#4B8BF5",
-    "#F5784B",
-    "#34C759",
-    "#AF52DE",
-    "#FF9F0A",
-    "#FF2D55",
-    "#5AC8FA",
-    "#FF6B35",
-]
+from trustlens.visualization.style import apply_style, get_categorical_colors
 
 
 def _safe_name(s: str) -> str:
@@ -111,70 +102,72 @@ def plot_subgroup_performance(
     >>> results = subgroup_performance(y_true, y_pred, {"gender": gender})
     >>> fig = plot_subgroup_performance(results["gender"], "gender")
     """
-    plt.style.use("seaborn-v0_8-whitegrid")
+    with apply_style() as theme:
+        groups = [g for g in subgroup_data if g != "__summary__"]
+        values = [subgroup_data[g].get(metric, 0.0) for g in groups]
+        colors = get_categorical_colors(len(groups))
 
-    groups = [g for g in subgroup_data if g != "__summary__"]
-    values = [subgroup_data[g].get(metric, 0.0) for g in groups]
-    colors = [PALETTE[i % len(PALETTE)] for i in range(len(groups))]
+        fig, ax = plt.subplots(figsize=(7, 5), constrained_layout=True)
 
-    fig, ax = plt.subplots(figsize=(7, 5), constrained_layout=True)
-
-    bars = ax.bar(
-        groups,
-        values,
-        color=colors,
-        edgecolor="white",
-        linewidth=1.2,
-        alpha=0.85,
-    )
-
-    # Annotate bars with values
-    for bar, val in zip(bars, values):
-        ax.text(
-            bar.get_x() + bar.get_width() / 2,
-            bar.get_height() + 0.01,
-            f"{val:.3f}",
-            ha="center",
-            va="bottom",
-            fontsize=11,
-            fontweight="bold",
+        bars = ax.bar(
+            groups,
+            values,
+            color=colors,
+            edgecolor=theme.semantic["neutral"]["edge"],
+            linewidth=1.2,
+            alpha=0.85,
         )
 
-    # Performance gap annotation
-    if "__summary__" in subgroup_data:
-        gap = subgroup_data["__summary__"].get("performance_gap", None)
-        if gap is not None:
+        # Annotate bars with values
+        for bar, val in zip(bars, values):
             ax.text(
-                0.97,
-                0.97,
-                f"Performance gap = {gap:.3f}",
-                transform=ax.transAxes,
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height() + 0.01,
+                f"{val:.3f}",
+                ha="center",
+                va="bottom",
                 fontsize=11,
-                ha="right",
-                va="top",
-                bbox=dict(
-                    boxstyle="round,pad=0.4", facecolor="white", edgecolor="#CCCCCC", alpha=0.9
-                ),
-                fontfamily="monospace",
+                fontweight="bold",
             )
 
-    ax.set_ylim(0, 1.1)
-    ax.set_xlabel(feature_name.capitalize(), fontsize=12)
-    ax.set_ylabel(metric.capitalize(), fontsize=12)
-    ax.set_title(
-        f"Subgroup {metric.capitalize()} by {feature_name.capitalize()}",
-        fontsize=13,
-        fontweight="bold",
-    )
-    ax.grid(axis="y", alpha=0.35)
+        # Performance gap annotation
+        if "__summary__" in subgroup_data:
+            gap = subgroup_data["__summary__"].get("performance_gap", None)
+            if gap is not None:
+                ax.text(
+                    0.97,
+                    0.97,
+                    f"Performance gap = {gap:.3f}",
+                    transform=ax.transAxes,
+                    fontsize=11,
+                    ha="right",
+                    va="top",
+                    bbox=dict(
+                        boxstyle="round,pad=0.4",
+                        facecolor=theme.semantic["neutral"]["annotation_face"],
+                        edgecolor=theme.semantic["neutral"]["annotation_edge"],
+                        alpha=0.9,
+                    ),
+                    fontfamily="monospace",
+                )
 
-    if save_path:
-        fig.savefig(save_path, dpi=150, bbox_inches="tight")
-    if show:
-        if "agg" not in plt.get_backend().lower():
-            plt.show()
-    plt.close(fig)
-    return fig
+        ax.set_ylim(0, 1.1)
+        ax.set_xlabel(feature_name.capitalize(), fontsize=12)
+        ax.set_ylabel(metric.capitalize(), fontsize=12)
+        ax.set_title(
+            f"Subgroup {metric.capitalize()} by {feature_name.capitalize()}",
+            fontsize=13,
+            fontweight="bold",
+        )
+        ax.grid(axis="y", alpha=0.35)
+
+        if save_path:
+            fig.savefig(save_path, dpi=theme.fig_defaults["savefig_dpi"], bbox_inches="tight")
+        if show:
+            if "agg" not in plt.get_backend().lower():
+                plt.show()
+        plt.close(fig)
+        return fig
 
 
 def plot_equalized_odds(
@@ -216,95 +209,101 @@ def plot_equalized_odds(
     >>> results = equalized_odds(y_true, y_pred, {"gender": gender})
     >>> fig = plot_equalized_odds(results["gender"], "gender")
     """
-    plt.style.use("seaborn-v0_8-whitegrid")
+    with apply_style() as theme:
+        import numpy as np
 
-    import numpy as np
+        groups = [g for g in equalized_odds_data if g != "__summary__"]
+        tpr_values = [equalized_odds_data[g]["tpr"] for g in groups]
+        fpr_values = [equalized_odds_data[g]["fpr"] for g in groups]
 
-    groups = [g for g in equalized_odds_data if g != "__summary__"]
-    tpr_values = [equalized_odds_data[g]["tpr"] for g in groups]
-    fpr_values = [equalized_odds_data[g]["fpr"] for g in groups]
+        x = np.arange(len(groups))
+        width = 0.35
 
-    x = np.arange(len(groups))
-    width = 0.35
+        fig, ax = plt.subplots(figsize=(8, 5), constrained_layout=True)
 
-    fig, ax = plt.subplots(figsize=(8, 5), constrained_layout=True)
-
-    bars_tpr = ax.bar(
-        x - width / 2,
-        tpr_values,
-        width,
-        label="TPR",
-        color="#4B8BF5",
-        edgecolor="white",
-        linewidth=1.2,
-        alpha=0.85,
-    )
-    bars_fpr = ax.bar(
-        x + width / 2,
-        fpr_values,
-        width,
-        label="FPR",
-        color="#F5784B",
-        edgecolor="white",
-        linewidth=1.2,
-        alpha=0.85,
-    )
-
-    # Annotate bars
-    for bar, val in zip(bars_tpr, tpr_values):
-        ax.text(
-            bar.get_x() + bar.get_width() / 2,
-            bar.get_height() + 0.01,
-            f"{val:.3f}",
-            ha="center",
-            va="bottom",
-            fontsize=10,
-            fontweight="bold",
+        bars_tpr = ax.bar(
+            x - width / 2,
+            tpr_values,
+            width,
+            label="TPR",
+            color=theme.brand["blue"],
+            edgecolor=theme.semantic["neutral"]["edge"],
+            linewidth=1.2,
+            alpha=0.85,
         )
-    for bar, val in zip(bars_fpr, fpr_values):
-        ax.text(
-            bar.get_x() + bar.get_width() / 2,
-            bar.get_height() + 0.01,
-            f"{val:.3f}",
-            ha="center",
-            va="bottom",
-            fontsize=10,
-            fontweight="bold",
+        bars_fpr = ax.bar(
+            x + width / 2,
+            fpr_values,
+            width,
+            label="FPR",
+            color=theme.brand["orange"],
+            edgecolor=theme.semantic["neutral"]["edge"],
+            linewidth=1.2,
+            alpha=0.85,
         )
 
-    # Summary annotation
-    if "__summary__" in equalized_odds_data:
-        summary = equalized_odds_data["__summary__"]
-        tpr_gap = summary.get("tpr_gap", 0.0)
-        fpr_gap = summary.get("fpr_gap", 0.0)
-        ax.text(
-            0.97,
-            0.97,
-            f"TPR gap = {tpr_gap:.3f}  |  FPR gap = {fpr_gap:.3f}",
-            transform=ax.transAxes,
-            fontsize=10,
-            ha="right",
-            va="top",
-            bbox=dict(boxstyle="round,pad=0.4", facecolor="white", edgecolor="#CCCCCC", alpha=0.9),
-            fontfamily="monospace",
+        # Annotate bars
+        for bar, val in zip(bars_tpr, tpr_values):
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height() + 0.01,
+                f"{val:.3f}",
+                ha="center",
+                va="bottom",
+                fontsize=10,
+                fontweight="bold",
+            )
+        for bar, val in zip(bars_fpr, fpr_values):
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height() + 0.01,
+                f"{val:.3f}",
+                ha="center",
+                va="bottom",
+                fontsize=10,
+                fontweight="bold",
+            )
+
+        # Summary annotation
+        if "__summary__" in equalized_odds_data:
+            summary = equalized_odds_data["__summary__"]
+            tpr_gap = summary.get("tpr_gap", 0.0)
+            fpr_gap = summary.get("fpr_gap", 0.0)
+            ax.text(
+                0.97,
+                0.97,
+                f"TPR gap = {tpr_gap:.3f}  |  FPR gap = {fpr_gap:.3f}",
+                transform=ax.transAxes,
+                fontsize=10,
+                ha="right",
+                va="top",
+                bbox=dict(
+                    boxstyle="round,pad=0.4",
+                    facecolor=theme.semantic["neutral"]["annotation_face"],
+                    edgecolor=theme.semantic["neutral"]["annotation_edge"],
+                    alpha=0.9,
+                ),
+                fontfamily="monospace",
+            )
+
+        ax.set_ylim(0, 1.15)
+        ax.set_xticks(x)
+        ax.set_xticklabels(groups)
+        ax.set_xlabel(feature_name.capitalize(), fontsize=12)
+        ax.set_ylabel("Rate", fontsize=12)
+        ax.set_title(
+            f"Equalized Odds by {feature_name.capitalize()}", fontsize=13, fontweight="bold"
         )
+        ax.legend(fontsize=11)
+        ax.grid(axis="y", alpha=0.35)
 
-    ax.set_ylim(0, 1.15)
-    ax.set_xticks(x)
-    ax.set_xticklabels(groups)
-    ax.set_xlabel(feature_name.capitalize(), fontsize=12)
-    ax.set_ylabel("Rate", fontsize=12)
-    ax.set_title(f"Equalized Odds by {feature_name.capitalize()}", fontsize=13, fontweight="bold")
-    ax.legend(fontsize=11)
-    ax.grid(axis="y", alpha=0.35)
-
-    if save_path:
-        fig.savefig(save_path, dpi=150, bbox_inches="tight")
-    if show:
-        if "agg" not in plt.get_backend().lower():
-            plt.show()
-    plt.close(fig)
-    return fig
+        if save_path:
+            fig.savefig(save_path, dpi=theme.fig_defaults["savefig_dpi"], bbox_inches="tight")
+        if show:
+            if "agg" not in plt.get_backend().lower():
+                plt.show()
+        plt.close(fig)
+        return fig
 
 
 def plot_fairness_gap(
@@ -343,62 +342,68 @@ def plot_fairness_gap(
     >>> results = equalized_odds(y_true, y_pred, {"gender": gender})
     >>> fig = plot_fairness_gap(results["gender"], "gender")
     """
-    plt.style.use("seaborn-v0_8-whitegrid")
+    with apply_style() as theme:
+        summary = equalized_odds_data.get("__summary__", {})
+        tpr_gap = summary.get("tpr_gap", 0.0)
+        fpr_gap = summary.get("fpr_gap", 0.0)
 
-    summary = equalized_odds_data.get("__summary__", {})
-    tpr_gap = summary.get("tpr_gap", 0.0)
-    fpr_gap = summary.get("fpr_gap", 0.0)
+        labels = ["TPR Gap", "FPR Gap"]
+        values = [tpr_gap, fpr_gap]
+        colors = [theme.brand["blue"], theme.brand["orange"]]
 
-    labels = ["TPR Gap", "FPR Gap"]
-    values = [tpr_gap, fpr_gap]
-    colors = ["#4B8BF5", "#F5784B"]
+        fig, ax = plt.subplots(figsize=(6, 5), constrained_layout=True)
 
-    fig, ax = plt.subplots(figsize=(6, 5), constrained_layout=True)
-
-    bars = ax.bar(labels, values, color=colors, edgecolor="white", linewidth=1.2, alpha=0.85)
-
-    for bar, val in zip(bars, values):
-        ax.text(
-            bar.get_x() + bar.get_width() / 2,
-            bar.get_height() + 0.005,
-            f"{val:.3f}",
-            ha="center",
-            va="bottom",
-            fontsize=12,
-            fontweight="bold",
+        bars = ax.bar(
+            labels,
+            values,
+            color=colors,
+            edgecolor=theme.semantic["neutral"]["edge"],
+            linewidth=1.2,
+            alpha=0.85,
         )
 
-    # Violation level annotations
-    tpr_violation = summary.get("tpr_violation", "")
-    fpr_violation = summary.get("fpr_violation", "")
-    violation_colors = {"severe": "#FF2D55", "moderate": "#FF9F0A", "acceptable": "#34C759"}
+        for bar, val in zip(bars, values):
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height() + 0.005,
+                f"{val:.3f}",
+                ha="center",
+                va="bottom",
+                fontsize=12,
+                fontweight="bold",
+            )
 
-    for i, (violation, _label) in enumerate(zip([tpr_violation, fpr_violation], labels)):
-        color = violation_colors.get(violation, "#CCCCCC")
-        ax.text(
-            i,
-            -0.06,
-            violation,
-            ha="center",
-            va="top",
-            fontsize=10,
-            fontweight="bold",
-            color=color,
-            transform=ax.get_xaxis_transform(),
-        )
+        # Violation level annotations
+        tpr_violation = summary.get("tpr_violation", "")
+        fpr_violation = summary.get("fpr_violation", "")
+        violation_colors = theme.semantic["severity"]
 
-    ax.set_ylim(0, 1.1)
-    ax.set_ylabel("Gap", fontsize=12)
-    ax.set_title(f"Fairness Gap — {feature_name.capitalize()}", fontsize=13, fontweight="bold")
-    ax.grid(axis="y", alpha=0.35)
+        for i, (violation, _label) in enumerate(zip([tpr_violation, fpr_violation], labels)):
+            color = violation_colors.get(violation, violation_colors["unknown"])
+            ax.text(
+                i,
+                -0.06,
+                violation,
+                ha="center",
+                va="top",
+                fontsize=10,
+                fontweight="bold",
+                color=color,
+                transform=ax.get_xaxis_transform(),
+            )
 
-    if save_path:
-        fig.savefig(save_path, dpi=150, bbox_inches="tight")
-    if show:
-        if "agg" not in plt.get_backend().lower():
-            plt.show()
-    plt.close(fig)
-    return fig
+        ax.set_ylim(0, 1.1)
+        ax.set_ylabel("Gap", fontsize=12)
+        ax.set_title(f"Fairness Gap — {feature_name.capitalize()}", fontsize=13, fontweight="bold")
+        ax.grid(axis="y", alpha=0.35)
+
+        if save_path:
+            fig.savefig(save_path, dpi=theme.fig_defaults["savefig_dpi"], bbox_inches="tight")
+        if show:
+            if "agg" not in plt.get_backend().lower():
+                plt.show()
+        plt.close(fig)
+        return fig
 
 
 # ---------------------------------------------------------------------------
