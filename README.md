@@ -271,6 +271,7 @@ All contributions welcome — new metrics, diagnostic plugins, and visualization
 <a href="https://github.com/dicnunz"><img src="https://github.com/dicnunz.png" width="36" style="border-radius:50%" /></a>
 <a href="https://github.com/JavadTe"><img src="https://github.com/JavadTe.png" width="36" style="border-radius:50%" /></a>
 <a href="https://github.com/q404365631"><img src="https://github.com/q404365631.png" width="36" style="border-radius:50%" /></a>
+<a href="https://github.com/nanookclaw"><img src="https://github.com/nanookclaw.png" width="36" style="border-radius:50%" /></a>
 
 ---
 
