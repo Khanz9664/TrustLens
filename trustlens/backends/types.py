@@ -42,7 +42,7 @@ class PredictionBundle:
                 "Consult docs/internal/prediction_contract.md for details."
             )
 
-        if np.any(~np.isfinite(self.y_pred)):
+        if np.issubdtype(self.y_pred.dtype, np.number) and np.any(~np.isfinite(self.y_pred)):
             raise ValueError("y_pred contains non-finite values (NaN or Inf).")
 
         if self.y_prob is not None:

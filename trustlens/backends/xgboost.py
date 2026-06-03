@@ -15,6 +15,7 @@ def resolve(
     X: np.ndarray,
     y_pred: Optional[np.ndarray] = None,
     y_prob: Optional[np.ndarray] = None,
+    class_labels: Optional[np.ndarray] = None,
 ) -> PredictionBundle:
     """
     Prediction resolver for XGBoost models.
@@ -85,6 +86,14 @@ def resolve(
         y_prob_flat = y_prob.flatten()
         y_prob = np.column_stack([1 - y_prob_flat, y_prob_flat])
 
+    model_class_labels = getattr(model, "classes_", None)
+    if model_class_labels is not None:
+        resolved_class_labels = np.asarray(model_class_labels)
+    elif class_labels is not None:
+        resolved_class_labels = np.asarray(class_labels)
+    else:
+        resolved_class_labels = None
+
     # 4. Resolve Class Predictions
     if y_pred is None:
         if hasattr(model, "predict") and not isinstance(model, xgb.Booster):
@@ -93,10 +102,9 @@ def resolve(
         else:
             # Fallback to argmax from probabilities
             y_pred_indices = np.argmax(y_prob, axis=1)
-            if hasattr(model, "classes_"):
-                classes = np.asarray(model.classes_)
-                if len(classes) == y_prob.shape[1]:
-                    y_pred = classes[y_pred_indices]
+            if resolved_class_labels is not None:
+                if len(resolved_class_labels) == y_prob.shape[1]:
+                    y_pred = resolved_class_labels[y_pred_indices]
                 else:
                     y_pred = y_pred_indices
             else:
@@ -114,5 +122,6 @@ def resolve(
         y_pred=np.asarray(y_pred),
         y_prob=y_prob,
         framework="xgboost",
+        class_labels=resolved_class_labels,
         metadata=metadata,
     )

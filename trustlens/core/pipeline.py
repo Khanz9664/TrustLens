@@ -35,6 +35,34 @@ from trustlens.report import TrustReport
 logger = logging.getLogger(__name__)
 
 
+def _as_python_label(label: Any) -> Any:
+    """Return a hashable Python scalar for NumPy scalar labels."""
+    return label.item() if hasattr(label, "item") else label
+
+
+def _encode_labels_for_probability_columns(
+    y_true: np.ndarray,
+    n_classes: int,
+    class_labels: Optional[np.ndarray],
+) -> np.ndarray:
+    """Encode semantic labels into the class-index order used by y_prob columns."""
+    if class_labels is not None and len(class_labels) == n_classes:
+        label_to_index = {
+            _as_python_label(label): idx for idx, label in enumerate(np.asarray(class_labels))
+        }
+        try:
+            return np.asarray(
+                [_as_python_label(label_to_index[_as_python_label(label)]) for label in y_true],
+                dtype=int,
+            )
+        except KeyError as exc:
+            raise ValueError(
+                "y_true contains labels that are missing from class_labels."
+            ) from exc
+
+    return y_true.astype(int)
+
+
 def _run_analysis_pipeline(
     model: Any,
     X: np.ndarray,
@@ -47,6 +75,7 @@ def _run_analysis_pipeline(
     plugins: Optional[list[str]] = None,
     framework: Optional[str] = None,
     backend_metadata: Optional[dict[str, Any]] = None,
+    class_labels: Optional[np.ndarray] = None,
     verbose: bool = True,
 ) -> TrustReport:
     """
@@ -98,7 +127,10 @@ def _run_analysis_pipeline(
 
                 # Multiclass Brier Score: 1/N * sum(sum((p_ic - o_ic)^2))
                 # We can compute this efficiently
-                y_true_one_hot = np.eye(n_classes)[y_true.astype(int)]
+                y_true_indices = _encode_labels_for_probability_columns(
+                    y_true, n_classes, class_labels
+                )
+                y_true_one_hot = np.eye(n_classes)[y_true_indices]
                 mbrier = np.mean(np.sum((y_prob - y_true_one_hot) ** 2, axis=1))
 
                 results["calibration"] = {

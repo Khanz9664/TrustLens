@@ -40,6 +40,7 @@ def manual_resolve(
     X: np.ndarray,
     y_pred: Optional[np.ndarray] = None,
     y_prob: Optional[np.ndarray] = None,
+    class_labels: Optional[np.ndarray] = None,
 ) -> PredictionBundle:
     """
     Passthrough resolver for manual overrides.
@@ -47,7 +48,12 @@ def manual_resolve(
     if y_pred is None:
         if y_prob is not None:
             # Derive y_pred from y_prob if missing
-            y_pred = np.argmax(np.asarray(y_prob), axis=1)
+            y_prob_arr = np.asarray(y_prob)
+            y_pred_indices = np.argmax(y_prob_arr, axis=1)
+            if class_labels is not None and y_prob_arr.ndim == 2 and len(class_labels) == y_prob_arr.shape[1]:
+                y_pred = np.asarray(class_labels)[y_pred_indices]
+            else:
+                y_pred = y_pred_indices
         else:
             raise ValueError("Manual override requires either y_pred or y_prob.")
 
@@ -61,6 +67,7 @@ def manual_resolve(
         y_pred=np.asarray(y_pred),
         y_prob=np.asarray(y_prob) if y_prob is not None else None,
         framework="manual",
+        class_labels=np.asarray(class_labels) if class_labels is not None else None,
         metadata=metadata,
     )
 

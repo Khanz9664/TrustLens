@@ -28,6 +28,10 @@ __all__ = [
 ]
 
 
+def _as_python_label(label):
+    return label.item() if hasattr(label, "item") else label
+
+
 def class_imbalance_report(y_true: np.ndarray) -> dict:
     """
     Summarize the class distribution in ``y_true``.
@@ -58,13 +62,15 @@ def class_imbalance_report(y_true: np.ndarray) -> dict:
     classes, counts = np.unique(y_true, return_counts=True)
     n = len(y_true)
 
-    class_counts = {int(cls): int(cnt) for cls, cnt in zip(classes, counts)}
-    class_frequencies = {int(cls): round(float(cnt / n), 4) for cls, cnt in zip(classes, counts)}
+    class_counts = {_as_python_label(cls): int(cnt) for cls, cnt in zip(classes, counts)}
+    class_frequencies = {
+        _as_python_label(cls): round(float(cnt / n), 4) for cls, cnt in zip(classes, counts)
+    }
 
     min_count = int(counts.min())
     max_count = int(counts.max())
-    minority_class = int(classes[counts.argmin()])
-    majority_class = int(classes[counts.argmax()])
+    minority_class = _as_python_label(classes[counts.argmin()])
+    majority_class = _as_python_label(classes[counts.argmax()])
     imbalance_ratio = round(max_count / min_count, 4) if min_count > 0 else float("inf")
 
     return {

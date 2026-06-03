@@ -51,6 +51,43 @@ def test_xgboost_integration_analyze():
     assert "xgboost" in report.metadata["backend"]["resolver"]
 
 
+def test_raw_xgboost_booster_maps_ordinal_predictions_to_string_labels():
+    rng = np.random.default_rng(42)
+    class_labels = np.array(["mouse", "cat", "dog"])
+    y_ordinal = np.repeat(np.arange(3), 30)
+    X = np.column_stack(
+        [
+            y_ordinal,
+            y_ordinal == 1,
+            y_ordinal == 2,
+            rng.normal(scale=0.01, size=len(y_ordinal)),
+        ]
+    ).astype(float)
+    y_true = class_labels[y_ordinal]
+
+    dtrain = xgboost.DMatrix(X, label=y_ordinal)
+    model = xgboost.train(
+        {
+            "objective": "multi:softprob",
+            "num_class": 3,
+            "max_depth": 2,
+            "eta": 0.5,
+            "verbosity": 0,
+        },
+        dtrain,
+        num_boost_round=10,
+    )
+
+    report = analyze(model, X, y_true, class_labels=class_labels, verbose=False)
+
+    assert report.metadata["framework"] == "xgboost"
+    assert report.y_prob.shape == (90, 3)
+    assert set(np.unique(report.y_pred)).issubset(set(class_labels))
+    assert report.results["failure"]["misclassification_summary"]["__overall__"][
+        "total_errors"
+    ] == int(np.sum(y_true != report.y_pred))
+
+
 def test_xgboost_manual_override():
     from sklearn.datasets import make_classification
     from xgboost import XGBClassifier

@@ -82,6 +82,7 @@ def analyze(
     sensitive_features: Optional[dict[str, np.ndarray]] = None,
     modules: Optional[list[str]] = None,
     plugins: Optional[list[str]] = None,
+    class_labels: Optional[np.ndarray] = None,
     verbose: bool = True,
 ) -> TrustReport:
     """
@@ -113,6 +114,10 @@ def analyze(
       Subset of analysis modules to run.
     plugins : list[str], optional
       Names of registered plugins to activate.
+    class_labels : np.ndarray, optional
+      Semantic class labels in the order corresponding to probability columns.
+      Useful for raw backends such as ``xgboost.Booster`` that return ordinal
+      probability columns without a ``classes_`` attribute.
     verbose : bool
       Print progress updates. Default True.
 
@@ -163,7 +168,14 @@ def analyze(
         framework = "manual"
 
     resolver = get_resolver(model, framework=framework)
-    bundle = resolver(model, X, y_pred=y_pred, y_prob=y_prob)
+    resolved_class_labels = np.asarray(class_labels) if class_labels is not None else None
+    bundle = resolver(
+        model,
+        X,
+        y_pred=y_pred,
+        y_prob=y_prob,
+        class_labels=resolved_class_labels,
+    )
 
     # ------------------------------------------------------------------
     # 2. Delegate to Core Pipeline
@@ -176,6 +188,7 @@ def analyze(
         y_prob=bundle.y_prob,
         framework=bundle.framework,
         backend_metadata=bundle.metadata,
+        class_labels=bundle.class_labels,
         embeddings=embeddings,
         sensitive_features=sensitive_features,
         modules=modules,

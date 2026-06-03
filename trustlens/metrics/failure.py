@@ -21,6 +21,10 @@ __all__ = [
 ]
 
 
+def _as_python_label(label):
+    return label.item() if hasattr(label, "item") else label
+
+
 def misclassification_summary(
     y_true: np.ndarray,
     y_pred: np.ndarray,
@@ -71,7 +75,7 @@ def misclassification_summary(
 
     summary: dict = {}
     for cls in classes:
-        cls_mask = y_true == int(cls)
+        cls_mask = y_true == cls
         cls_incorrect = cls_mask & incorrect_mask
 
         n_support = int(cls_mask.sum())
@@ -92,7 +96,7 @@ def misclassification_summary(
         else:
             top_mistake_indices = []
 
-        summary[int(cls)] = {
+        summary[_as_python_label(cls)] = {
             "support": n_support,
             "n_misclassified": n_misclassified,
             "error_rate": round(error_rate, 4),
