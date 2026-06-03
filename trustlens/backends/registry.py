@@ -50,7 +50,11 @@ def manual_resolve(
             # Derive y_pred from y_prob if missing
             y_prob_arr = np.asarray(y_prob)
             y_pred_indices = np.argmax(y_prob_arr, axis=1)
-            if class_labels is not None and y_prob_arr.ndim == 2 and len(class_labels) == y_prob_arr.shape[1]:
+            if (
+                class_labels is not None
+                and y_prob_arr.ndim == 2
+                and len(class_labels) == y_prob_arr.shape[1]
+            ):
                 y_pred = np.asarray(class_labels)[y_pred_indices]
             else:
                 y_pred = y_pred_indices

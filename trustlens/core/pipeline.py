@@ -46,19 +46,26 @@ def _encode_labels_for_probability_columns(
     class_labels: Optional[np.ndarray],
 ) -> np.ndarray:
     """Encode semantic labels into the class-index order used by y_prob columns."""
-    if class_labels is not None and len(class_labels) == n_classes:
+    if class_labels is not None:
+        class_labels_array = np.asarray(class_labels)
+        if len(class_labels_array) != n_classes:
+            raise ValueError(
+                "class_labels length "
+                f"({len(class_labels_array)}) does not match probability column shape "
+                f"({n_classes} columns)."
+            )
+
         label_to_index = {
-            _as_python_label(label): idx for idx, label in enumerate(np.asarray(class_labels))
+            _as_python_label(label): idx for idx, label in enumerate(class_labels_array)
         }
         try:
-            return np.asarray(
+            encoded_labels: np.ndarray = np.asarray(
                 [_as_python_label(label_to_index[_as_python_label(label)]) for label in y_true],
                 dtype=int,
             )
+            return encoded_labels
         except KeyError as exc:
-            raise ValueError(
-                "y_true contains labels that are missing from class_labels."
-            ) from exc
+            raise ValueError("y_true contains labels that are missing from class_labels.") from exc
 
     return y_true.astype(int)
 
