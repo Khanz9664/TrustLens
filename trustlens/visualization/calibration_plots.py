@@ -12,6 +12,8 @@ from __future__ import annotations
 import matplotlib.pyplot as plt
 import numpy as np
 
+from trustlens.visualization.style import apply_style
+
 
 def plot_reliability_diagram(
     fraction_of_positives: np.ndarray,
@@ -48,88 +50,102 @@ def plot_reliability_diagram(
       Plot title.
     save_path : str, optional
       If provided, saves the figure to this path.
+    show : bool
+      If True, calls ``plt.show()`` on interactive backends.
 
     Returns
     -------
     matplotlib.figure.Figure
+
+    Raises
+    ------
+    ValueError
+        When ``n_bins`` is less than 1.
     """
-    # Style
-    plt.style.use("seaborn-v0_8-whitegrid")
-    BLUE = "#4B8BF5"
-    ORANGE = "#F5784B"
-    GRAY = "#AAAAAA"
+    if n_bins < 1:
+        raise ValueError(f"n_bins must be >= 1, got {n_bins}")
 
-    fig, (ax1, ax2) = plt.subplots(
-        2,
-        1,
-        figsize=(7, 8),
-        gridspec_kw={"height_ratios": [3, 1]},
-        constrained_layout=True,
-    )
+    with apply_style() as theme:
+        blue = theme.brand["blue"]
+        orange = theme.brand["orange"]
+        gray = theme.brand["muted_gray"]
+        neutral = theme.semantic["neutral"]
 
-    # Calibration Curve
-    # Perfect calibration reference
-    ax1.plot([0, 1], [0, 1], linestyle="--", color=GRAY, lw=1.5, label="Perfect calibration")
-
-    # Gap fill (over/under-confident regions)
-    fop = np.asarray(fraction_of_positives)
-    mpv = np.asarray(mean_predicted_value)
-    ax1.fill_between(mpv, fop, mpv, alpha=0.15, color=ORANGE, label="Calibration gap")
-
-    # Model calibration curve
-    ax1.plot(mpv, fop, marker="o", color=BLUE, lw=2.5, markersize=8, label="Model")
-
-    # Metric annotations
-    annotation_lines = []
-    if ece is not None:
-        annotation_lines.append(f"ECE = {ece:.4f}")
-    if brier_score is not None:
-        annotation_lines.append(f"BS  = {brier_score:.4f}")
-
-    if annotation_lines:
-        annotation_text = "\n".join(annotation_lines)
-        ax1.text(
-            0.04,
-            0.95,
-            annotation_text,
-            transform=ax1.transAxes,
-            fontsize=11,
-            verticalalignment="top",
-            bbox=dict(boxstyle="round,pad=0.4", facecolor="white", edgecolor="#CCCCCC", alpha=0.9),
-            fontfamily="monospace",
+        fig, (ax1, ax2) = plt.subplots(
+            2,
+            1,
+            figsize=(7, 8),
+            gridspec_kw={"height_ratios": [3, 1]},
+            constrained_layout=True,
         )
 
-    ax1.set_xlim(0, 1)
-    ax1.set_ylim(0, 1)
-    ax1.set_xlabel("Mean Predicted Probability", fontsize=12)
-    ax1.set_ylabel("Fraction of Positives", fontsize=12)
-    ax1.set_title(title, fontsize=14, fontweight="bold", pad=10)
-    ax1.legend(loc="lower right", fontsize=10)
-    ax1.grid(True, alpha=0.4)
+        # Calibration Curve
+        # Perfect calibration reference
+        ax1.plot([0, 1], [0, 1], linestyle="--", color=gray, lw=1.5, label="Perfect calibration")
 
-    # Confidence Histogram (lower panel)
-    ax2.bar(
-        mpv,
-        mpv - fop,
-        width=1.0 / (n_bins * 1.5),
-        color=[BLUE if v >= 0 else ORANGE for v in (mpv - fop)],
-        alpha=0.75,
-        edgecolor="white",
-        linewidth=0.5,
-    )
-    ax2.axhline(0, color=GRAY, lw=1)
-    ax2.set_xlim(0, 1)
-    ax2.set_xlabel("Mean Predicted Probability", fontsize=11)
-    ax2.set_ylabel("Avg. Confidence Gap\n(Pred − True)", fontsize=10)
-    ax2.set_title("Confidence Gap per Bin", fontsize=11)
-    ax2.grid(True, alpha=0.3)
+        # Gap fill (over/under-confident regions)
+        fop = np.asarray(fraction_of_positives)
+        mpv = np.asarray(mean_predicted_value)
+        ax1.fill_between(mpv, fop, mpv, alpha=0.15, color=orange, label="Calibration gap")
 
-    if save_path:
-        fig.savefig(save_path, dpi=150, bbox_inches="tight")
+        # Model calibration curve
+        ax1.plot(mpv, fop, marker="o", color=blue, lw=2.5, markersize=8, label="Model")
 
-    if show:
-        if "agg" not in plt.get_backend().lower():
+        # Metric annotations
+        annotation_lines = []
+        if ece is not None:
+            annotation_lines.append(f"ECE = {ece:.4f}")
+        if brier_score is not None:
+            annotation_lines.append(f"BS  = {brier_score:.4f}")
+
+        if annotation_lines:
+            annotation_text = "\n".join(annotation_lines)
+            ax1.text(
+                0.04,
+                0.95,
+                annotation_text,
+                transform=ax1.transAxes,
+                fontsize=11,
+                verticalalignment="top",
+                bbox=dict(
+                    boxstyle="round,pad=0.4",
+                    facecolor=neutral["annotation_face"],
+                    edgecolor=neutral["annotation_edge"],
+                    alpha=0.9,
+                ),
+                fontfamily="monospace",
+            )
+
+        ax1.set_xlim(0, 1)
+        ax1.set_ylim(0, 1)
+        ax1.set_xlabel("Mean Predicted Probability", fontsize=12)
+        ax1.set_ylabel("Fraction of Positives", fontsize=12)
+        ax1.set_title(title, fontsize=14, fontweight="bold", pad=10)
+        ax1.legend(loc="lower right", fontsize=10)
+        ax1.grid(True, alpha=theme.grid["alpha"])
+
+        # Confidence Histogram (lower panel)
+        ax2.bar(
+            mpv,
+            mpv - fop,
+            width=1.0 / (n_bins * 1.5),
+            color=[blue if v >= 0 else orange for v in (mpv - fop)],
+            alpha=0.75,
+            edgecolor=neutral["edge"],
+            linewidth=0.5,
+        )
+        ax2.axhline(0, color=gray, lw=1)
+        ax2.set_xlim(0, 1)
+        ax2.set_xlabel("Mean Predicted Probability", fontsize=11)
+        ax2.set_ylabel("Avg. Confidence Gap\n(Pred − True)", fontsize=10)
+        ax2.set_title("Confidence Gap per Bin", fontsize=11)
+        ax2.grid(True, alpha=theme.grid["alpha_minor"])
+
+        if save_path:
+            fig.savefig(save_path, dpi=theme.fig_defaults["savefig_dpi"], bbox_inches="tight")
+
+        if show:
             plt.show()
 
-    plt.close(fig)
-    return fig
+        plt.close(fig)
+        return fig

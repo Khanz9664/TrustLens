@@ -29,29 +29,12 @@ import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 
-# ---------------------------------------------------------------------------
-# Brand colors
-# ---------------------------------------------------------------------------
-_C = {
-    "blue": "#4B8BF5",
-    "orange": "#F5784B",
-    "green": "#34C759",
-    "red": "#FF3B30",
-    "amber": "#FF9F0A",
-    "purple": "#AF52DE",
-    "gray": "#8E8E93",
-    "light": "#F2F2F7",
-    "white": "#FFFFFF",
-    "dark": "#1C1C1E",
-}
-
-_GRADE_COLORS = {
-    "A": _C["green"],
-    "B": _C["blue"],
-    "C": _C["amber"],
-    "D": _C["red"],
-}
-
+from trustlens.visualization.style import (
+    BRAND_COLORS,
+    FIG_DEFAULTS,
+    SEMANTIC_COLORS,
+    apply_style,
+)
 
 # ---------------------------------------------------------------------------
 # Main entry point
@@ -87,89 +70,90 @@ def plot_summary_dashboard(
     -------
     matplotlib.figure.Figure
     """
-    plt.rcParams.update(
-        {
-            "font.family": "DejaVu Sans",
-            "axes.spines.top": False,
-            "axes.spines.right": False,
-            "axes.grid": False,
-            "figure.facecolor": _C["white"],
-            "axes.facecolor": _C["white"],
-        }
-    )
+    with apply_style():
+        # apply_style() already sets font, spines (top/right off), and white
+        # figure/axes facecolors via the base theme. Only the grid needs to be
+        # turned off here, since the base style (seaborn-v0_8-whitegrid) enables
+        # it; the dashboard draws its own per-panel grids instead.
+        plt.rcParams.update({"axes.grid": False})
 
-    fig = plt.figure(figsize=(18, 10), facecolor=_C["white"])
+        fig = plt.figure(figsize=(18, 10), facecolor=BRAND_COLORS["white"])
 
-    # Layout Grid: 2 rows x 3 cols
-    gs = gridspec.GridSpec(
-        2,
-        3,
-        figure=fig,
-        hspace=0.45,
-        wspace=0.38,
-        left=0.06,
-        right=0.97,
-        top=0.88,
-        bottom=0.08,
-    )
+        # Layout Grid: 2 rows x 3 cols
+        gs = gridspec.GridSpec(
+            2,
+            3,
+            figure=fig,
+            hspace=0.45,
+            wspace=0.38,
+            left=0.06,
+            right=0.97,
+            top=0.88,
+            bottom=0.08,
+        )
 
-    ax_trust = fig.add_subplot(gs[0, 0])
-    ax_calib = fig.add_subplot(gs[0, 1])
-    ax_gap = fig.add_subplot(gs[0, 2])
-    ax_err = fig.add_subplot(gs[1, 0])
-    ax_bias = fig.add_subplot(gs[1, 1])
-    ax_subs = fig.add_subplot(gs[1, 2])
+        ax_trust = fig.add_subplot(gs[0, 0])
+        ax_calib = fig.add_subplot(gs[0, 1])
+        ax_gap = fig.add_subplot(gs[0, 2])
+        ax_err = fig.add_subplot(gs[1, 0])
+        ax_bias = fig.add_subplot(gs[1, 1])
+        ax_subs = fig.add_subplot(gs[1, 2])
 
-    # Header Section
-    fig.text(
-        0.5,
-        0.95,
-        f"TrustLens Report - {model_name}",
-        ha="center",
-        va="top",
-        fontsize=18,
-        fontweight="bold",
-        color=_C["dark"],
-    )
-    fig.text(
-        0.5,
-        0.915,
-        f"Trust Score {trust_score.score}/100 | Grade {trust_score.grade} | {trust_score.verdict}",
-        ha="center",
-        va="top",
-        fontsize=12,
-        color=_color_for_grade(trust_score.grade),
-        fontweight="semibold",
-    )
+        # Header Section
+        fig.text(
+            0.5,
+            0.95,
+            f"TrustLens Report - {model_name}",
+            ha="center",
+            va="top",
+            fontsize=18,
+            fontweight="bold",
+            color=BRAND_COLORS["dark"],
+        )
+        fig.text(
+            0.5,
+            0.915,
+            f"Trust Score {trust_score.score}/100 | Grade {trust_score.grade} | {trust_score.verdict}",
+            ha="center",
+            va="top",
+            fontsize=12,
+            color=_color_for_grade(trust_score.grade),
+            fontweight="semibold",
+        )
 
-    # Panel 1: Trust Score Gauge
+        # Panel 1: Trust Score Gauge
 
-    _draw_trust_gauge(ax_trust, trust_score)
+        _draw_trust_gauge(ax_trust, trust_score)
 
-    # Panel 2: Reliability Diagram
+        # Panel 2: Reliability Diagram
 
-    _draw_reliability(ax_calib, results)
+        _draw_reliability(ax_calib, results)
 
-    # Panel 3: Confidence Gap
+        # Panel 3: Confidence Gap
 
-    _draw_confidence_gap(ax_gap, results, y_true, y_pred, y_prob)
+        _draw_confidence_gap(ax_gap, results, y_true, y_pred, y_prob)
 
-    # Panel 4: Error Distribution
+        # Panel 4: Error Distribution
 
-    _draw_error_distribution(ax_err, y_true, y_pred, y_prob)
+        _draw_error_distribution(ax_err, y_true, y_pred, y_prob)
 
-    # Panel 5: Class Distribution
+        # Panel 5: Class Distribution
 
-    _draw_class_distribution(ax_bias, results)
+        _draw_class_distribution(ax_bias, results)
 
-    # Panel 6: Sub-score bars
+        # Panel 6: Sub-score bars
 
-    _draw_subscores(ax_subs, trust_score)
+        _draw_subscores(ax_subs, trust_score)
 
-    if save_path:
-        fig.savefig(save_path, dpi=150, bbox_inches="tight", facecolor=_C["white"])
+        if save_path:
+            fig.savefig(
+                save_path,
+                dpi=FIG_DEFAULTS["savefig_dpi"],
+                bbox_inches="tight",
+                facecolor=BRAND_COLORS["white"],
+            )
 
-    return fig
+        return fig
 
 
 # ---------------------------------------------------------------------------
@@ -183,7 +167,7 @@ def _draw_trust_gauge(ax: plt.Axes, ts) -> None:
     ax.set_ylim(-0.5, 1.3)
     ax.set_aspect("equal")
     ax.axis("off")
-    ax.set_title("Trust Score", fontsize=11, fontweight="bold", color=_C["dark"], pad=6)
+    ax.set_title("Trust Score", fontsize=11, fontweight="bold", color=BRAND_COLORS["dark"], pad=6)
 
     score = ts.score
     grade_color = _color_for_grade(ts.grade)
@@ -193,7 +177,7 @@ def _draw_trust_gauge(ax: plt.Axes, ts) -> None:
     ax.plot(
         np.cos(theta),
         np.sin(theta),
-        color=_C["light"],
+        color=BRAND_COLORS["light"],
         linewidth=18,
         solid_capstyle="round",
         zorder=1,
@@ -223,7 +207,16 @@ def _draw_trust_gauge(ax: plt.Axes, ts) -> None:
         color=grade_color,
         zorder=3,
     )
-    ax.text(0, -0.08, "/100", ha="center", va="center", fontsize=13, color=_C["gray"], zorder=3)
+    ax.text(
+        0,
+        -0.08,
+        "/100",
+        ha="center",
+        va="center",
+        fontsize=13,
+        color=BRAND_COLORS["gray"],
+        zorder=3,
+    )
 
     # Grade badge
     bbox_props = dict(boxstyle="round,pad=0.4", facecolor=grade_color, edgecolor="none", alpha=0.15)
@@ -246,7 +239,7 @@ def _draw_trust_gauge(ax: plt.Axes, ts) -> None:
         ax.plot(
             [0.88 * np.cos(a), 1.0 * np.cos(a)],
             [0.88 * np.sin(a), 1.0 * np.sin(a)],
-            color=_C["gray"],
+            color=BRAND_COLORS["gray"],
             lw=1.5,
             zorder=4,
         )
@@ -257,13 +250,13 @@ def _draw_trust_gauge(ax: plt.Axes, ts) -> None:
             ha="center",
             va="center",
             fontsize=7.5,
-            color=_C["gray"],
+            color=BRAND_COLORS["gray"],
         )
 
 
 def _draw_reliability(ax: plt.Axes, results: dict) -> None:
     """Reliability (calibration) curve panel."""
-    ax.set_title("Calibration", fontsize=11, fontweight="bold", color=_C["dark"], pad=6)
+    ax.set_title("Calibration", fontsize=11, fontweight="bold", color=BRAND_COLORS["dark"], pad=6)
 
     if "calibration" not in results or "reliability_curve" not in results["calibration"]:
         ax.text(
@@ -273,7 +266,7 @@ def _draw_reliability(ax: plt.Axes, results: dict) -> None:
             ha="center",
             va="center",
             transform=ax.transAxes,
-            color=_C["gray"],
+            color=BRAND_COLORS["gray"],
             fontsize=10,
         )
         return
@@ -286,14 +279,23 @@ def _draw_reliability(ax: plt.Axes, results: dict) -> None:
     mean_pred = np.asarray(mean_pred)
 
     # Perfect calibration reference
-    ax.plot([0, 1], [0, 1], "--", color=_C["gray"], lw=1.3, label="Perfect", zorder=1)
+    ax.plot([0, 1], [0, 1], "--", color=BRAND_COLORS["gray"], lw=1.3, label="Perfect", zorder=1)
 
     # Gap shading
-    ax.fill_between(mean_pred, frac_pos, mean_pred, alpha=0.12, color=_C["orange"], zorder=2)
+    ax.fill_between(
+        mean_pred, frac_pos, mean_pred, alpha=0.12, color=BRAND_COLORS["orange"], zorder=2
+    )
 
     # Calibration curve
     ax.plot(
-        mean_pred, frac_pos, "o-", color=_C["blue"], lw=2.2, markersize=6, label="Model", zorder=3
+        mean_pred,
+        frac_pos,
+        "o-",
+        color=BRAND_COLORS["blue"],
+        lw=2.2,
+        markersize=6,
+        label="Model",
+        zorder=3,
     )
 
     # Annotations
@@ -316,8 +318,8 @@ def _draw_reliability(ax: plt.Axes, results: dict) -> None:
 
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
-    ax.set_xlabel("Mean Predicted Prob.", fontsize=9, color=_C["gray"])
-    ax.set_ylabel("Fraction of Positives", fontsize=9, color=_C["gray"])
+    ax.set_xlabel("Mean Predicted Prob.", fontsize=9, color=BRAND_COLORS["gray"])
+    ax.set_ylabel("Fraction of Positives", fontsize=9, color=BRAND_COLORS["gray"])
     ax.tick_params(labelsize=8)
     ax.legend(fontsize=8, framealpha=0.6)
     ax.grid(True, alpha=0.25, linestyle="--")
@@ -331,7 +333,9 @@ def _draw_confidence_gap(
     y_prob: np.ndarray | None,
 ) -> None:
     """Confidence distribution: correct vs. incorrect."""
-    ax.set_title("Confidence Gap", fontsize=11, fontweight="bold", color=_C["dark"], pad=6)
+    ax.set_title(
+        "Confidence Gap", fontsize=11, fontweight="bold", color=BRAND_COLORS["dark"], pad=6
+    )
 
     if y_prob is None:
         ax.text(
@@ -341,7 +345,7 @@ def _draw_confidence_gap(
             ha="center",
             va="center",
             transform=ax.transAxes,
-            color=_C["gray"],
+            color=BRAND_COLORS["gray"],
         )
         return
 
@@ -358,7 +362,7 @@ def _draw_confidence_gap(
         ax.hist(
             correct_conf,
             bins=bins.tolist(),
-            color=_C["green"],
+            color=BRAND_COLORS["green"],
             alpha=0.65,
             label=f"Correct (n={len(correct_conf):,})",
             edgecolor="white",
@@ -367,7 +371,7 @@ def _draw_confidence_gap(
         ax.hist(
             incorrect_conf,
             bins=bins.tolist(),
-            color=_C["red"],
+            color=BRAND_COLORS["red"],
             alpha=0.55,
             label=f"Incorrect (n={len(incorrect_conf):,})",
             edgecolor="white",
@@ -387,12 +391,12 @@ def _draw_confidence_gap(
                 ha="right",
                 va="top",
                 fontweight="bold",
-                color=_C["blue"],
+                color=BRAND_COLORS["blue"],
                 bbox=dict(boxstyle="round,pad=0.3", facecolor="white", edgecolor="#DDD"),
             )
 
-    ax.set_xlabel("Predicted Confidence", fontsize=9, color=_C["gray"])
-    ax.set_ylabel("Density", fontsize=9, color=_C["gray"])
+    ax.set_xlabel("Predicted Confidence", fontsize=9, color=BRAND_COLORS["gray"])
+    ax.set_ylabel("Density", fontsize=9, color=BRAND_COLORS["gray"])
     ax.set_xlim(0, 1)
     ax.legend(fontsize=8, framealpha=0.6)
     ax.tick_params(labelsize=8)
@@ -407,7 +411,9 @@ def _draw_error_distribution(
 ) -> None:
     """Per-class error rate bar chart."""
     _ = y_prob  # Optional for this plot, handled by y_true/y_pred
-    ax.set_title("Error Rate by Class", fontsize=11, fontweight="bold", color=_C["dark"], pad=6)
+    ax.set_title(
+        "Error Rate by Class", fontsize=11, fontweight="bold", color=BRAND_COLORS["dark"], pad=6
+    )
 
     y_true = np.asarray(y_true)
     y_pred = np.asarray(y_pred)
@@ -420,7 +426,12 @@ def _draw_error_distribution(
         error_rates.append(rate)
 
     colors = [
-        _C["red"] if r > 0.2 else _C["amber"] if r > 0.1 else _C["green"] for r in error_rates
+        BRAND_COLORS["red"]
+        if r > 0.2
+        else BRAND_COLORS["amber"]
+        if r > 0.1
+        else BRAND_COLORS["green"]
+        for r in error_rates
     ]
     bars = ax.bar(
         [str(c) for c in classes],
@@ -442,24 +453,26 @@ def _draw_error_distribution(
             fontweight="bold",
         )
 
-    ax.set_xlabel("Class", fontsize=9, color=_C["gray"])
-    ax.set_ylabel("Error Rate", fontsize=9, color=_C["gray"])
+    ax.set_xlabel("Class", fontsize=9, color=BRAND_COLORS["gray"])
+    ax.set_ylabel("Error Rate", fontsize=9, color=BRAND_COLORS["gray"])
     ax.set_ylim(0, min(1.0, max(error_rates) * 1.45 + 0.05))
     ax.tick_params(labelsize=8)
     ax.grid(True, axis="y", alpha=0.25, linestyle="--")
 
     # Legend
     patches = [
-        mpatches.Patch(color=_C["green"], label="< 10% error"),
-        mpatches.Patch(color=_C["amber"], label="10–20%"),
-        mpatches.Patch(color=_C["red"], label="> 20%"),
+        mpatches.Patch(color=BRAND_COLORS["green"], label="< 10% error"),
+        mpatches.Patch(color=BRAND_COLORS["amber"], label="10–20%"),
+        mpatches.Patch(color=BRAND_COLORS["red"], label="> 20%"),
     ]
     ax.legend(handles=patches, fontsize=8, framealpha=0.6)
 
 
 def _draw_class_distribution(ax: plt.Axes, results: dict) -> None:
     """Class count distribution."""
-    ax.set_title("Class Distribution", fontsize=11, fontweight="bold", color=_C["dark"], pad=6)
+    ax.set_title(
+        "Class Distribution", fontsize=11, fontweight="bold", color=BRAND_COLORS["dark"], pad=6
+    )
 
     if "bias" not in results or "class_imbalance" not in results["bias"]:
         ax.text(
@@ -469,7 +482,7 @@ def _draw_class_distribution(ax: plt.Axes, results: dict) -> None:
             ha="center",
             va="center",
             transform=ax.transAxes,
-            color=_C["gray"],
+            color=BRAND_COLORS["gray"],
             fontsize=10,
         )
         return
@@ -480,7 +493,14 @@ def _draw_class_distribution(ax: plt.Axes, results: dict) -> None:
     counts = [class_counts[c] for c in classes]
     total = sum(counts)
 
-    palette = [_C["blue"], _C["orange"], _C["purple"], _C["green"], _C["amber"], _C["red"]]
+    palette = [
+        BRAND_COLORS["blue"],
+        BRAND_COLORS["orange"],
+        BRAND_COLORS["purple"],
+        BRAND_COLORS["green"],
+        BRAND_COLORS["amber"],
+        BRAND_COLORS["red"],
+    ]
     colors = [palette[i % len(palette)] for i in range(len(classes))]
 
     bars = ax.bar(
@@ -516,15 +536,17 @@ def _draw_class_distribution(ax: plt.Axes, results: dict) -> None:
         bbox=dict(boxstyle="round,pad=0.3", facecolor="white", edgecolor="#DDD"),
     )
 
-    ax.set_xlabel("Class", fontsize=9, color=_C["gray"])
-    ax.set_ylabel("Count", fontsize=9, color=_C["gray"])
+    ax.set_xlabel("Class", fontsize=9, color=BRAND_COLORS["gray"])
+    ax.set_ylabel("Count", fontsize=9, color=BRAND_COLORS["gray"])
     ax.tick_params(labelsize=8)
     ax.grid(True, axis="y", alpha=0.25, linestyle="--")
 
 
 def _draw_subscores(ax: plt.Axes, ts) -> None:
     """Horizontal bar chart of Trust Score sub-scores."""
-    ax.set_title("Sub-score Breakdown", fontsize=11, fontweight="bold", color=_C["dark"], pad=6)
+    ax.set_title(
+        "Sub-score Breakdown", fontsize=11, fontweight="bold", color=BRAND_COLORS["dark"], pad=6
+    )
 
     dims = list(ts.sub_scores.keys())
     scores = [ts.sub_scores[d] for d in dims]
@@ -537,7 +559,7 @@ def _draw_subscores(ax: plt.Axes, ts) -> None:
             ha="center",
             va="center",
             transform=ax.transAxes,
-            color=_C["gray"],
+            color=BRAND_COLORS["gray"],
             fontsize=10,
         )
         return
@@ -564,19 +586,25 @@ def _draw_subscores(ax: plt.Axes, ts) -> None:
     ax.set_yticks(y_pos)
     ax.set_yticklabels([d.capitalize() for d in dims], fontsize=10)
     ax.set_xlim(0, 115)
-    ax.set_xlabel("Score (0–100)", fontsize=9, color=_C["gray"])
+    ax.set_xlabel("Score (0–100)", fontsize=9, color=BRAND_COLORS["gray"])
     ax.tick_params(axis="x", labelsize=8)
-    ax.axvline(x=80, color=_C["green"], linewidth=1, linestyle="--", alpha=0.6, label="Good (80)")
-    ax.axvline(x=60, color=_C["amber"], linewidth=1, linestyle="--", alpha=0.6, label="OK (60)")
-    ax.axvline(x=40, color=_C["red"], linewidth=1, linestyle="--", alpha=0.6, label="Poor (40)")
+    ax.axvline(
+        x=80, color=BRAND_COLORS["green"], linewidth=1, linestyle="--", alpha=0.6, label="Good (80)"
+    )
+    ax.axvline(
+        x=60, color=BRAND_COLORS["amber"], linewidth=1, linestyle="--", alpha=0.6, label="OK (60)"
+    )
+    ax.axvline(
+        x=40, color=BRAND_COLORS["red"], linewidth=1, linestyle="--", alpha=0.6, label="Poor (40)"
+    )
     ax.legend(fontsize=7.5, framealpha=0.6, loc="lower right")
     ax.grid(True, axis="x", alpha=0.2, linestyle="--")
 
     # Reference background bands
-    ax.axvspan(0, 40, alpha=0.04, color=_C["red"])
-    ax.axvspan(40, 60, alpha=0.04, color=_C["amber"])
-    ax.axvspan(60, 80, alpha=0.03, color=_C["blue"])
-    ax.axvspan(80, 100, alpha=0.04, color=_C["green"])
+    ax.axvspan(0, 40, alpha=0.04, color=BRAND_COLORS["red"])
+    ax.axvspan(40, 60, alpha=0.04, color=BRAND_COLORS["amber"])
+    ax.axvspan(60, 80, alpha=0.03, color=BRAND_COLORS["blue"])
+    ax.axvspan(80, 100, alpha=0.04, color=BRAND_COLORS["green"])
 
 
 # ---------------------------------------------------------------------------
@@ -585,14 +613,14 @@ def _draw_subscores(ax: plt.Axes, ts) -> None:
 
 
 def _color_for_grade(grade: str) -> str:
-    return _GRADE_COLORS.get(grade, _C["gray"])
+    return SEMANTIC_COLORS["grade"].get(grade, BRAND_COLORS["gray"])
 
 
 def _color_for_score(score: float) -> str:
     if score >= 80:
-        return _C["green"]
+        return BRAND_COLORS["green"]
     if score >= 60:
-        return _C["blue"]
+        return BRAND_COLORS["blue"]
     if score >= 40:
-        return _C["amber"]
-    return _C["red"]
+        return BRAND_COLORS["amber"]
+    return BRAND_COLORS["red"]
