@@ -4,6 +4,17 @@ trustlens.trust_score.
 The TrustLens Trust Score — a single 0–100 composite measure of model
 trustworthiness.
 
+Responsibilities
+----------------
+* Aggregate metrics from various modules (calibration, failure, bias, representation).
+* Apply weightings and penalties to calculate a final 0-100 score.
+* Determine the model's deployment verdict and letter grade.
+
+Relationship to other components
+--------------------------------
+Used primarily by `TrustReport` to instantly summarize the complex `results` 
+dictionary into an actionable metric.
+
 Why a single score?
 -------------------
 Practitioners face "metric overload": ECE, Brier Score, silhouette scores,
