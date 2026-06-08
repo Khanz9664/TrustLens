@@ -2,6 +2,19 @@
 trustlens.backends.registry
 ===========================
 Registry and detection logic for framework-specific prediction resolvers.
+
+Architecture
+------------
+The registry pattern is used to decouple the core TrustLens pipeline from specific
+machine learning frameworks. When `analyze()` is called, the registry is responsible
+for matching the model object to the correct backend resolver.
+
+Resolution Process & Fallback Logic
+-----------------------------------
+1. **Explicit Override:** If a framework is provided directly by the user, the registry maps it.
+2. **Module Inspection:** Inspects `model.__module__` to match known prefixes (e.g., `sklearn`).
+3. **Capability Fallback:** Checks for duck-typing capabilities like `predict_proba`.
+4. **Fallback Logic:** If detection fails, an `UnsupportedModelError` is raised, instructing the user to provide probability and prediction arrays manually.
 """
 
 from __future__ import annotations

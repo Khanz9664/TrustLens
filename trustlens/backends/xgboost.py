@@ -1,3 +1,25 @@
+"""
+trustlens.backends.xgboost
+==========================
+Prediction resolver for XGBoost models.
+
+Architecture
+------------
+Handles the extraction of predictions from both the scikit-learn API (`XGBClassifier`)
+and the native `xgboost.Booster` API.
+
+Probability Extraction Strategy
+-------------------------------
+* For `XGBClassifier`, uses `predict_proba()`.
+* For `Booster`, automatically wraps the input `X` in an `xgb.DMatrix` and calls `predict()`.
+* Normalizes binary probability outputs to the standardized (n_samples, 2) shape.
+
+Label Mapping Behavior
+----------------------
+* Automatically handles label mapping if `classes_` is available (e.g., from `XGBClassifier`).
+* For native `Booster`, falls back to provided `class_labels` or raw integer indices.
+"""
+
 from __future__ import annotations
 
 import logging
