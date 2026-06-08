@@ -19,6 +19,7 @@ Label Mapping Behavior
 * Automatically handles label mapping if `classes_` is available (e.g., from `XGBClassifier`).
 * For native `Booster`, falls back to provided `class_labels` or raw integer indices.
 """
+
 from __future__ import annotations
 
 import logging

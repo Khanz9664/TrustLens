@@ -11,6 +11,7 @@ PredictionBundle Lifecycle
 4. A `PredictionBundle` is instantiated, enforcing shape invariants and data quality rules.
 5. The bundle is returned to the core pipeline, where it acts as the standardized prediction input.
 """
+
 from __future__ import annotations
 
 from collections.abc import Sequence
