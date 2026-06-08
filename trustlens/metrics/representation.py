@@ -45,8 +45,24 @@ def embedding_separability(
     """
     Measure how well class embeddings are separated in latent space.
 
-    Uses the silhouette score as the primary separability measure, augmented
-    with within-class and between-class mean distances.
+    What it measures
+    ----------------
+    The structural quality of the model's learned representation via Silhouette Score
+    and within/between-class distances.
+
+    Why it matters
+    --------------
+    Poor latent separation implies the model struggles to differentiate classes fundamentally,
+    increasing the risk of generalization failure.
+
+    Limitations
+    -----------
+    Computationally expensive for large datasets. Sensitive to the choice of distance metric.
+
+    Interpretation guidance
+    -----------------------
+    Silhouette score ranges from [-1, 1]; > 0.5 indicates strong clustering, while < 0 indicates
+    overlapping classes. Separability ratio > 1 is preferred.
 
     Parameters
     ----------

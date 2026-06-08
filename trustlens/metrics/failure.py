@@ -122,6 +122,24 @@ def confidence_gap(
     Measure the *confidence gap* — how much more confident is the model
     on correct predictions than on incorrect ones?
 
+    What it measures
+    ----------------
+    The difference in mean confidence between correct and incorrect predictions.
+
+    Why it matters
+    --------------
+    A model should "know what it doesn't know." High confidence on incorrect predictions
+    (low gap) is a major deployment risk.
+
+    Limitations
+    -----------
+    Does not capture the full distribution shape, only the means.
+
+    Interpretation guidance
+    -----------------------
+    Higher gap is better. A large positive gap indicates the model lowers its confidence
+    when making mistakes.
+
     Returns
     -------
     dict with keys:
