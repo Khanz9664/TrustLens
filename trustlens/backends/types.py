@@ -1,3 +1,17 @@
+"""
+trustlens.backends.types
+========================
+Data structures and contracts for the backend resolution system.
+
+PredictionBundle Lifecycle
+--------------------------
+1. A model and raw prediction arguments are passed to a resolver.
+2. The resolver extracts predictions and probabilities according to framework-specific rules.
+3. The resolver normalizes the outputs (e.g., ensuring binary probabilities have shape (n_samples, 2)).
+4. A `PredictionBundle` is instantiated, enforcing shape invariants and data quality rules.
+5. The bundle is returned to the core pipeline, where it acts as the standardized prediction input.
+"""
+
 from __future__ import annotations
 
 from collections.abc import Sequence

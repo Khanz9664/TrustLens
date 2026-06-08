@@ -3,25 +3,39 @@ trustlens.visualization.style.
 ==============================
 Centralized styling for all TrustLens visualization modules.
 
-This module is the single source of truth for visual constants used across
-plotting functions: color palettes, semantic colors, typography, grid behavior,
-figure defaults, and spacing.
+Architecture & Centralized Styling
+----------------------------------
+TrustLens uses a unified styling architecture to ensure visual parity across
+all plots (calibration, bias, failure, representation). Centralized styling exists
+to prevent fragmented UI experiences and to enforce accessibility standards,
+making it trivial to adapt to dark mode or colorblind themes in the future.
+
+How Visual Parity is Maintained
+-------------------------------
+Visual parity is maintained by prohibiting hard-coded colors, fonts, or grids
+in individual plotting functions. Instead, all plots must rely on:
+1. `Theme` properties for resolving colors and typography.
+2. `styled_figure` for instantiating axes with consistent dimensions and backgrounds.
+3. `apply_style` for applying global Matplotlib configurations temporarily.
+
+Implementing New Visualizations
+-------------------------------
+When building a new plot in `trustlens/visualization/`:
+1. **Never mutate `matplotlib.rcParams` globally**. Use `with apply_style() as theme:`.
+2. **Never hard-code colors**. Use `theme.brand` or `theme.semantic`.
+3. **Always use semantic mappings** (`SEMANTIC_COLORS`) when representing statuses like 'pass' or 'fail'.
+4. **Use `get_categorical_colors`** when plotting multiple arbitrary categories.
+
+Constants
+---------
+* `BRAND_COLORS`: The core TrustLens color palette. Used for structural elements, titles, and fills.
+* `SEMANTIC_COLORS`: Meaning-bearing colors mapping specific logic (severity, verdicts, grades) to a visual representation. These must be used for all diagnostic outputs.
 
 It also exposes:
-
 * :func:`apply_style` — a context manager that scopes ``rcParams`` mutations to
-  a ``with`` block, so the library never permanently mutates user matplotlib
-  state (important for notebook and pipeline workflows).
-* :func:`styled_figure` — a thin helper around :func:`matplotlib.pyplot.subplots`
-  that applies consistent figure/axes styling.
-* :func:`get_categorical_colors` — return ``n`` colors from the categorical
-  palette, cycling when ``n`` exceeds palette length.
-
-Notes
------
-This is an **internal** module. The public API and shape may evolve as
-TrustLens iterates on accessibility, dark mode, and publication-quality
-themes. External consumers should not rely on the constants here directly.
+  a ``with`` block, so the library never permanently mutates user matplotlib state.
+* :func:`styled_figure` — a thin helper around :func:`matplotlib.pyplot.subplots`.
+* :func:`get_categorical_colors` — return ``n`` colors from the categorical palette.
 """
 
 from __future__ import annotations

@@ -44,9 +44,23 @@ def brier_score(
     r"""
     Compute the Brier Score for a binary probabilistic classifier.
 
-    The Brier Score is the mean squared difference between predicted
-    probabilities and actual outcomes. Lower is better; a perfect
-    forecaster scores 0.0, a random coin-flip scores ~0.25.
+    What it measures
+    ----------------
+    The mean squared difference between predicted probabilities and actual outcomes.
+
+    Why it matters
+    --------------
+    A model must not only be accurate but its probabilities should reflect true likelihood.
+    Brier score penalizes both overconfidence and underconfidence.
+
+    Limitations
+    -----------
+    Heavily influenced by class imbalance. A model predicting the majority class base rate
+    for all instances will yield a deceptively low Brier Score.
+
+    Interpretation guidance
+    -----------------------
+    Lower is better. A perfect forecaster scores 0.0, a random coin-flip scores ~0.25.
 
     .. math::
       \\text{BS} = \\frac{1}{N} \\sum_{i=1}^{N}
@@ -113,8 +127,23 @@ def expected_calibration_error(
     r"""
     Compute the Expected Calibration Error (ECE).
 
-    ECE measures the weighted average absolute difference between
-    predicted confidence and actual accuracy across probability bins.
+    What it measures
+    ----------------
+    The weighted average absolute difference between predicted confidence and actual accuracy
+    across probability bins.
+
+    Why it matters
+    --------------
+    Directly quantifies how much you can trust the model's confidence scores.
+
+    Limitations
+    -----------
+    Sensitive to the number of bins and binning strategy. Uniform bins can be noisy in sparse regions.
+
+    Interpretation guidance
+    -----------------------
+    Lower is better. A score of 0.0 means perfect calibration. Scores > 0.1 often indicate
+    dangerous overconfidence.
 
     .. math::
       \\text{ECE} = \\sum_{b=1}^{B}
