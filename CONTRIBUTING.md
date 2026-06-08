@@ -76,6 +76,7 @@ Before submitting your PR, ensure:
 - [ ] Pre-commit hooks pass (`pre-commit run --all-files`)
 - [ ] `CHANGELOG.md` is updated
 - [ ] Linked issue is mentioned (e.g., `Fixes #123`)
+- [ ] **Documentation is complete**: Public APIs have NumPy docstrings, new modules are documented, and usage examples are included when useful.
 
 ---
 
@@ -162,7 +163,14 @@ python -c "from trustlens import analyze; print(' TrustLens ready')"
 
 ---
 
-## 3. Project Structure
+## 3. Project Structure & Architecture References
+
+When modifying the codebase, refer to the following architectural layers and their corresponding documentation:
+
+*   **API Layer**: The entry point for users. Resolves inputs and delegates to the core pipeline. (See `trustlens/api.py` and `trustlens/core/pipeline.py`)
+*   **Backend Layer**: Resolves framework-specific models (sklearn, xgboost) into a standardized `PredictionBundle`. (See `trustlens/backends/`)
+*   **Trust Score Layer**: Aggregates metric outputs into a single composite score and deployment verdict. (See `trustlens/trust_score.py`)
+*   **Visualization Layer**: A centralized styling architecture that guarantees visual parity across all TrustLens plots. (See `trustlens/visualization/`)
 
 ```
 trustlens/
@@ -384,10 +392,20 @@ report = analyze(model, X, y, plugins=["my_metric"])
 - **Python 3.9+** — use type hints, `from __future__ import annotations`
 - **Ruff** for linting (config in `pyproject.toml`)
 - **Black** for formatting (line length = 100)
-- **NumPy-style docstrings** — Parameters, Returns, Raises, Examples sections
 - **No bare `except:`** — always catch specific exceptions
 - **No global state** — functions must be pure and stateless where possible
 - **Imports** — standard library → third-party → trustlens internal
+
+## 8.1. Documentation Standards
+
+TrustLens strictly adheres to **NumPy-style docstrings**.
+
+- **Format:** All docstrings must follow NumPy standards (Parameters, Returns, Raises, Examples).
+- **Public API Expectations:** Every public function and class MUST have a complete docstring. Include a concise summary of "What it measures" and "Why it matters" for metrics where appropriate.
+- **Module Documentation:** Every major module must contain a module-level docstring that details:
+  - Responsibilities of the module
+  - Relationship to other TrustLens components
+  - High-level workflow
 
 Run checks locally:
 ```bash
