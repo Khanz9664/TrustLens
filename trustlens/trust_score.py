@@ -12,7 +12,7 @@ Responsibilities
 
 Relationship to other components
 --------------------------------
-Used primarily by `TrustReport` to instantly summarize the complex `results` 
+Used primarily by `TrustReport` to instantly summarize the complex `results`
 dictionary into an actionable metric.
 
 Why a single score?

@@ -13,8 +13,8 @@ Responsibilities
 
 Relationship to other components
 --------------------------------
-Invoked by `trustlens.api.analyze()`. It relies on standardized predictions 
-provided by the backend resolvers and delegates the actual metric computation 
+Invoked by `trustlens.api.analyze()`. It relies on standardized predictions
+provided by the backend resolvers and delegates the actual metric computation
 to domain-specific modules (`trustlens.metrics.*`).
 """
 
