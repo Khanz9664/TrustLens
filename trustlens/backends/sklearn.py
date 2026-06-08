@@ -2,6 +2,20 @@
 trustlens.backends.sklearn
 ==========================
 Prediction resolver for scikit-learn models.
+
+Architecture
+------------
+This backend translates sklearn-compatible models into standardized `PredictionBundle`s.
+
+Probability Extraction Strategy
+-------------------------------
+* Tries to call `predict_proba()` on the model.
+* If probabilities are binary (n_samples,), reshapes them to (n_samples, 2) to maintain invariant shape.
+
+Label Mapping Behavior
+----------------------
+* Inspects the `classes_` attribute on the model.
+* Uses these classes to map probability array indices to semantic labels during `y_pred` derivation.
 """
 
 from __future__ import annotations
