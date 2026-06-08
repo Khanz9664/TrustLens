@@ -3,6 +3,19 @@ trustlens.core.pipeline
 =======================
 Internal execution engine for the TrustLens analysis pipeline.
 This module is framework-agnostic and operates on standardized prediction data.
+
+Responsibilities
+----------------
+* Iterate through selected analysis modules and execute their respective computations.
+* Handle degraded execution states gracefully (e.g., when probabilities are missing).
+* Aggregate individual module results into a unified dictionary.
+* Instantiate the final `TrustReport` object.
+
+Relationship to other components
+--------------------------------
+Invoked by `trustlens.api.analyze()`. It relies on standardized predictions
+provided by the backend resolvers and delegates the actual metric computation
+to domain-specific modules (`trustlens.metrics.*`).
 """
 
 from __future__ import annotations
