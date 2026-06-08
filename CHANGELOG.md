@@ -22,6 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed the visual narrative of the **Accuracy vs Trust (“Decoupling”)** analysis to more clearly communicate the relationship between predictive performance and trustworthiness in the benchmark notebook. (PR #100)
 
 ### Documentation
+- **Core Architecture Documentation**: Improved module-level and class-level docstrings for `api.py`, `report.py`, `trust_score.py`, and `pipeline.py`.
+- **Backend Architecture Documentation**: Documented the internal backend architecture in `trustlens/backends/`, detailing the `PredictionBundle` lifecycle, resolver architecture, probability extraction, and label mapping strategies.
+- **Metrics Documentation**: Enhanced public docstrings for major metrics (`brier_score`, `expected_calibration_error`, `confidence_gap`, `equalized_odds`, `embedding_separability`) with clear explanations of what they measure, why they matter, their limitations, and how to interpret them.
+- **Visualization Architecture Documentation**: Documented the centralized visualization architecture in `trustlens/visualization/style.py`, providing rules for maintaining visual parity and using semantic colors.
+- **Developer Experience**: Updated `CONTRIBUTING.md` to formally outline documentation expectations, including a mandate for NumPy-style docstrings and a high-level architecture reference for new contributors.
 - **Research & Validation Layer**: Added a comprehensive, research-grade documentation section (`docs/research/`) featuring empirical benchmark results, scientific trust score validation, robustness under distribution shift, metric limitations, and explicitly outlined failure modes.
 - **Methodology & Threats to Validity**: Introduced a brutally honest `methodology.md` page detailing benchmark experimental setup and transparently acknowledging limitations such as reliance on synthetic datasets and binary classification constraints.
 - **Why TrustLens**: Added a `why_trustlens.md` page to directly compare TrustLens against traditional metrics (like Accuracy and ROC-AUC) using tangible failure case studies.
