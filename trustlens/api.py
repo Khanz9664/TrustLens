@@ -3,6 +3,12 @@ trustlens.api.
 ==============
 Primary entry point for the TrustLens analysis pipeline.
 
+Responsibilities
+----------------
+* Expose the core `analyze()` and `quick_analyze()` functions.
+* Coordinate the translation of user inputs into the internal format via backends.
+* Delegate execution to the core analysis pipeline.
+
 Usage
 -----
 >>> from trustlens import analyze
@@ -30,6 +36,24 @@ def quick_analyze(
     """
     Zero-friction entry point for TrustLens.
     If no model/data provided, auto-loads a basic dataset to demonstrate output.
+
+    Parameters
+    ----------
+    model : Any, optional
+        A trained machine learning model. If None, a demo model is trained.
+    X : np.ndarray, optional
+        Validation feature matrix.
+    y : np.ndarray, optional
+        Ground-truth labels.
+    dataset : str, default='iris'
+        The demo dataset to load if data is not provided ('iris' or 'breast_cancer').
+    framework : str, optional
+        Explicitly specify the model framework (e.g., 'sklearn').
+
+    Returns
+    -------
+    TrustReport
+        Populated report object with metrics, plots, and narrative summaries.
     """
     if model is None or X is None or y is None:
         logger.info(f"No model/data provided. Auto-loading {dataset} dataset for demo...")
