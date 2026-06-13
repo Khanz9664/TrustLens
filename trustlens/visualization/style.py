@@ -1,63 +1,164 @@
+"""
+trustlens.visualization.style.
+==============================
+Centralized styling for all TrustLens visualization modules.
+
+Architecture & Centralized Styling
+----------------------------------
+TrustLens uses a unified styling architecture to ensure visual parity across
+all plots (calibration, bias, failure, representation). Centralized styling exists
+to prevent fragmented UI experiences and to enforce accessibility standards,
+making it trivial to adapt to dark mode or colorblind themes in the future.
+
+How Visual Parity is Maintained
+-------------------------------
+Visual parity is maintained by prohibiting hard-coded colors, fonts, or grids
+in individual plotting functions. Instead, all plots must rely on:
+1. `Theme` properties for resolving colors and typography.
+2. `styled_figure` for instantiating axes with consistent dimensions and backgrounds.
+3. `apply_style` for applying global Matplotlib configurations temporarily.
+
+Implementing New Visualizations
+-------------------------------
+When building a new plot in `trustlens/visualization/`:
+1. **Never mutate `matplotlib.rcParams` globally**. Use `with apply_style() as theme:`.
+2. **Never hard-code colors**. Use `theme.brand` or `theme.semantic`.
+3. **Always use semantic mappings** (`SEMANTIC_COLORS`) when representing statuses like 'pass' or 'fail'.
+4. **Use `get_categorical_colors`** when plotting multiple arbitrary categories.
+
+Constants
+---------
+* `BRAND_COLORS`: The core TrustLens color palette. Used for structural elements, titles, and fills.
+* `SEMANTIC_COLORS`: Meaning-bearing colors mapping specific logic (severity, verdicts, grades) to a visual representation. These must be used for all diagnostic outputs.
+
+It also exposes:
+* :func:`apply_style` — a context manager that scopes ``rcParams`` mutations to
+  a ``with`` block, so the library never permanently mutates user matplotlib state.
+* :func:`styled_figure` — a thin helper around :func:`matplotlib.pyplot.subplots`.
+* :func:`get_categorical_colors` — return ``n`` colors from the categorical palette.
+"""
+
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterator
 from copy import deepcopy
 from contextlib import contextmanager
 from dataclasses import dataclass, field
+from typing import Any
 import warnings
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
-BRAND_COLORS = {
-    "trustlens_blue": "#0052cc",
-    "trustlens_green": "#00b300",
-    "trustlens_orange": "#ff6600",
-    "trustlens_red": "#cc0000",
-    "trustlens_gray": "#666666",
-    "trustlens_light_gray": "#999999",
-    "trustlens_pale_gray": "#cccccc",
+# ---------------------------------------------------------------------------
+# Brand colors — name lookup for non-categorical use (titles, fills, etc.)
+# ---------------------------------------------------------------------------
+
+BRAND_COLORS: dict[str, str] = {
+    "blue": "#4B8BF5",
+    "orange": "#F5784B",
+    "green": "#34C759",
+    "red": "#FF3B30",
+    "amber": "#FF9F0A",
+    "purple": "#AF52DE",
+    "pink": "#FF2D55",
+    "cyan": "#5AC8FA",
+    "deep_orange": "#FF6B35",
+    "gray": "#8E8E93",
+    "light_gray": "#CCCCCC",
+    "muted_gray": "#AAAAAA",
+    "text_dark": "#444444",
+    "text_muted": "#666666",
+    "text_subtle": "#888888",
+    "light": "#F2F2F7",
+    "white": "#FFFFFF",
+    "dark": "#1C1C1E",
 }
 
-TYPOGRAPHY = {
+# ---------------------------------------------------------------------------
+# Categorical palette — ordered list for plots with N groups/classes
+# ---------------------------------------------------------------------------
+
+PALETTE: list[str] = [
+    BRAND_COLORS["blue"],
+    BRAND_COLORS["orange"],
+    BRAND_COLORS["green"],
+    BRAND_COLORS["purple"],
+    BRAND_COLORS["amber"],
+    BRAND_COLORS["pink"],
+    BRAND_COLORS["cyan"],
+    BRAND_COLORS["deep_orange"],
+]
+
+# ---------------------------------------------------------------------------
+# Semantic colors — meaning-bearing colors that should never be reused
+# arbitrarily. Severity is diagnostic; verdict is operational.
+# ---------------------------------------------------------------------------
+
+SEMANTIC_COLORS: dict[str, dict[str, str]] = {
+    "severity": {
+        "acceptable": BRAND_COLORS["green"],
+        "moderate": BRAND_COLORS["amber"],
+        "severe": BRAND_COLORS["pink"],
+        "unknown": BRAND_COLORS["light_gray"],
+    },
+    "verdict": {
+        "deploy": BRAND_COLORS["green"],
+        "caution": BRAND_COLORS["amber"],
+        "do_not_deploy": BRAND_COLORS["red"],
+    },
+    "grade": {
+        "A": BRAND_COLORS["green"],
+        "B": BRAND_COLORS["blue"],
+        "C": BRAND_COLORS["amber"],
+        "D": BRAND_COLORS["red"],
+    },
+    "direction": {
+        "positive": BRAND_COLORS["blue"],
+        "negative": BRAND_COLORS["orange"],
+    },
+    "neutral": {
+        "reference": BRAND_COLORS["muted_gray"],
+        "edge": BRAND_COLORS["white"],
+        "annotation_edge": BRAND_COLORS["light_gray"],
+        "annotation_face": BRAND_COLORS["white"],
+    },
+}
+
+# ---------------------------------------------------------------------------
+# Typography / Grid / Figure defaults / Spacing
+# ---------------------------------------------------------------------------
+
+TYPOGRAPHY: dict[str, Any] = {
     "font_family": "DejaVu Sans",
     "title_size": 13,
     "label_size": 11,
     "tick_size": 10,
-    "annotation_size": 10,
+    "annotation_size": 9,
+    "title_weight": "bold",
 }
 
-GRID = {
+GRID: dict[str, Any] = {
     "alpha": 0.4,
-    "alpha_minor": 0.2,
+    "alpha_minor": 0.3,
     "linewidth": 0.8,
 }
 
-FIG_DEFAULTS = {
+FIG_DEFAULTS: dict[str, Any] = {
     "figsize": (8, 6),
-    "facecolor": "#FFFFFF",
+    "facecolor": BRAND_COLORS["white"],
     "dpi": 100,
     "savefig_dpi": 150,
 }
 
-SPACING = {
+SPACING: dict[str, Any] = {
     "bbox_pad": 0.4,
-    "bbox_alpha": 0.8,
-    "bar_edge_width": 1.0,
+    "bbox_alpha": 0.9,
+    "bar_edge_width": 1.2,
     "bar_alpha": 0.85,
 }
 
-PALETTE = [
-    BRAND_COLORS["trustlens_blue"],
-    BRAND_COLORS["trustlens_orange"],
-    BRAND_COLORS["trustlens_green"],
-    BRAND_COLORS["trustlens_red"],
-    BRAND_COLORS["trustlens_gray"],
-    BRAND_COLORS["trustlens_light_gray"],
-    BRAND_COLORS["trustlens_pale_gray"],
-]
-
-COLORBLIND_PALETTE = [
+COLORBLIND_PALETTE: list[str] = [
     "#0072B2",
     "#E69F00",
     "#009E73",
@@ -67,27 +168,7 @@ COLORBLIND_PALETTE = [
     "#F0E442",
 ]
 
-SEMANTIC_COLORS = {
-    "severity": {
-        "acceptable": "#00b300",
-        "moderate": "#ff6600",
-        "severe": "#cc0000",
-        "unknown": "#999999",
-    },
-    "verdict": {
-        "deploy": "#0052cc",
-        "caution": "#ff6600",
-        "do_not_deploy": "#cc0000",
-    },
-    "grade": {
-        "A": "#0052cc",
-        "B": "#00b300",
-        "C": "#ff6600",
-        "D": "#cc0000",
-    },
-}
-
-COLORBLIND_SEMANTIC_COLORS = {
+COLORBLIND_SEMANTIC_COLORS: dict[str, dict[str, str]] = {
     "severity": {
         "acceptable": "#0072B2",
         "moderate": "#E69F00",
@@ -96,97 +177,132 @@ COLORBLIND_SEMANTIC_COLORS = {
     }
 }
 
+# ---------------------------------------------------------------------------
+# Theme — frozen dataclass bundling everything above for future extensibility
+# ---------------------------------------------------------------------------
+
 
 @dataclass(frozen=True)
 class Theme:
+    """
+    Immutable bundle of style constants for a single named theme.
+
+    A theme groups every visual constant needed to render TrustLens plots so
+    that future themes (``"dark"``, ``"colorblind"``, ``"publication"``) can be
+    added by registering a new :class:`Theme` instance without touching
+    plotting code.
+    """
+
     name: str = "default"
+    base_style: str = "seaborn-v0_8-whitegrid"
     palette: list[str] = field(default_factory=lambda: list(PALETTE))
+    brand: dict[str, str] = field(default_factory=lambda: dict(BRAND_COLORS))
     semantic: dict[str, dict[str, str]] = field(
-        default_factory=lambda: deepcopy(SEMANTIC_COLORS)
+        default_factory=lambda: {k: dict(v) for k, v in SEMANTIC_COLORS.items()}
     )
-    fig_defaults: dict[str, object] = field(
-        default_factory=lambda: deepcopy(FIG_DEFAULTS)
-    )
-    typography: dict[str, object] = field(
-        default_factory=lambda: deepcopy(TYPOGRAPHY)
-    )
-    grid: dict[str, object] = field(default_factory=lambda: deepcopy(GRID))
-    spacing: dict[str, object] = field(default_factory=lambda: deepcopy(SPACING))
-    base_style: str | None = None
-
-    def __repr__(self) -> str:
-        return f"<Theme {self.name}>"
+    typography: dict[str, Any] = field(default_factory=lambda: dict(TYPOGRAPHY))
+    grid: dict[str, Any] = field(default_factory=lambda: dict(GRID))
+    fig_defaults: dict[str, Any] = field(default_factory=lambda: dict(FIG_DEFAULTS))
+    spacing: dict[str, Any] = field(default_factory=lambda: dict(SPACING))
 
 
-DEFAULT_THEME = Theme()
+DEFAULT_THEME: Theme = Theme()
 
-COLORBLIND_THEME = Theme(
+COLORBLIND_THEME: Theme = Theme(
     name="colorblind",
     palette=list(COLORBLIND_PALETTE),
     semantic=deepcopy(COLORBLIND_SEMANTIC_COLORS),
 )
 
 
-@contextmanager
-def apply_style(theme: Theme = DEFAULT_THEME):
-    original_rc = mpl.rcParams.copy()
-    try:
-        if theme.base_style is not None:
-            try:
-                mpl.style.use(theme.base_style)
-            except Exception:
-                warnings.warn(
-                    f"Style {theme.base_style!r} could not be loaded",
-                    UserWarning,
-                )
+# ---------------------------------------------------------------------------
+# Context manager — scoped rcParams mutations
+# ---------------------------------------------------------------------------
 
-        mpl.rcParams["font.family"] = [theme.typography["font_family"]]
-        mpl.rcParams["font.size"] = theme.typography["label_size"]
-        yield theme
+
+@contextmanager
+def apply_style(theme: Theme | None = None) -> Iterator[Theme]:
+    """
+    Apply a TrustLens theme inside a ``with`` block, restoring state on exit.
+    """
+    active = theme if theme is not None else DEFAULT_THEME
+    previous = mpl.rcParams.copy()
+    try:
+        try:
+            plt.style.use(active.base_style)
+        except OSError:
+            warnings.warn(
+                f"TrustLens base style {active.base_style!r} could not be loaded; "
+                "continuing with rcParams updates only.",
+                stacklevel=2,
+            )
+        mpl.rcParams.update(
+            {
+                "font.family": active.typography["font_family"],
+                "axes.titlesize": active.typography["title_size"],
+                "axes.labelsize": active.typography["label_size"],
+                "xtick.labelsize": active.typography["tick_size"],
+                "ytick.labelsize": active.typography["tick_size"],
+                "axes.titleweight": active.typography["title_weight"],
+                "axes.spines.top": False,
+                "axes.spines.right": False,
+                "figure.facecolor": active.fig_defaults["facecolor"],
+                "axes.facecolor": active.fig_defaults["facecolor"],
+                "savefig.dpi": active.fig_defaults["savefig_dpi"],
+            }
+        )
+        yield active
     finally:
-        mpl.rcParams.clear()
-        mpl.rcParams.update(original_rc)
+        mpl.rcParams.update(previous)
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 
 def styled_figure(
-    theme: Theme = DEFAULT_THEME,
     figsize: tuple[float, float] | None = None,
     nrows: int = 1,
     ncols: int = 1,
-    **kwargs,
-):
-    if figsize is None:
-        figsize = tuple(theme.fig_defaults["figsize"])
+    theme: Theme | None = None,
+    grid: bool = True,
+    **subplots_kwargs: Any,
+) -> tuple[plt.Figure, Any]:
+    """
+    Create a figure and axes pre-configured with TrustLens styling.
+    """
+    active = theme if theme is not None else DEFAULT_THEME
+    size = figsize if figsize is not None else active.fig_defaults["figsize"]
 
-    fig, axes = plt.subplots(
+    fig, ax = plt.subplots(
         nrows=nrows,
         ncols=ncols,
-        figsize=figsize,
-        dpi=theme.fig_defaults["dpi"],
-        facecolor=theme.fig_defaults["facecolor"],
-        **kwargs,
+        figsize=size,
+        facecolor=active.fig_defaults["facecolor"],
+        **subplots_kwargs,
     )
 
-    if isinstance(axes, Iterable):
-        for ax in axes.flat:
-            ax.set_facecolor(theme.fig_defaults["facecolor"])
-    else:
-        axes.set_facecolor(theme.fig_defaults["facecolor"])
+    axes_iter = ax.flat if hasattr(ax, "flat") else [ax]
+    for single_ax in axes_iter:
+        single_ax.set_facecolor(active.fig_defaults["facecolor"])
+        if grid:
+            single_ax.grid(True, alpha=active.grid["alpha"], linewidth=active.grid["linewidth"])
 
-    return fig, axes
+    return fig, ax
 
 
-def get_categorical_colors(n: int, theme: Theme = DEFAULT_THEME) -> list[str]:
+def get_categorical_colors(n: int, theme: Theme | None = None) -> list[str]:
+    """
+    Return ``n`` categorical colors from the active theme palette.
+    """
     if n < 0:
-        raise ValueError("n must be non-negative")
-    if len(theme.palette) == 0:
-        raise ValueError("theme.palette must be non-empty")
-    if n == 0:
-        return []
-    if n <= len(theme.palette):
-        return theme.palette[:n]
-    times = (n // len(theme.palette)) + 1
-    return (theme.palette * times)[:n]
+        raise ValueError(f"n must be non-negative, got {n}")
+    active = theme if theme is not None else DEFAULT_THEME
+    palette = active.palette
+    if not palette:
+        raise ValueError("theme palette must be non-empty")
+    return [palette[i % len(palette)] for i in range(n)]
 
 
 __all__ = [
