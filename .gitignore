@@ -1,0 +1,81 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+.eggs/
+*.egg-link
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Testing / Coverage
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+
+# Mypy
+.mypy_cache/
+*.pyi
+
+# Ruff
+.ruff_cache/
+
+# IDE / Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Distribution / Packaging
+MANIFEST
+
+# Documentation
+docs/_build/
+docs/_static/
+docs/api/
+
+# Project-specific outputs
+examples/output/
+trust_report/
+*.png
+!docs/assets/*.png
+!assets/*.png
+!docs/assets/research/*.png
+
+# Local demo outputs
+demo_output_*/
+demo_output_*
+demo_plots_*
+trustlens_demo_output/
+scratch/
+
+
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+.env.local
+secrets/
+.dev/
+
+.agents/
+graphify-out/
+graphify.md

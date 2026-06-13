@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          pip install -e ".[dev,full]"
+      - name: Run linting
+        run: |
+          pip install ruff pre-commit
+          ruff check .
+          ruff format --check .
+      - name: Run type checking
+        run: mypy trustlens/ --ignore-missing-imports
+      - name: Run tests
+        run: pytest tests/ -v
+
+  build:
+    name: Build and Package
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install build dependencies
+        run: pip install build twine
+      - name: Build distribution
+        run: python -m build
+      - name: Check distribution
+        run: twine check dist/*
+      - name: Install wheel
+        run: pip install dist/*.whl
+      - name: Smoke test
+        run: |
+          python -c "import trustlens; from trustlens import analyze, quick_analyze; quick_analyze(dataset='iris')"
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          draft: true
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

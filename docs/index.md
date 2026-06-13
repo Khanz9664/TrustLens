@@ -1,0 +1,107 @@
+# TrustLens Documentation
+
+TrustLens helps ML teams answer a practical question with evidence: should this model be deployed, delayed, or blocked?
+
+This documentation is organized around real workflows used by ML engineers, not around internal package structure.
+
+## Start Here
+
+- New to TrustLens: read [Getting Started](getting_started.md)
+- Need context first: read [Overview](overview.md) and [The Problem](problem.md)
+- Need API details: open [API Reference](api_reference.md)
+
+## I Want To...
+
+- Evaluate one model quickly: [Getting Started](getting_started.md)
+- Understand score logic and verdict rules: [Trust Score Explained](trust_score_explained.md)
+- Investigate reliability and risk dimensions: [Features and Modules](features.md)
+- Use TrustLens in production workflows: [Guides](guides/model_comparison_workflow.md)
+- Understand what is and is not supported: [Known Limitations](known_limitations.md)
+- Extend the system safely: [Architecture](architecture.md), [Contributing](https://github.com/Khanz9664/TrustLens/blob/main/CONTRIBUTING.md)
+
+## Documentation Map
+
+### Foundations
+
+- [Overview](overview.md)
+- [The Problem](problem.md)
+- [Audience](audience.md)
+
+### Concepts
+
+- [Features and Modules](features.md)
+- [Trust Score Explained](trust_score_explained.md)
+- [Known Limitations](known_limitations.md)
+
+### Practical Guides
+
+- [Model Comparison Workflow](guides/model_comparison_workflow.md)
+- [CI and Deployment Gate Workflow](guides/ci_deployment_gate.md)
+- [Fairness Audit Workflow](guides/fairness_audit_workflow.md)
+
+### Research & Validation
+
+- [Why TrustLens?](research/why_trustlens.md)
+- [Benchmark Results](research/benchmark_results.md)
+- [Methodology](research/methodology.md)
+- [Trust Score Validation](research/trust_score_validation.md)
+- [Distribution Shift](research/distribution_shift.md)
+- [Metric Limitations](research/metric_limitations.md)
+- [Failure Modes](research/failure_modes.md)
+
+### Reference
+
+- [API Reference](api_reference.md)
+- [Metric: Calibration](metrics/calibration.md)
+- [Metric: Failure](metrics/failure.md)
+- [Metric: Bias](metrics/bias.md)
+- [Metric: Representation](metrics/representation.md)
+
+### Project and Contribution
+
+- [Architecture](architecture.md)
+- [Design Principles](DESIGN_PRINCIPLES.md)
+- [Experimental Modules](EXPERIMENTAL.md)
+- [Contributing Guide](https://github.com/Khanz9664/TrustLens/blob/main/CONTRIBUTING.md)
+- [Roadmap](https://github.com/Khanz9664/TrustLens/blob/main/ROADMAP.md)
+- [Code of Conduct](https://github.com/Khanz9664/TrustLens/blob/main/CODE_OF_CONDUCT.md)
+
+```{toctree}
+:maxdepth: 2
+:caption: Documentation
+
+getting_started
+overview
+problem
+audience
+features
+use_cases
+trust_score_explained
+known_limitations
+guides/model_comparison_workflow
+guides/ci_deployment_gate
+guides/fairness_audit_workflow
+research/why_trustlens
+research/benchmark_results
+research/methodology
+research/trust_score_validation
+research/distribution_shift
+research/metric_limitations
+research/failure_modes
+api_reference
+architecture
+DESIGN_PRINCIPLES
+EXPERIMENTAL
+FUTURE_EXTENSIONS
+PAGE_TEMPLATE
+internal/prediction_contract
+plans/IMPLEMENTATION_PLAN_XGBoost
+plans/IMPLEMENTATION_PLAN_Keras
+plans/IMPLEMENTATION_PLAN_TensorFlow
+```
+
+## Indices and Tables
+
+- {ref}`genindex`
+- {ref}`modindex`
+- {ref}`search`

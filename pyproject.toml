@@ -1,0 +1,168 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trustlens"
+dynamic = ["version"]
+description = "Audit ML models beyond accuracy — calibration, fairness, latent health, and deployment verdicts."
+readme = { file = "README.md", content-type = "text/markdown" }
+requires-python = ">=3.9"
+license = "MIT"
+authors = [
+    { name = "Shahid Ul Islam", email = "shahid9664@gmail.com" }
+]
+
+keywords = [
+    "machine learning",
+    "model evaluation",
+    "model reliability",
+    "calibration",
+    "model trust",
+    "fairness",
+    "bias detection"
+]
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+dependencies = [
+    "numpy>=1.23",
+    "scikit-learn>=1.2",
+    "matplotlib>=3.6",
+    "scipy>=1.9",
+]
+
+[project.urls]
+Homepage = "https://github.com/Khanz9664/TrustLens"
+Source = "https://github.com/Khanz9664/TrustLens"
+Documentation = "https://khanz9664.github.io/trustlensdocs/"
+Repository = "https://github.com/Khanz9664/TrustLens"
+Issues = "https://github.com/Khanz9664/TrustLens/issues"
+Portfolio = "https://khanz9664.github.io/portfolio/"
+LinkedIn = "https://www.linkedin.com/in/shahid-ul-islam-13650998/"
+Instagram = "https://instagram.com/shaddy9664"
+
+[project.optional-dependencies]
+xgboost = [
+    "xgboost>=1.7",
+]
+torch = [
+    "torch>=2.0",
+    "torchvision>=0.15",
+]
+full = [
+    "xgboost>=1.7",
+    "torch>=2.0",
+    "torchvision>=0.15",
+    "shap>=0.42",
+    "captum>=0.6",
+]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.4",
+    "mypy>=1.0",
+    "pre-commit>=3.0",
+    "build>=1.0",
+    "twine>=5.0",
+    "pip-audit>=2.7",
+    "pytest-xdist>=3.0",
+]
+docs = [
+    "sphinx>=6.0",
+    "furo>=2024.1.1",
+    "myst-parser>=2.0",
+    "nbsphinx>=0.9",
+]
+
+[tool.setuptools.packages.find]
+exclude = ["tests*","scratch*", "docs*", "examples*"]
+
+[tool.setuptools.dynamic]
+version = { attr = "trustlens._version.__version__" }
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+    "--color=yes",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks integration tests",
+]
+
+[tool.coverage.run]
+source = ["trustlens"]
+omit = [
+    "trustlens/__init__.py",
+    "tests/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+fail_under = 73
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+exclude = [
+    ".git",
+    ".venv",
+    ".pytest_cache",
+    ".ruff_cache",
+    "__pycache__",
+    "build",
+    "dist",
+    "*.ipynb",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "D"]
+ignore = [
+    "E501",
+    "B008",
+    "D100",
+    "D104",
+    "D203",
+    "D212",
+    "D401",
+    "D105",
+    "N806",
+    "D205",
+    "N803",
+    "N812",
+    "UP045",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D"]
+"examples/*" = ["D", "E402", "INP001", "N"]
+"*.py" = ["D"]
+"trustlens/*" = []
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.mypy]
+python_version = "3.10"  # Mypy 1.19+ dropped 3.9 (EOL). Project maintains 3.10 runtime support.
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+follow_imports = "silent"
