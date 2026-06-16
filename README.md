@@ -50,7 +50,9 @@ TrustLens uses a **Prediction Resolver Architecture** to automatically handle di
 
 - **scikit-learn** — Full support for all `ClassifierMixin` estimators.
 - **XGBoost** — Native support for `XGBClassifier` and raw `Booster` objects.
-- **Planned** — LightGBM, CatBoost, PyTorch, TensorFlow/Keras.
+- **LightGBM** — Native support for `LGBMClassifier` and raw `Booster` objects.
+- **CatBoost** — Native support for `CatBoostClassifier`.
+- **Planned** — PyTorch, TensorFlow/Keras.
 
 TrustLens **automatically detects** your model's framework. You don't need to change your code when switching from sklearn to XGBoost.
 
@@ -122,15 +124,19 @@ TrustLens is more than a visualization tool—it is a statistically grounded dia
 
 ## Full Audit
 
-### Automatic Detection (Sklearn / XGBoost)
+### Automatic Detection (scikit-learn / XGBoost / LightGBM / CatBoost)
 
 ```python
 from trustlens import analyze
+
+# Works the same way for XGBClassifier, LGBMClassifier, or CatBoostClassifier
 from xgboost import XGBClassifier
+# from lightgbm import LGBMClassifier
+# from catboost import CatBoostClassifier
 
 model = XGBClassifier().fit(X_train, y_train)
 
-# TrustLens automatically detects XGBoost and resolves predictions
+# TrustLens automatically detects the framework and resolves predictions
 report = analyze(
     model=model,
     X=X_test,
@@ -160,7 +166,7 @@ report = analyze(
 Every report tracks its own backend provenance for auditability:
 
 ```python
-print(report.metadata["framework"])  # "xgboost"
+print(report.metadata["framework"])  # "xgboost" | "lightgbm" | "catboost" | "sklearn"
 print(report.metadata["backend"])    # {'resolver': 'xgboost', 'framework_version': '2.0.3', ...}
 ```
 

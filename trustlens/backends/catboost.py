@@ -45,9 +45,39 @@ def resolve(
     """
     Prediction resolver for CatBoost models.
 
-    Supports:
-    - CatBoostClassifier
-    - catboost.Pool inputs
+    Supports ``CatBoostClassifier``. Regression and ranking models are not
+    supported and will raise ``NotImplementedError``.
+
+    Parameters
+    ----------
+    model : Any
+        A fitted ``CatBoostClassifier`` instance.
+    X : np.ndarray
+        Feature matrix of shape ``(n_samples, n_features)``.
+        ``catboost.Pool`` objects are also accepted where the underlying
+        model supports them.
+    y_pred : np.ndarray, optional
+        Predicted class labels. Derived from ``y_prob`` when not provided.
+    y_prob : np.ndarray, optional
+        Predicted class probabilities. Computed via ``predict_proba()`` when
+        not provided. Binary outputs are normalized to shape ``(n_samples, 2)``.
+    class_labels : np.ndarray, optional
+        Semantic class labels. Falls back to ``model.classes_`` when available.
+
+    Returns
+    -------
+    PredictionBundle
+        Standardized prediction container with ``y_pred``, ``y_prob``,
+        ``framework='catboost'``, and resolver metadata.
+
+    Raises
+    ------
+    ImportError
+        If the ``catboost`` package is not installed.
+    NotImplementedError
+        If the model is not a ``CatBoostClassifier``.
+    ValueError
+        If probabilities cannot be resolved from the model.
     """
     try:
         import catboost

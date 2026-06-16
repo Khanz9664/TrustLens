@@ -9,6 +9,14 @@ The registry pattern is used to decouple the core TrustLens pipeline from specif
 machine learning frameworks. When `analyze()` is called, the registry is responsible
 for matching the model object to the correct backend resolver.
 
+Implemented Resolvers
+---------------------
+* **sklearn** — all ``ClassifierMixin`` estimators (auto-detected via module prefix).
+* **xgboost** — ``XGBClassifier`` and raw ``xgboost.Booster``.
+* **lightgbm** — ``LGBMClassifier`` and raw ``lightgbm.Booster`` (regression objectives blocked).
+* **catboost** — ``CatBoostClassifier`` (classification only).
+* **manual** — passthrough for user-supplied ``y_pred`` / ``y_prob`` arrays.
+
 Resolution Process & Fallback Logic
 -----------------------------------
 1. **Explicit Override:** If a framework is provided directly by the user, the registry maps it.
