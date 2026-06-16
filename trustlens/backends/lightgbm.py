@@ -29,7 +29,6 @@ import logging
 from typing import Any, Optional
 
 import numpy as np
-from lightgbm import LGBMRegressor
 
 from trustlens.backends.types import PredictionBundle
 
@@ -54,10 +53,7 @@ def resolve(
         import lightgbm as lgb
         from lightgbm import LGBMRegressor
     except ImportError as e:
-        raise ImportError(
-            "LightGBM support requires the 'lightgbm' package."
-        ) from e
-    
+        raise ImportError("LightGBM support requires the 'lightgbm' package.") from e
 
     # 1. Objective detection / regression blocking
     # Explicit estimator-type rejection (most reliable)
@@ -107,13 +103,13 @@ def resolve(
     # 2. Resolve probabilities
     if y_prob is None:
         if isinstance(model, lgb.Booster):
-            y_prob = model.predict(X)
+            y_prob = np.asarray(model.predict(X), dtype=np.float64)
 
         elif hasattr(model, "predict_proba"):
             y_prob = model.predict_proba(X)
 
         elif hasattr(model, "predict"):
-            y_prob = model.predict(X)
+            y_prob = np.asarray(model.predict(X), dtype=np.float64)
 
         else:
             raise ValueError(
@@ -122,7 +118,7 @@ def resolve(
             )
 
     # 3. Normalize probabilities
-    y_prob = np.asarray(y_prob)
+    y_prob = np.asarray(y_prob, dtype=np.float64)
 
     if y_prob.ndim == 1:
         y_prob = np.column_stack([1 - y_prob, y_prob])
@@ -141,20 +137,24 @@ def resolve(
         resolved_class_labels = None
 
     # 4. Resolve class predictions
-# 4. Resolve class predictions
+    # 4. Resolve class predictions
     if y_pred is None:
-    # If probabilities already exist (either supplied by caller or
-    # resolved above), derive predictions from them to keep outputs
-    # internally consistent.
-        y_pred_indices = np.argmax(y_prob, axis=1)
+        # 1. Prefer derived labels from probabilities (IMPORTANT FIX)
+        if y_prob is not None:
+            y_prob_arr = np.asarray(y_prob)
+            y_pred_indices = np.argmax(y_prob_arr, axis=1)
 
-        if resolved_class_labels is not None:
-            if len(resolved_class_labels) == y_prob.shape[1]:
+            if resolved_class_labels is not None:
                 y_pred = resolved_class_labels[y_pred_indices]
             else:
                 y_pred = y_pred_indices
+
+        # 2. Fallback only if probabilities are NOT provided
         else:
-            y_pred = y_pred_indices
+            if hasattr(model, "predict"):
+                y_pred = np.asarray(model.predict(X)).reshape(-1)
+            else:
+                raise ValueError("Cannot resolve y_pred")
 
     # 5. Metadata
     metadata = {

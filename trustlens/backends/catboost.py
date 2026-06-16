@@ -97,15 +97,22 @@ def resolve(
 
     # 4. Resolve class predictions
     if y_pred is None:
-        y_pred_indices = np.argmax(y_prob, axis=1)
+        # 1. Prefer derived labels from probabilities (IMPORTANT FIX)
+        if y_prob is not None:
+            y_prob_arr = np.asarray(y_prob)
+            y_pred_indices = np.argmax(y_prob_arr, axis=1)
 
-        if resolved_class_labels is not None:
-            if len(resolved_class_labels) == y_prob.shape[1]:
+            if resolved_class_labels is not None:
                 y_pred = resolved_class_labels[y_pred_indices]
             else:
                 y_pred = y_pred_indices
+
+        # 2. Fallback only if probabilities are NOT provided
         else:
-            y_pred = y_pred_indices
+            if hasattr(model, "predict"):
+                y_pred = np.asarray(model.predict(X)).reshape(-1)
+            else:
+                raise ValueError("Cannot resolve y_pred")
 
     # 5. Metadata
     metadata = {
