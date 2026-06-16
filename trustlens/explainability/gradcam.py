@@ -186,7 +186,7 @@ class GradCAM:
         -------
         matplotlib.figure.Figure
         """
-        import matplotlib.cm as cm
+        import matplotlib
         import matplotlib.pyplot as plt
 
         fig, axes = plt.subplots(1, 3, figsize=(14, 4), constrained_layout=True)
@@ -207,7 +207,7 @@ class GradCAM:
         else:
             img_float = image_np.astype(float)
 
-        cmap_fn = cm.get_cmap(colormap)
+        cmap_fn = matplotlib.colormaps[colormap]
         heat_rgb = cmap_fn(heatmap)[..., :3]
         overlay = (1 - alpha) * img_float + alpha * heat_rgb
         overlay = np.clip(overlay, 0, 1)
