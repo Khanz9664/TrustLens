@@ -52,8 +52,12 @@ def resolve(
     """
     try:
         import lightgbm as lgb
+        from lightgbm import LGBMRegressor
     except ImportError as e:
-        raise ImportError("LightGBM support requires the 'lightgbm' package.") from e
+        raise ImportError(
+            "LightGBM support requires the 'lightgbm' package."
+        ) from e
+    
 
     # 1. Objective detection / regression blocking
     # Explicit estimator-type rejection (most reliable)
@@ -137,20 +141,20 @@ def resolve(
         resolved_class_labels = None
 
     # 4. Resolve class predictions
+# 4. Resolve class predictions
     if y_pred is None:
-        if hasattr(model, "predict") and not isinstance(model, lgb.Booster):
-            y_pred = model.predict(X)
+    # If probabilities already exist (either supplied by caller or
+    # resolved above), derive predictions from them to keep outputs
+    # internally consistent.
+        y_pred_indices = np.argmax(y_prob, axis=1)
 
-        else:
-            y_pred_indices = np.argmax(y_prob, axis=1)
-
-            if resolved_class_labels is not None:
-                if len(resolved_class_labels) == y_prob.shape[1]:
-                    y_pred = resolved_class_labels[y_pred_indices]
-                else:
-                    y_pred = y_pred_indices
+        if resolved_class_labels is not None:
+            if len(resolved_class_labels) == y_prob.shape[1]:
+                y_pred = resolved_class_labels[y_pred_indices]
             else:
                 y_pred = y_pred_indices
+        else:
+            y_pred = y_pred_indices
 
     # 5. Metadata
     metadata = {

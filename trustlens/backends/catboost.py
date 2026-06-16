@@ -97,19 +97,15 @@ def resolve(
 
     # 4. Resolve class predictions
     if y_pred is None:
-        if hasattr(model, "predict"):
-            y_pred = np.asarray(model.predict(X)).reshape(-1)
+        y_pred_indices = np.argmax(y_prob, axis=1)
 
-        else:
-            y_pred_indices = np.argmax(y_prob, axis=1)
-
-            if resolved_class_labels is not None:
-                if len(resolved_class_labels) == y_prob.shape[1]:
-                    y_pred = resolved_class_labels[y_pred_indices]
-                else:
-                    y_pred = y_pred_indices
+        if resolved_class_labels is not None:
+            if len(resolved_class_labels) == y_prob.shape[1]:
+                y_pred = resolved_class_labels[y_pred_indices]
             else:
                 y_pred = y_pred_indices
+        else:
+            y_pred = y_pred_indices
 
     # 5. Metadata
     metadata = {
