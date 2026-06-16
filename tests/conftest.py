@@ -7,4 +7,5 @@ during CI and headless environments.
 """
 
 import matplotlib
+
 matplotlib.use("Agg")

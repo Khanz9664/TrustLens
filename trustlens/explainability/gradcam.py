@@ -25,9 +25,8 @@ References
 """
 
 from typing import Optional, cast
+
 import matplotlib
-
-
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import colormaps
@@ -191,8 +190,6 @@ class GradCAM:
         matplotlib.figure.Figure
         """
 
-       
-
         fig, axes = plt.subplots(1, 3, figsize=(14, 4), constrained_layout=True)
 
         # Original
@@ -210,7 +207,6 @@ class GradCAM:
             img_float = image_np.astype(float) / 255.0
         else:
             img_float = image_np.astype(float)
-
 
         cmap_fn = matplotlib.colormaps[colormap]
 
