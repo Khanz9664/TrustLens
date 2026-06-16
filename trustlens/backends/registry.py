@@ -39,13 +39,24 @@ FRAMEWORK_MAPPING = {
     "torch": "pytorch",
     "catboost": "catboost",
     "manual": "manual",
+    "lightgbm": "lightgbm",
 }
 
 # Frameworks we can theoretically detect/support
 SUPPORTED_FRAMEWORKS = tuple(sorted(set(FRAMEWORK_MAPPING.values())))
 
 # Frameworks with concrete resolver implementations
-IMPLEMENTED_RESOLVERS = tuple(sorted({"sklearn", "xgboost", "manual"}))
+IMPLEMENTED_RESOLVERS = tuple(
+    sorted(
+        {
+            "sklearn",
+            "xgboost",
+            "lightgbm",
+            "catboost",
+            "manual",
+        }
+    )
+)
 
 
 def manual_resolve(
@@ -151,6 +162,16 @@ def get_resolver(model: Any, framework: Optional[str] = None) -> Callable[..., P
 
     if detected == "manual":
         return manual_resolve
+
+    if detected == "lightgbm":
+        from trustlens.backends import lightgbm
+
+        return lightgbm.resolve
+
+    if detected == "catboost":
+        from trustlens.backends import catboost
+
+        return catboost.resolve
 
     # Note: Future backends will be added here
 
