@@ -207,7 +207,7 @@ class GradCAM:
         else:
             img_float = image_np.astype(float)
 
-        cmap_fn = cm.get_cmap(colormap)
+        cmap_fn = cm.colormaps[colormap]
         heat_rgb = cmap_fn(heatmap)[..., :3]
         overlay = (1 - alpha) * img_float + alpha * heat_rgb
         overlay = np.clip(overlay, 0, 1)
