@@ -58,12 +58,20 @@ Instagram = "https://instagram.com/shaddy9664"
 xgboost = [
     "xgboost>=1.7",
 ]
+lightgbm = [
+    "lightgbm>=3.3",
+]
+catboost = [
+    "catboost>=1.0",
+]
 torch = [
     "torch>=2.0",
     "torchvision>=0.15",
 ]
 full = [
     "xgboost>=1.7",
+    "lightgbm>=3.3",
+    "catboost>=1.0",
     "torch>=2.0",
     "torchvision>=0.15",
     "shap>=0.42",

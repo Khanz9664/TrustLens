@@ -127,7 +127,8 @@ def analyze(
       Predicted class probabilities, shape (n_samples, n_classes).
       If None, TrustLens will automatically resolve probabilities via the backend system.
     framework : str, optional
-      Explicitly specify the model framework (e.g., 'sklearn', 'xgboost').
+      Explicitly specify the model framework
+      (e.g., ``'sklearn'``, ``'xgboost'``, ``'lightgbm'``, ``'catboost'``).
       If None, TrustLens will attempt to auto-detect the framework.
     embeddings : np.ndarray, optional
       Latent representations / embeddings for representation analysis,

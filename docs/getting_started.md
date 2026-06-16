@@ -8,6 +8,8 @@ TrustLens works out-of-the-box with common ML frameworks:
 
 * **scikit-learn**: All classifiers inheriting from `ClassifierMixin`.
 * **XGBoost**: Both `XGBClassifier` and raw `Booster` objects.
+* **LightGBM**: Both `LGBMClassifier` and raw `Booster` objects.
+* **CatBoost**: `CatBoostClassifier` with automatic probability extraction.
 
 The library **automatically detects** your framework. If you use a different framework or external inference system, you can still use TrustLens by providing predictions manually:
 

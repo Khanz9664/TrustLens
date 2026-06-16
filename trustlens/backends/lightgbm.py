@@ -45,9 +45,37 @@ def resolve(
     """
     Prediction resolver for LightGBM models.
 
-    Supports:
-    - lightgbm.LGBMClassifier
-    - lightgbm.Booster
+    Supports ``lightgbm.LGBMClassifier`` and raw ``lightgbm.Booster``.
+    Regression objectives are explicitly blocked.
+
+    Parameters
+    ----------
+    model : Any
+        A fitted LightGBM model (``LGBMClassifier`` or ``Booster``).
+    X : np.ndarray
+        Feature matrix of shape ``(n_samples, n_features)``.
+    y_pred : np.ndarray, optional
+        Predicted class labels. Derived from ``y_prob`` when not provided.
+    y_prob : np.ndarray, optional
+        Predicted class probabilities. Computed from the model when not provided.
+        Binary outputs are normalized to shape ``(n_samples, 2)``.
+    class_labels : np.ndarray, optional
+        Semantic class labels. Falls back to ``model.classes_`` when available.
+
+    Returns
+    -------
+    PredictionBundle
+        Standardized prediction container with ``y_pred``, ``y_prob``,
+        ``framework='lightgbm'``, and resolver metadata.
+
+    Raises
+    ------
+    ImportError
+        If the ``lightgbm`` package is not installed.
+    NotImplementedError
+        If the model is a regressor or uses a regression objective.
+    ValueError
+        If probabilities cannot be resolved from the model.
     """
     try:
         import lightgbm as lgb
@@ -136,7 +164,6 @@ def resolve(
     else:
         resolved_class_labels = None
 
-    # 4. Resolve class predictions
     # 4. Resolve class predictions
     if y_pred is None:
         # 1. Prefer derived labels from probabilities (IMPORTANT FIX)
