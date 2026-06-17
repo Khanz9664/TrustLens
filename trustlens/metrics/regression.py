@@ -340,11 +340,12 @@ def _average_ranks(x: np.ndarray) -> np.ndarray:
     """Average ranks of ``x`` (ties share the mean of their positions)."""
     x = np.asarray(x, dtype=float)
     order = np.argsort(x, kind="mergesort")
-    ranks = np.empty(x.size, dtype=float)
+    ranks: np.ndarray = np.empty(x.size, dtype=float)
     ranks[order] = np.arange(1, x.size + 1, dtype=float)
     # Resolve ties to their average rank.
     _, inv, counts = np.unique(x, return_inverse=True, return_counts=True)
     sums = np.zeros(counts.size, dtype=float)
     np.add.at(sums, inv, ranks)
     avg = sums / counts
-    return avg[inv]
+    averaged: np.ndarray = avg[inv]
+    return averaged
