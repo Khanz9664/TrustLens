@@ -463,10 +463,7 @@ class TrustReport:
                 print(f"\n{module_name.title()} Analysis")
                 print(out)
 
-        if (
-            pic.get("status") == "skipped"
-            and evc.get("status") == "skipped"
-        ):
+        if pic.get("status") == "skipped" and evc.get("status") == "skipped":
             print(
                 "\nNote: uncertainty metrics (PICP, error-variance correlation) need "
                 "prediction intervals / predicted variance. Pass prediction_intervals "

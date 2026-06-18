@@ -364,9 +364,7 @@ def _run_regression_pipeline(
         "interval_coverage": prediction_interval_coverage(
             y_true, lower, upper, confidence_level=confidence_level
         ),
-        "error_variance_correlation": error_variance_correlation(
-            y_true, y_pred, variance
-        ),
+        "error_variance_correlation": error_variance_correlation(y_true, y_pred, variance),
     }
 
     results: dict[str, Any] = {"regression": regression_results}

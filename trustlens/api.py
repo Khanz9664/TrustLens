@@ -42,9 +42,7 @@ def _detect_task(y_true: np.ndarray, task: str) -> str:
     if task in ("classification", "regression"):
         return task
     if task != "auto":
-        raise ValueError(
-            f"Invalid task {task!r}. Use 'auto', 'classification', or 'regression'."
-        )
+        raise ValueError(f"Invalid task {task!r}. Use 'auto', 'classification', or 'regression'.")
 
     y = np.asarray(y_true)
     if y.dtype.kind == "f":
