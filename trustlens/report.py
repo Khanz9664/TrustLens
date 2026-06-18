@@ -27,13 +27,16 @@ import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional, cast
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 import numpy as np
 
 from trustlens.visualization.style import BRAND_COLORS
 
 from ._version import __version__
+
+if TYPE_CHECKING:
+    from trustlens.trust_score import TrustScoreResult
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +85,7 @@ class TrustReport:
         embeddings: np.ndarray | None = None,
         framework: str | None = None,
         backend_metadata: dict[str, Any] | None = None,
+        task_type: str = "classification",
     ) -> None:
         self.results = results
         self.model = model
@@ -92,14 +96,40 @@ class TrustReport:
         self.embeddings = embeddings
         self.framework = framework
         self.backend_metadata = backend_metadata or {}
+        self.task_type = task_type
         self.metadata = self._build_metadata()
 
-        # Compute Trust Score immediately so it's always available
-        from trustlens.trust_score import compute_trust_score
-
-        self.trust_score = compute_trust_score(results)
         self._patterns: list[str] = []
-        self._compute_patterns()
+        if task_type == "regression":
+            # The Trust Score, patterns, and the deployment narrative are
+            # classification-oriented. A regression-specific trust score is a
+            # separate design (tracked as a follow-up), so it is intentionally
+            # not computed here — the regression report surfaces the raw
+            # reliability metrics via show()/to_dict() instead.
+            #
+            # It is None at runtime; every classification-only path (show,
+            # to_dict, save, summary_plot, deployment_explanation, …) is guarded
+            # by a task_type branch or _require_classification(), so the score
+            # is never dereferenced on a regression report. We cast rather than
+            # widen the attribute to Optional to keep the many classification
+            # consumers (and comparison.py) free of None-handling churn.
+            self.trust_score = cast("TrustScoreResult", None)
+        else:
+            # Compute Trust Score immediately so it's always available
+            from trustlens.trust_score import compute_trust_score
+
+            self.trust_score = compute_trust_score(results)
+            self._compute_patterns()
+
+    def _require_classification(self, feature: str) -> None:
+        """Guard classification-only features against regression reports."""
+        if self.task_type == "regression":
+            raise NotImplementedError(
+                f"{feature} is not available for regression reports yet. "
+                "Use report.show() / report.to_dict() for the regression "
+                "reliability metrics; visualizations and a regression trust "
+                "score are planned as follow-up phases."
+            )
 
     @property
     def patterns(self) -> list[str]:
@@ -153,6 +183,7 @@ class TrustReport:
     @property
     def deployment_explanation(self) -> dict[str, Any]:
         """Provide a structured explanation for the deployment verdict."""
+        self._require_classification("deployment_explanation")
         ts = self.trust_score
         grade_map = {"A": "PASS", "B": "CAUTION", "C": "CAUTION", "D": "BLOCK"}
         verdict = "BLOCK" if ts.is_blocked else grade_map.get(ts.grade, "PASS")
@@ -249,10 +280,17 @@ class TrustReport:
             "trustlens_version": __version__,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "n_samples": int(len(self.y_true)),
-            "n_classes": int(len(np.unique(self.y_true))),
             "model_class": type(self.model).__name__ if self.model is not None else "Manual",
             "modules_run": list(self.results.keys()),
+            "task_type": self.task_type,
         }
+
+        # n_classes is a classification concept; for regression report the
+        # number of distinct target values instead.
+        if self.task_type == "regression":
+            meta["n_unique_targets"] = int(len(np.unique(self.y_true)))
+        else:
+            meta["n_classes"] = int(len(np.unique(self.y_true)))
 
         if self.framework:
             meta["framework"] = self.framework
@@ -295,7 +333,14 @@ class TrustReport:
 
         Displays the Trust Score prominently at the top, followed by
         key insights and then delimited per-module metric summaries.
+
+        For regression reports the classification Trust Score is not computed;
+        the regression reliability metrics are shown instead.
         """
+        if self.task_type == "regression":
+            self._show_regression(verbose=verbose)
+            return
+
         print("\nTrustLens Analysis Report")
         print(f"Timestamp : {self.metadata['timestamp']}")
         print(f"Model     : {self.metadata['model_class']}")
@@ -355,11 +400,99 @@ class TrustReport:
         self._print_score_methodology()
         print()
 
+    def _show_regression(self, verbose: bool = False) -> None:
+        """Render the regression reliability report (no classification trust score)."""
+        reg = self.results.get("regression", {})
+        print("\nTrustLens Regression Reliability Report")
+        print(f"Timestamp : {self.metadata['timestamp']}")
+        print(f"Model     : {self.metadata['model_class']}")
+        print(f"Samples   : {self.metadata['n_samples']:,}")
+        print("Task      : regression")
+
+        ed = reg.get("error_distribution", {})
+        if ed and ed.get("status") != "skipped":
+            print("\nError Distribution (|y_true - y_pred|):")
+            print(f"  MAE                : {ed.get('mean_absolute_error'):.4f}")
+            print(f"  RMSE               : {ed.get('rmse'):.4f}")
+            print(f"  Median abs error   : {ed.get('median_absolute_error'):.4f}")
+            print(f"  90th-pct abs error : {ed.get('p90_absolute_error'):.4f}")
+            print(f"  Max abs error      : {ed.get('max_error'):.4f}")
+            medae = ed.get("median_absolute_error") or 0.0
+            p90 = ed.get("p90_absolute_error") or 0.0
+            if medae > 0 and p90 / medae > 3:
+                print(
+                    f"  ! Heavy error tail : p90 is {p90 / medae:.1f}x the median "
+                    "— a tail of large mistakes worth investigating."
+                )
+
+        pic = reg.get("interval_coverage", {})
+        if pic:
+            print("\nPrediction Interval Coverage (PICP):")
+            if pic.get("status") == "skipped":
+                print(f"  skipped — {pic.get('details', pic.get('reason', 'no intervals'))}")
+            else:
+                print(
+                    f"  Coverage (PICP)    : {pic.get('picp'):.4f}  "
+                    f"(target {pic.get('target_coverage')})"
+                )
+                print(f"  Calibration error  : {pic.get('calibration_error'):+.4f}")
+                print(f"  Mean interval width: {pic.get('mean_interval_width'):.4f}")
+                print(f"  Verdict            : {pic.get('verdict')}")
+
+        evc = reg.get("error_variance_correlation", {})
+        if evc:
+            print("\nError-Uncertainty Correlation:")
+            if evc.get("status") == "skipped":
+                print(f"  skipped — {evc.get('details', evc.get('reason', 'no variance'))}")
+            else:
+                print(f"  Pearson            : {evc.get('pearson'):+.4f}")
+                print(f"  Spearman           : {evc.get('spearman'):+.4f}")
+                print(f"  Verdict            : {evc.get('verdict')}")
+
+        # Render any additional / plugin modules generically.
+        for module_name, module_data in self.results.items():
+            if module_name == "regression":
+                continue
+            import io
+            from contextlib import redirect_stdout
+
+            f = io.StringIO()
+            with redirect_stdout(f):
+                self._print_module(module_data, indent=0, verbose=verbose)
+            out = f.getvalue().strip()
+            if out:
+                print(f"\n{module_name.title()} Analysis")
+                print(out)
+
+        if (
+            pic.get("status") == "skipped"
+            and evc.get("status") == "skipped"
+        ):
+            print(
+                "\nNote: uncertainty metrics (PICP, error-variance correlation) need "
+                "prediction intervals / predicted variance. Pass prediction_intervals "
+                "and/or predicted_variance to analyze() to enable them."
+            )
+        print()
+
+    def _generate_regression_text(self, verbose: bool = False) -> str:
+        """Plain-text regression report (captures _show_regression's output)."""
+        import io
+        from contextlib import redirect_stdout
+
+        f = io.StringIO()
+        with redirect_stdout(f):
+            self._show_regression(verbose=verbose)
+        return f.getvalue().strip()
+
     def _generate_text_report(self, verbose: bool = False) -> str:
         """
         Generate a clean, human-readable text report without ANSI colors.
         Mirroring the structure of show().
         """
+        if self.task_type == "regression":
+            return self._generate_regression_text(verbose=verbose)
+
         lines = []
         lines.append("TrustLens Analysis Report")
         lines.append(f"Timestamp : {self.metadata['timestamp']}")
@@ -724,6 +857,7 @@ class TrustReport:
         -------
         matplotlib.figure.Figure
         """
+        self._require_classification("summary_plot()")
         from trustlens.visualization.summary_plot import plot_summary_dashboard
 
         fig = plot_summary_dashboard(
@@ -791,6 +925,7 @@ class TrustReport:
         >>> report.show_failures(top_k=10)
         >>> report.show_failures(top_k=5, images=X_images)
         """
+        self._require_classification("show_failures()")
         max_conf = self._max_confidence()
         y_true = np.asarray(self.y_true)
         y_pred = np.asarray(self.y_pred)
@@ -877,6 +1012,7 @@ class TrustReport:
         save_dir : str, optional
           Directory path where figures are saved as PNG files.
         """
+        self._require_classification("plot()")
         from trustlens.visualization import plot_module
 
         modules_to_plot = [module] if module else list(self.results.keys())
@@ -1071,6 +1207,7 @@ class TrustReport:
             If ``mode`` is invalid, ``"bias"`` is not present in
             ``self.results``, or the data is unusable.
         """
+        self._require_classification("plot_bias()")
         import matplotlib.pyplot as plt
 
         from trustlens.visualization import _plot_bias
@@ -1349,6 +1486,9 @@ class TrustReport:
 
         p = Path(path).resolve()
 
+        if self.task_type == "regression":
+            return self._save_regression(path, p)
+
         # 1. Single-file JSON export
         if path.lower().endswith(".json"):
             p.parent.mkdir(parents=True, exist_ok=True)
@@ -1424,6 +1564,34 @@ class TrustReport:
         logger.info("Report bundle saved to: %s", out_dir)
         return out_dir
 
+    def _save_regression(self, path: str, p: Path) -> Path:
+        """Save a regression report (results + metadata; no classification score)."""
+        if path.lower().endswith(".json"):
+            p.parent.mkdir(parents=True, exist_ok=True)
+            data = {
+                "results": self._to_serializable(self.results),
+                "metadata": self.metadata,
+                "task_type": "regression",
+            }
+            p.write_text(json.dumps(data, indent=2), encoding="utf-8")
+            logger.info("Regression report JSON saved to: %s", p)
+            return p
+        if path.lower().endswith(".txt"):
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(self._generate_text_report(), encoding="utf-8")
+            logger.info("Regression report TXT saved to: %s", p)
+            return p
+        out_dir = p
+        out_dir.mkdir(parents=True, exist_ok=True)
+        (out_dir / "report.json").write_text(
+            json.dumps(self._to_serializable(self.results), indent=2), encoding="utf-8"
+        )
+        (out_dir / "metadata.json").write_text(
+            json.dumps(self.metadata, indent=2), encoding="utf-8"
+        )
+        logger.info("Regression report bundle saved to: %s", out_dir)
+        return out_dir
+
     # ------------------------------------------------------------------
     # to_dict()
     # ------------------------------------------------------------------
@@ -1442,6 +1610,15 @@ class TrustReport:
         from trustlens.utils import flatten_dict
 
         flat = flatten_dict(self._to_serializable(self.results))
+
+        # Regression reports carry no classification Trust Score / sub-scores /
+        # deployment verdict — return the flattened reliability metrics + meta.
+        if self.task_type == "regression":
+            flat["task_type"] = "regression"
+            flat["framework"] = self.metadata.get("framework", "unknown")
+            flat["trustlens_version"] = self.metadata["trustlens_version"]
+            return flat
+
         flat["trust_score"] = self.trust_score.score
         flat["trust_grade"] = self.trust_score.grade
         flat["framework"] = self.metadata.get("framework", "unknown")
@@ -1481,6 +1658,13 @@ class TrustReport:
 
     def __repr__(self) -> str:
         modules_str = ", ".join(self.results.keys())
+        if self.task_type == "regression":
+            return (
+                f"TrustReport(task='regression', "
+                f"model={self.metadata['model_class']!r}, "
+                f"samples={self.metadata['n_samples']}, "
+                f"modules=[{modules_str}])"
+            )
         return (
             f"TrustReport(model={self.metadata['model_class']!r}, "
             f"score={self.trust_score.score}/100 [{self.trust_score.grade}], "
@@ -1488,8 +1672,24 @@ class TrustReport:
             f"modules=[{modules_str}])"
         )
 
+    def _repr_html_regression(self) -> str:
+        """Simple text-based HTML for regression reports (no Phase-2 plots yet)."""
+        import html as _html
+
+        body = _html.escape(self._generate_regression_text())
+        return (
+            '<div style="font-family: monospace; max-width: 760px; padding: 18px; '
+            'border: 1px solid #e0e0e0; border-radius: 12px; background:#fff;">'
+            f'<pre style="white-space: pre-wrap; margin:0;">{body}</pre>'
+            f'<div style="text-align:right; font-size:12px; color:#aaa; margin-top:10px;">'
+            f"Generated by TrustLens v{__version__}</div></div>"
+        )
+
     def _repr_html_(self) -> str:
         """Rich HTML representation for Jupyter notebooks."""
+        if self.task_type == "regression":
+            return self._repr_html_regression()
+
         import base64
         import io
 

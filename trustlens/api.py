@@ -24,10 +24,38 @@ from typing import Any, Optional
 import numpy as np
 
 from trustlens.backends.registry import get_resolver
-from trustlens.core.pipeline import _run_analysis_pipeline
+from trustlens.core.pipeline import _run_analysis_pipeline, _run_regression_pipeline
 from trustlens.report import TrustReport
 
 logger = logging.getLogger(__name__)
+
+
+def _detect_task(y_true: np.ndarray, task: str) -> str:
+    """Resolve the analysis task type.
+
+    ``task`` may be ``"classification"`` / ``"regression"`` (explicit, honored
+    as-is) or ``"auto"``. Auto-detection errs toward ``"classification"`` and
+    only returns ``"regression"`` when the target is clearly continuous — a
+    float array that is not integer-valued, or has many distinct values — so a
+    discrete label set is never mis-routed.
+    """
+    if task in ("classification", "regression"):
+        return task
+    if task != "auto":
+        raise ValueError(
+            f"Invalid task {task!r}. Use 'auto', 'classification', or 'regression'."
+        )
+
+    y = np.asarray(y_true)
+    if y.dtype.kind == "f":
+        n_unique = len(np.unique(y))
+        is_integer_valued = bool(np.all(np.isfinite(y))) and bool(np.allclose(y, np.round(y)))
+        # Integer-valued floats with a small label set look like classes.
+        if is_integer_valued and n_unique <= 20:
+            return "classification"
+        return "regression"
+    # Non-float dtypes (ints, strings, bools) default to classification.
+    return "classification"
 
 
 def quick_analyze(
@@ -107,6 +135,10 @@ def analyze(
     modules: Optional[list[str]] = None,
     plugins: Optional[list[str]] = None,
     class_labels: Optional[np.ndarray] = None,
+    task: str = "auto",
+    prediction_intervals: Optional[tuple[np.ndarray, np.ndarray]] = None,
+    predicted_variance: Optional[np.ndarray] = None,
+    confidence_level: float = 0.95,
     verbose: bool = True,
 ) -> TrustReport:
     """
@@ -143,6 +175,20 @@ def analyze(
       Semantic class labels in the order corresponding to probability columns.
       Useful for raw backends such as ``xgboost.Booster`` that return ordinal
       probability columns without a ``classes_`` attribute.
+    task : str, default='auto'
+      Analysis task: ``'auto'`` (detect from ``y_true``), ``'classification'``,
+      or ``'regression'``. Regression routes through the regression reliability
+      metrics (error distribution, interval coverage, error-variance
+      correlation) instead of the classification modules.
+    prediction_intervals : tuple(np.ndarray, np.ndarray), optional
+      ``(lower, upper)`` per-sample prediction-interval bounds (regression only).
+      Enables Prediction Interval Coverage (PICP); omitted ⇒ that metric is
+      skipped.
+    predicted_variance : np.ndarray, optional
+      Per-sample predicted variance / uncertainty score (regression only).
+      Enables the error-variance correlation metric; omitted ⇒ skipped.
+    confidence_level : float, default=0.95
+      Nominal coverage the supplied ``prediction_intervals`` claim (regression).
     verbose : bool
       Print progress updates. Default True.
 
@@ -184,7 +230,35 @@ def analyze(
     >>> report.show()
     """
     if len(y_true) < 30:
-        logger.warning("Small dataset (n < 30) detected. Calibration metrics may be unreliable.")
+        logger.warning("Small dataset (n < 30) detected. Metrics may be unreliable.")
+
+    # ------------------------------------------------------------------
+    # 0. Route by task. Regression skips the classification backend (which
+    #    resolves class probabilities) and the classification modules.
+    # ------------------------------------------------------------------
+    task_type = _detect_task(y_true, task)
+    if task_type == "regression":
+        if y_pred is None:
+            if model is None or not hasattr(model, "predict"):
+                raise ValueError(
+                    "Regression analysis needs point predictions: pass y_pred=..., "
+                    "or a model that exposes .predict(X)."
+                )
+            y_pred_resolved = np.asarray(model.predict(X))
+        else:
+            y_pred_resolved = np.asarray(y_pred)
+        return _run_regression_pipeline(
+            model=model,
+            X=X,
+            y_true=np.asarray(y_true),
+            y_pred=y_pred_resolved,
+            prediction_intervals=prediction_intervals,
+            predicted_variance=predicted_variance,
+            confidence_level=confidence_level,
+            framework=framework or ("manual" if y_pred is not None else None),
+            backend_metadata={"task_type": "regression"},
+            verbose=verbose,
+        )
 
     # ------------------------------------------------------------------
     # 1. Resolve predictions via Backend Registry
