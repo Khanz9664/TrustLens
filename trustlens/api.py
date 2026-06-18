@@ -50,8 +50,11 @@ def _detect_task(y_true: np.ndarray, task: str) -> str:
     if y.dtype.kind == "f":
         n_unique = len(np.unique(y))
         is_integer_valued = bool(np.all(np.isfinite(y))) and bool(np.allclose(y, np.round(y)))
-        # Integer-valued floats with a small label set look like classes.
-        if is_integer_valued and n_unique <= 20:
+        # Integer-valued floats are class labels at ANY cardinality (a 25-class
+        # target encoded as float must not be mistaken for regression), and a
+        # small distinct-value set is also label-like. Only clearly-continuous
+        # floats route to regression.
+        if is_integer_valued or n_unique <= 20:
             return "classification"
         return "regression"
     # Non-float dtypes (ints, strings, bools) default to classification.

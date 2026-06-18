@@ -23,8 +23,10 @@ It relies on `trustlens.trust_score` to compute the composite Trust Score.
 
 from __future__ import annotations
 
+import io
 import json
 import logging
+from contextlib import redirect_stdout
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, cast
@@ -453,9 +455,6 @@ class TrustReport:
         for module_name, module_data in self.results.items():
             if module_name == "regression":
                 continue
-            import io
-            from contextlib import redirect_stdout
-
             f = io.StringIO()
             with redirect_stdout(f):
                 self._print_module(module_data, indent=0, verbose=verbose)
@@ -477,9 +476,6 @@ class TrustReport:
 
     def _generate_regression_text(self, verbose: bool = False) -> str:
         """Plain-text regression report (captures _show_regression's output)."""
-        import io
-        from contextlib import redirect_stdout
-
         f = io.StringIO()
         with redirect_stdout(f):
             self._show_regression(verbose=verbose)
@@ -1615,6 +1611,9 @@ class TrustReport:
         # deployment verdict — return the flattened reliability metrics + meta.
         if self.task_type == "regression":
             flat["task_type"] = "regression"
+            flat["n_samples"] = self.metadata["n_samples"]
+            flat["model"] = self.metadata["model_class"]
+            flat["timestamp"] = self.metadata["timestamp"]
             flat["framework"] = self.metadata.get("framework", "unknown")
             flat["trustlens_version"] = self.metadata["trustlens_version"]
             return flat

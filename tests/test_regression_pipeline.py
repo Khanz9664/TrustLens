@@ -151,3 +151,45 @@ def test_invalid_task_raises(regression_data):
     with pytest.raises(ValueError):
         analyze(model=None, X=X, y_true=y_true, y_pred=y_pred,
                 task="nonsense", verbose=False)
+
+
+def test_multiclass_float_labels_route_to_classification():
+    """A 25-class label set encoded as float must NOT be mistaken for
+    regression — integer-valued floats are class labels at any cardinality."""
+    rng = np.random.default_rng(7)
+    n = 300
+    X = rng.normal(size=(n, 3))
+    y_cls = rng.integers(0, 25, size=n).astype(float)  # 25 integer classes as float
+    assert len(np.unique(y_cls)) > 20
+    yprob = np.full((n, 25), 1 / 25)
+    rep = analyze(model=None, X=X, y_true=y_cls, y_pred=y_cls, y_prob=yprob,
+                  task="auto", verbose=False)
+    assert rep.task_type == "classification"
+
+
+def test_singleton_column_predictions_flattened():
+    """`(n, 1)` predictions (valid single-output) flatten rather than crash;
+    a true multi-output shape is rejected with a clear error."""
+    rng = np.random.default_rng(11)
+    n = 150
+    X = rng.normal(size=(n, 2))
+    y_true = (X @ np.array([1.0, -0.5])) + rng.normal(scale=0.3, size=n)
+    y_pred_2d = (y_true + rng.normal(scale=0.3, size=n)).reshape(-1, 1)  # (n, 1)
+    rep = analyze(model=None, X=X, y_true=y_true.reshape(-1, 1), y_pred=y_pred_2d,
+                  task="regression", verbose=False)
+    assert rep.results["regression"]["error_distribution"]["n_samples"] == n
+    # True multi-output is rejected, not silently mis-shaped.
+    with pytest.raises(ValueError):
+        analyze(model=None, X=X, y_true=y_true,
+                y_pred=np.column_stack([y_pred_2d[:, 0], y_pred_2d[:, 0]]),
+                task="regression", verbose=False)
+
+
+def test_to_dict_includes_regression_metadata(regression_data):
+    X, y_true, y_pred = regression_data
+    rep = analyze(model=None, X=X, y_true=y_true, y_pred=y_pred,
+                  task="regression", verbose=False)
+    d = rep.to_dict()
+    assert d["n_samples"] == len(y_true)
+    assert d["model"] == "Manual"
+    assert "timestamp" in d and "trustlens_version" in d
