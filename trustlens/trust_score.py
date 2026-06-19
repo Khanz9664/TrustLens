@@ -210,6 +210,11 @@ class TrustScoreResult:
       Actual weights used (after redistribution for missing dimensions).
     breakdown : dict
       Weighted contribution of each dimension to the final score.
+    task_type : str
+      The task the score was computed for — ``"classification"`` (default) or
+      ``"regression"``. Both share this interface (0–100, A–D, verdicts), but a
+      regression ``75`` and a classification ``75`` are **not** directly
+      comparable: they aggregate different underlying dimensions.
     """
 
     score: int
@@ -221,6 +226,7 @@ class TrustScoreResult:
     penalties_applied: dict[str, float] = field(default_factory=dict)
     base_score: int = 0
     is_blocked: bool = False
+    task_type: str = "classification"
 
     def __str__(self) -> str:
         lines = [
@@ -494,4 +500,291 @@ def compute_trust_score(
         penalties_applied=penalties_applied,
         base_score=base_score,
         is_blocked=is_blocked,
+        task_type="classification",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Regression Trust Score
+# ---------------------------------------------------------------------------
+#
+# A regression-specific scorer that reuses the classification interface
+# (``TrustScoreResult``, the 0–100 scale, the A/B/C/D bands, the deployment
+# verdicts and the weight-redistribution mechanism) but scores three
+# regression-native dimensions instead of the classification four.
+#
+# Design (RFC #145, converged with the maintainer):
+#   Accuracy / Skill            0.30   skill S = 1 − MSE/Var(y)  (= R² vs the
+#                                      mean-predictor baseline), docked by a
+#                                      p90/median heavy-tail penalty.
+#   Interval Calibration        0.40   PICP |calibration_error| through a
+#                                      tolerance (the regression analog of ECE).
+#   Uncertainty Informativeness 0.30   max(pearson, spearman) of predicted
+#                                      uncertainty vs realised error.
+#
+# Point-prediction-only reports score on Accuracy alone (the other two are
+# redistributed away), exactly as a no-embeddings classification report drops
+# Representation today.
+#
+# Blockers (→ grade D):  negative skill (S < 0); severe interval miscoverage
+#                        (calibration_error < −0.10 — materially over-confident).
+# Penalties (not blockers): a heavy tail docks the Accuracy/Skill dimension; weak
+#                        uncertainty correlation docks the composite.
+
+_REGRESSION_DEFAULT_WEIGHTS: dict[str, float] = {
+    "accuracy": 0.30,
+    "interval_calibration": 0.40,
+    "uncertainty_informativeness": 0.30,
+}
+
+# Interval-calibration sub-score: the |calibration_error| at which the sub-score
+# reaches 0. A ±0.10 miss → 50/100; ±0.20 → 0/100.
+_REG_CALIBRATION_TOLERANCE = 0.20
+
+# Heavy-tail penalty (docks the Accuracy/Skill dimension). The p90/median
+# absolute-error ratio at/below the threshold incurs no dock; the dock then ramps
+# linearly with the excess up to a capped fraction of the sub-score.
+_REG_TAIL_RATIO_THRESHOLD = 3.0
+_REG_TAIL_RATIO_SCALE = 7.0
+_REG_MAX_TAIL_DOCK_FRACTION = 0.50
+
+# Weak-uncertainty-correlation penalty (docks the composite). No penalty at/above
+# the "informative" boundary; scales up as the correlation falls toward (and
+# below) zero.
+_REG_INFORMATIVE_CORR = 0.50
+_REG_MAX_WEAK_CORR_PENALTY = 15.0
+
+# Severe-miscoverage blocker: realised coverage this far below nominal means the
+# intervals are materially over-confident (the regression "confidently wrong").
+_REG_SEVERE_MISCOVERAGE = -0.10
+
+
+def _regression_accuracy_score(error_dist: dict, target_variance: float) -> dict[str, float]:
+    """
+    Accuracy/Skill sub-score (0–100) plus the diagnostics needed downstream.
+
+    The skill score ``S = 1 − MSE / Var(y)`` is the coefficient of determination
+    against a predict-the-mean baseline (scale-free and comparable across
+    datasets). The base sub-score is ``100 × clip(S, 0, 1)``, then docked by a
+    heavy-tail penalty derived from the ``p90 / median`` absolute-error ratio so
+    a handful of catastrophic errors hidden by the aggregate still lower the
+    dimension.
+
+    Returns a dict with ``score`` (the docked sub-score), ``skill`` (the raw
+    ``S``, which may be negative → blocker), ``tail_ratio`` and ``tail_dock``
+    (points removed by the heavy-tail penalty).
+    """
+    rmse = float(error_dist.get("rmse", 0.0))
+    mse = rmse * rmse
+    if target_variance > 0.0:
+        skill = 1.0 - mse / target_variance
+    else:
+        # Constant target: a mean-predictor is already exact, so skill "over the
+        # mean" is undefined. Treat a perfect fit as full skill, else none.
+        skill = 1.0 if mse <= 1e-12 else 0.0
+
+    base = 100.0 * float(np.clip(skill, 0.0, 1.0))
+
+    median = float(error_dist.get("median_absolute_error", 0.0))
+    p90 = float(error_dist.get("p90_absolute_error", 0.0))
+    if median > 1e-12:
+        tail_ratio = p90 / median
+    elif p90 > 1e-12:
+        # Degenerate (median ~0 but a real tail) → treat as maximally heavy.
+        tail_ratio = _REG_TAIL_RATIO_THRESHOLD + _REG_TAIL_RATIO_SCALE
+    else:
+        tail_ratio = 1.0  # all-zero errors → no tail
+
+    excess = max(0.0, tail_ratio - _REG_TAIL_RATIO_THRESHOLD)
+    dock_fraction = float(np.clip(excess / _REG_TAIL_RATIO_SCALE, 0.0, _REG_MAX_TAIL_DOCK_FRACTION))
+    tail_dock = base * dock_fraction
+    return {
+        "score": base - tail_dock,
+        "skill": skill,
+        "tail_ratio": tail_ratio,
+        "tail_dock": tail_dock,
+    }
+
+
+def _interval_calibration_score(coverage: dict) -> float:
+    """
+    Interval-calibration sub-score (0–100) from the PICP ``calibration_error``.
+
+    ``100 × (1 − clip(|calibration_error| / T, 0, 1))`` — the regression analog
+    of how :func:`_calibration_score` maps ECE for classification.
+    """
+    cal_err = float(coverage.get("calibration_error", 0.0))
+    return 100.0 * (1.0 - float(np.clip(abs(cal_err) / _REG_CALIBRATION_TOLERANCE, 0.0, 1.0)))
+
+
+def _uncertainty_informativeness_score(corr: dict) -> float:
+    """
+    Uncertainty-informativeness sub-score (0–100).
+
+    ``100 × clip(max(pearson, spearman), 0, 1)`` — rewards uncertainty that is
+    larger exactly where the realised error is larger.
+    """
+    strongest = max(float(corr.get("pearson", 0.0)), float(corr.get("spearman", 0.0)))
+    return 100.0 * float(np.clip(strongest, 0.0, 1.0))
+
+
+def _reg_metric_present(metric: dict | None) -> bool:
+    """True when an optional regression metric was actually computed (not skipped)."""
+    return isinstance(metric, dict) and metric.get("status") != "skipped"
+
+
+def regression_trust_score(
+    results: dict,
+    y_true: np.ndarray,
+    weights: dict[str, float] | None = None,
+) -> TrustScoreResult:
+    """
+    Compute the regression Trust Score from a regression report's results.
+
+    Mirrors :func:`compute_trust_score` but scores three regression-native
+    dimensions — Accuracy/Skill, Interval Calibration and Uncertainty
+    Informativeness — while reusing the same :class:`TrustScoreResult`
+    interface, the 0–100 scale, the A/B/C/D bands, the deployment verdicts and
+    the weight-redistribution mechanism (see the module-level notes / RFC #145).
+
+    Parameters
+    ----------
+    results : dict
+      Either the full report results dict (with a ``"regression"`` key, as built
+      by the regression pipeline) or the inner regression metrics dict directly.
+      Expected keys: ``error_distribution`` (always present) plus the optional
+      ``interval_coverage`` / ``error_variance_correlation`` (which may be
+      ``status="skipped"`` dicts when their inputs were absent).
+    y_true : np.ndarray
+      Ground-truth targets, used to compute ``Var(y)`` for the skill score.
+    weights : dict, optional
+      Custom dimension weights (keys: ``"accuracy"``, ``"interval_calibration"``,
+      ``"uncertainty_informativeness"``). Defaults to ``0.30 / 0.40 / 0.30``.
+
+    Returns
+    -------
+    TrustScoreResult
+      With ``task_type="regression"``. A regression ``75`` and a classification
+      ``75`` share this interface but are **not** directly comparable.
+
+    Examples
+    --------
+    >>> from trustlens.trust_score import regression_trust_score
+    >>> result = regression_trust_score(report.results, report.y_true)
+    >>> print(result.score, result.grade)
+    """
+    reg = results.get("regression", results)
+    error_dist = reg.get("error_distribution", {}) or {}
+    coverage = reg.get("interval_coverage", {})
+    corr = reg.get("error_variance_correlation", {})
+
+    y_true_arr = np.asarray(y_true, dtype=float)
+    target_variance = float(np.var(y_true_arr)) if y_true_arr.size else 0.0
+
+    w = dict(_REGRESSION_DEFAULT_WEIGHTS)
+    if weights:
+        w.update(weights)
+
+    sub_scores: dict[str, float] = {}
+    penalties_applied: dict[str, float] = {}
+
+    # ------------------------------------------------------------------
+    # 1. Sub-scores (Accuracy always available; the other two are optional)
+    # ------------------------------------------------------------------
+    accuracy = _regression_accuracy_score(error_dist, target_variance)
+    sub_scores["accuracy"] = accuracy["score"]
+    skill = accuracy["skill"]
+
+    interval_present = _reg_metric_present(coverage) and "calibration_error" in coverage
+    calibration_error: float | None = None
+    if interval_present:
+        calibration_error = float(coverage.get("calibration_error", 0.0))
+        sub_scores["interval_calibration"] = _interval_calibration_score(coverage)
+
+    informativeness_present = _reg_metric_present(corr) and (
+        "pearson" in corr or "spearman" in corr
+    )
+    strongest_corr: float | None = None
+    if informativeness_present:
+        strongest_corr = max(float(corr.get("pearson", 0.0)), float(corr.get("spearman", 0.0)))
+        sub_scores["uncertainty_informativeness"] = _uncertainty_informativeness_score(corr)
+
+    # ------------------------------------------------------------------
+    # 2. Redistribute weights across the dimensions actually present
+    #    (a point-only report collapses to Accuracy = 1.00)
+    # ------------------------------------------------------------------
+    active_dims = [d for d in w if d in sub_scores]
+    total_active_weight = sum(w[d] for d in active_dims)
+    weights_used: dict[str, float] = {}
+    if total_active_weight > 0:
+        for dim in active_dims:
+            weights_used[dim] = w[dim] / total_active_weight
+    else:
+        for dim in active_dims:
+            weights_used[dim] = 1.0 / len(active_dims) if active_dims else 0.0
+
+    raw_score = sum(sub_scores[d] * weights_used[d] for d in active_dims)
+    base_score = int(round(float(np.clip(raw_score, 0.0, 100.0))))
+
+    # ------------------------------------------------------------------
+    # 3. Composite penalty: weak uncertainty correlation (only when present).
+    #    The heavy-tail penalty is NOT applied here — it already docked the
+    #    Accuracy sub-score in step 1, so base_score − composite_penalties stays
+    #    consistent with final_score.
+    # ------------------------------------------------------------------
+    if (
+        informativeness_present
+        and strongest_corr is not None
+        and strongest_corr < _REG_INFORMATIVE_CORR
+    ):
+        frac = float(
+            np.clip((_REG_INFORMATIVE_CORR - strongest_corr) / _REG_INFORMATIVE_CORR, 0.0, 1.0)
+        )
+        weak_corr_penalty = _REG_MAX_WEAK_CORR_PENALTY * frac
+        raw_score -= weak_corr_penalty
+        penalties_applied["Weak Uncertainty"] = round(weak_corr_penalty, 1)
+
+    final_score = int(round(float(np.clip(raw_score, 0.0, 100.0))))
+    breakdown = {d: round(sub_scores[d] * weights_used[d], 2) for d in active_dims}
+
+    # ------------------------------------------------------------------
+    # 4. Blockers → grade D (negative skill; severe interval miscoverage)
+    # ------------------------------------------------------------------
+    is_blocked = False
+    block_reason = ""
+    if skill < 0.0:
+        is_blocked = True
+        block_reason = "Blocked by negative skill (worse than predicting the mean; R^2 < 0)"
+    elif (
+        interval_present
+        and calibration_error is not None
+        and calibration_error < _REG_SEVERE_MISCOVERAGE
+    ):
+        is_blocked = True
+        block_reason = (
+            f"Blocked by severe interval miscoverage (coverage {calibration_error:+.2f} "
+            "below nominal - over-confident intervals)"
+        )
+
+    if is_blocked:
+        grade = "D"
+        verdict = f"Low Trust - {block_reason}"
+    else:
+        grade, verdict = "D", "Low Trust - serious issues"
+        for threshold, g, v in _GRADE_THRESHOLDS:
+            if final_score >= threshold:
+                grade, verdict = g, v
+                break
+
+    return TrustScoreResult(
+        score=final_score,
+        grade=grade,
+        verdict=verdict,
+        sub_scores={d: round(sub_scores[d], 1) for d in active_dims},
+        weights_used={d: round(weights_used[d], 3) for d in active_dims},
+        breakdown=breakdown,
+        penalties_applied=penalties_applied,
+        base_score=base_score,
+        is_blocked=is_blocked,
+        task_type="regression",
     )

@@ -29,16 +29,13 @@ import logging
 from contextlib import redirect_stdout
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional, cast
+from typing import Any, Optional, cast
 
 import numpy as np
 
 from trustlens.visualization.style import BRAND_COLORS
 
 from ._version import __version__
-
-if TYPE_CHECKING:
-    from trustlens.trust_score import TrustScoreResult
 
 logger = logging.getLogger(__name__)
 
@@ -110,19 +107,14 @@ class TrustReport:
 
         self._patterns: list[str] = []
         if task_type == "regression":
-            # The Trust Score, patterns, and the deployment narrative are
-            # classification-oriented. A regression-specific trust score is a
-            # separate design (tracked as a follow-up), so it is intentionally
-            # not computed here — the regression report surfaces the raw
-            # reliability metrics via show()/to_dict() instead.
-            #
-            # It is None at runtime; every classification-only path (show,
-            # to_dict, save, summary_plot, deployment_explanation, …) is guarded
-            # by a task_type branch or _require_classification(), so the score
-            # is never dereferenced on a regression report. We cast rather than
-            # widen the attribute to Optional to keep the many classification
-            # consumers (and comparison.py) free of None-handling churn.
-            self.trust_score = cast("TrustScoreResult", None)
+            # Regression has its own scorer (RFC #145): the same TrustScoreResult
+            # interface (0–100, A–D, verdicts, weight redistribution) over three
+            # regression-native dimensions instead of the classification four.
+            # The classification-only narrative (patterns, deployment_explanation,
+            # summary_plot) stays guarded by _require_classification().
+            from trustlens.trust_score import regression_trust_score
+
+            self.trust_score = regression_trust_score(results, y_true)
         else:
             # Compute Trust Score immediately so it's always available
             from trustlens.trust_score import compute_trust_score
@@ -134,10 +126,10 @@ class TrustReport:
         """Guard classification-only features against regression reports."""
         if self.task_type == "regression":
             raise NotImplementedError(
-                f"{feature} is not available for regression reports yet. "
+                f"{feature} is not available for regression reports. "
                 "Use report.plot_residuals() / report.plot_error_distribution() for "
-                "regression visualizations, or report.show() / report.to_dict() for the "
-                "reliability metrics; a regression trust score is planned as a follow-up phase."
+                "regression visualizations, or report.show() / report.to_dict() / "
+                "report.trust_score for the regression reliability metrics and Trust Score."
             )
 
     def _require_regression(self, feature: str) -> None:
@@ -476,6 +468,18 @@ class TrustReport:
         print(f"Model     : {self.metadata['model_class']}")
         print(f"Samples   : {self.metadata['n_samples']:,}")
         print("Task      : regression")
+
+        ts = self.trust_score
+        print(f"\nTRUST SCORE: {ts.score}/100 [{ts.grade}]")
+        print(f"Assessment : {ts.verdict}")
+        if ts.sub_scores:
+            print("Dimensions :")
+            for dim, dim_score in ts.sub_scores.items():
+                label = dim.replace("_", " ").title()
+                print(f"  - {label:<28}: {dim_score:5.1f}/100")
+        if ts.penalties_applied:
+            pen = ", ".join(f"{k} (-{v})" for k, v in ts.penalties_applied.items())
+            print(f"Penalties  : {pen}")
 
         ed = reg.get("error_distribution", {})
         if ed and ed.get("status") != "skipped":
@@ -1624,13 +1628,16 @@ class TrustReport:
         return out_dir
 
     def _save_regression(self, path: str, p: Path) -> Path:
-        """Save a regression report (results + metadata; no classification score)."""
+        """Save a regression report (results + metadata + regression Trust Score)."""
         if path.lower().endswith(".json"):
             p.parent.mkdir(parents=True, exist_ok=True)
             data = {
                 "results": self._to_serializable(self.results),
                 "metadata": self.metadata,
                 "task_type": "regression",
+                "trust_score": self.trust_score.score,
+                "grade": self.trust_score.grade,
+                "sub_scores": self.trust_score.sub_scores,
             }
             p.write_text(json.dumps(data, indent=2), encoding="utf-8")
             logger.info("Regression report JSON saved to: %s", p)
@@ -1647,6 +1654,23 @@ class TrustReport:
         )
         (out_dir / "metadata.json").write_text(
             json.dumps(self.metadata, indent=2), encoding="utf-8"
+        )
+        ts = self.trust_score
+        (out_dir / "trust_score.json").write_text(
+            json.dumps(
+                {
+                    "score": ts.score,
+                    "grade": ts.grade,
+                    "verdict": ts.verdict,
+                    "sub_scores": ts.sub_scores,
+                    "weights_used": ts.weights_used,
+                    "breakdown": ts.breakdown,
+                    "penalties_applied": ts.penalties_applied,
+                    "task_type": ts.task_type,
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
         )
         logger.info("Regression report bundle saved to: %s", out_dir)
         return out_dir
@@ -1670,8 +1694,9 @@ class TrustReport:
 
         flat = flatten_dict(self._to_serializable(self.results))
 
-        # Regression reports carry no classification Trust Score / sub-scores /
-        # deployment verdict — return the flattened reliability metrics + meta.
+        # Regression reports carry a regression-specific Trust Score (different
+        # dimensions from classification) alongside the reliability metrics. The
+        # classification-only deployment verdict block is omitted.
         if self.task_type == "regression":
             flat["task_type"] = "regression"
             flat["n_samples"] = self.metadata["n_samples"]
@@ -1679,6 +1704,10 @@ class TrustReport:
             flat["timestamp"] = self.metadata["timestamp"]
             flat["framework"] = self.metadata.get("framework", "unknown")
             flat["trustlens_version"] = self.metadata["trustlens_version"]
+            flat["trust_score"] = self.trust_score.score
+            flat["trust_grade"] = self.trust_score.grade
+            for dim, score in self.trust_score.sub_scores.items():
+                flat[f"trust_{dim}_score"] = score
             return flat
 
         flat["trust_score"] = self.trust_score.score

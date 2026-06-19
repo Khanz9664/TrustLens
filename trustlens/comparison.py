@@ -21,6 +21,18 @@ def compare(reports: list[TrustReport]) -> None:
         print("No reports provided for comparison.\n")
         return
 
+    # Trust Scores are only comparable within a single task type: a regression
+    # score and a classification score share this interface (0–100, A–D) but
+    # aggregate different dimensions, so cross-task ranking is meaningless (see
+    # RFC #145). Refuse to rank a mixed batch rather than recommend silently.
+    task_types = {getattr(rep, "task_type", "classification") for rep in reports}
+    if len(task_types) > 1:
+        raise ValueError(
+            "compare() cannot rank reports across different task types "
+            f"({sorted(task_types)}): regression and classification Trust Scores are "
+            "not directly comparable. Compare reports within a single task type."
+        )
+
     print("========== Model Comparison & Recommendation ==========")
 
     # 1. Print summaries for all models

@@ -16,13 +16,14 @@ from ._version import __version__
 from .api import analyze, quick_analyze
 from .comparison import compare
 from .report import TrustReport
-from .trust_score import TrustScoreResult, compute_trust_score
+from .trust_score import TrustScoreResult, compute_trust_score, regression_trust_score
 
 __all__ = [
     "analyze",
     "quick_analyze",
     "TrustReport",
     "compute_trust_score",
+    "regression_trust_score",
     "TrustScoreResult",
     "__version__",
     "compare",
