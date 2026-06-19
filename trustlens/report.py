@@ -88,6 +88,8 @@ class TrustReport:
         framework: str | None = None,
         backend_metadata: dict[str, Any] | None = None,
         task_type: str = "classification",
+        prediction_intervals: tuple[np.ndarray, np.ndarray] | None = None,
+        predicted_variance: np.ndarray | None = None,
     ) -> None:
         self.results = results
         self.model = model
@@ -99,6 +101,11 @@ class TrustReport:
         self.framework = framework
         self.backend_metadata = backend_metadata or {}
         self.task_type = task_type
+        # Regression uncertainty inputs, retained so the regression visualizations
+        # (e.g. the prediction-interval band in plot_residuals) are self-contained
+        # from the report. Both are None for classification reports.
+        self.prediction_intervals = prediction_intervals
+        self.predicted_variance = predicted_variance
         self.metadata = self._build_metadata()
 
         self._patterns: list[str] = []
@@ -128,10 +135,69 @@ class TrustReport:
         if self.task_type == "regression":
             raise NotImplementedError(
                 f"{feature} is not available for regression reports yet. "
-                "Use report.show() / report.to_dict() for the regression "
-                "reliability metrics; visualizations and a regression trust "
-                "score are planned as follow-up phases."
+                "Use report.plot_residuals() / report.plot_error_distribution() for "
+                "regression visualizations, or report.show() / report.to_dict() for the "
+                "reliability metrics; a regression trust score is planned as a follow-up phase."
             )
+
+    def _require_regression(self, feature: str) -> None:
+        """Guard regression-only features against classification reports."""
+        if self.task_type != "regression":
+            raise NotImplementedError(
+                f"{feature} is only available for regression reports (this report is "
+                f"'{self.task_type}'). Use report.plot() / report.summary_plot() for "
+                "classification visualizations."
+            )
+
+    def plot_residuals(
+        self,
+        *,
+        title: str = "Residuals vs. Predicted",
+        save_path: str | None = None,
+        show: bool = True,
+    ) -> Any:
+        """Residuals (``y_true - y_pred``) vs. predicted value, for spotting
+        heteroscedasticity and bias. Regression reports only.
+
+        If prediction intervals were supplied to :func:`analyze`, they are overlaid
+        as a band in residual space. See
+        :func:`trustlens.visualization.regression_plots.plot_residuals`.
+        """
+        self._require_regression("plot_residuals")
+        from trustlens.visualization.regression_plots import plot_residuals
+
+        return plot_residuals(
+            self.y_true,
+            self.y_pred,
+            prediction_intervals=self.prediction_intervals,
+            title=title,
+            save_path=save_path,
+            show=show,
+        )
+
+    def plot_error_distribution(
+        self,
+        *,
+        bins: int = 30,
+        title: str = "Error Distribution",
+        save_path: str | None = None,
+        show: bool = True,
+    ) -> Any:
+        """Histogram of signed errors (``y_true - y_pred``) against a fitted normal,
+        for spotting skew and heavy tails. Regression reports only. See
+        :func:`trustlens.visualization.regression_plots.plot_error_distribution`.
+        """
+        self._require_regression("plot_error_distribution")
+        from trustlens.visualization.regression_plots import plot_error_distribution
+
+        return plot_error_distribution(
+            self.y_true,
+            self.y_pred,
+            bins=bins,
+            title=title,
+            save_path=save_path,
+            show=show,
+        )
 
     @property
     def patterns(self) -> list[str]:

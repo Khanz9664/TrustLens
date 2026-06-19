@@ -384,5 +384,7 @@ def _run_regression_pipeline(
         framework=framework,
         backend_metadata=backend_metadata,
         task_type="regression",
+        prediction_intervals=((lower, upper) if lower is not None and upper is not None else None),
+        predicted_variance=variance,
     )
     return report
