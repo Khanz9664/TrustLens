@@ -290,3 +290,35 @@ def test_constant_target_perfect_fit_full_skill():
     assert not r.is_blocked
     assert r.sub_scores["accuracy"] == pytest.approx(100.0)
     assert r.grade == "A"
+
+
+def test_constant_target_imperfect_fit_zero_skill_not_blocked():
+    # Locks down the constant-target edge raised in review (#147): with Var(y)=0
+    # a perfect fit earns full skill (covered above); an IMPERFECT fit collapses
+    # to *zero* skill. Crucially skill is 0.0, not negative, so this is NOT the
+    # negative-skill blocker — it degrades gracefully to a zero Accuracy/Skill
+    # dimension, and point-only redistribution carries that onto the composite.
+    assert _regression_accuracy_score({"rmse": 5.0}, 0.0)["skill"] == pytest.approx(0.0)
+
+    y_const = np.ones(50)
+    ed = {
+        "median_absolute_error": 2.0,
+        "p90_absolute_error": 4.0,  # tail_ratio 2.0 < threshold → no heavy-tail dock
+        "max_error": 8.0,
+        "mean_absolute_error": 2.0,
+        "rmse": 5.0,  # imperfect fit against a constant target
+        "n_samples": 50,
+    }
+    r = regression_trust_score(
+        {
+            "regression": {
+                "error_distribution": ed,
+                "interval_coverage": _cov_skipped(),
+                "error_variance_correlation": _corr_skipped(),
+            }
+        },
+        y_const,
+    )
+    assert not r.is_blocked  # skill 0.0 is not < 0 → not a blocker
+    assert r.sub_scores["accuracy"] == pytest.approx(0.0)
+    assert r.grade == "D"
