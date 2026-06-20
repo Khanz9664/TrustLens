@@ -6,10 +6,8 @@ Unit tests for trustlens.metrics.bias.
 
 import numpy as np
 import pytest
-
-from trustlens.visualization.bias_plots import plot_class_distribution
 from trustlens.metrics.bias import class_imbalance_report, equalized_odds, subgroup_performance
-
+from trustlens.visualization.bias_plots import plot_class_distribution
 
 class TestClassImbalanceReport:
     def test_balanced_dataset_ratio_is_one(self):
@@ -273,5 +271,5 @@ class TestBiasPlots:
         assert len(fig.axes) > 0
 
         title = fig.axes[0].get_title()
-
+        
         assert "Single class detected" in title
