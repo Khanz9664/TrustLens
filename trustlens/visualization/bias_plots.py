@@ -1,16 +1,12 @@
 """
 trustlens.visualization.bias_plots.
 ====================================
-
 Visualizations for bias and fairness analysis.
 """
 
 from __future__ import annotations
-
 import matplotlib.pyplot as plt
-
 from trustlens.visualization.style import apply_style, get_categorical_colors
-
 
 def plot_class_distribution(
     imbalance_data: dict,
