@@ -85,7 +85,18 @@ def plot_class_distribution(
 
         ax.set_xlabel("Class Label", fontsize=12)
         ax.set_ylabel("Sample Count", fontsize=12)
-        ax.set_title("Class Distribution", fontsize=13, fontweight="bold")
+        if len(classes) == 1:
+            ax.set_title(
+                "Class Distribution (Single class detected)",
+                fontsize=13,
+                fontweight="bold",
+            )
+        else:
+            ax.set_title(
+                "Class Distribution",
+                fontsize=13,
+                fontweight="bold",
+            )
         ax.grid(axis="y", alpha=0.35)
 
         if save_path:
