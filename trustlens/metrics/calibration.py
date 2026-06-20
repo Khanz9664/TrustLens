@@ -262,6 +262,13 @@ def reliability_curve(
         raise ValueError(f"Unknown strategy '{strategy}'. Use 'uniform' or 'quantile'.")
 
     n_bins_actual = len(bin_edges) - 1
+    if n_bins_actual == 0:
+        return (
+            np.array([float(np.mean(y_true))]),
+            np.array([float(np.mean(y_prob))]),
+            np.array([len(y_true)], dtype=int),
+        )
+
     bin_idx = np.clip(np.digitize(y_prob, bin_edges[1:-1]), 0, n_bins_actual - 1)
 
     counts = np.bincount(bin_idx, minlength=n_bins_actual)

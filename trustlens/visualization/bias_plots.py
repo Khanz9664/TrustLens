@@ -1,7 +1,6 @@
 """
 trustlens.visualization.bias_plots.
 ====================================
-
 Visualizations for bias and fairness analysis.
 """
 
@@ -26,9 +25,9 @@ def plot_class_distribution(
     Parameters
     ----------
     imbalance_data : dict
-      Output from ``class_imbalance_report()``.
+        Output from ``class_imbalance_report()``.
     save_path : str, optional
-      If provided, saves figure to this path.
+        If provided, saves figure to this path.
 
     Returns
     -------
@@ -86,15 +85,29 @@ def plot_class_distribution(
 
         ax.set_xlabel("Class Label", fontsize=12)
         ax.set_ylabel("Sample Count", fontsize=12)
-        ax.set_title("Class Distribution", fontsize=13, fontweight="bold")
+        if len(classes) == 1:
+            ax.set_title(
+                "Class Distribution (Single class detected)",
+                fontsize=13,
+                fontweight="bold",
+            )
+        else:
+            ax.set_title(
+                "Class Distribution",
+                fontsize=13,
+                fontweight="bold",
+            )
         ax.grid(axis="y", alpha=0.35)
 
         if save_path:
-            fig.savefig(save_path, dpi=theme.fig_defaults["savefig_dpi"], bbox_inches="tight")
+            fig.savefig(
+                save_path,
+                dpi=theme.fig_defaults["savefig_dpi"],
+                bbox_inches="tight",
+            )
 
-        if show:
-            if "agg" not in plt.get_backend().lower():
-                plt.show()
+        if show and "agg" not in plt.get_backend().lower():
+            plt.show()
 
         plt.close(fig)
         return fig

@@ -168,3 +168,23 @@ class TestReliabilityCurve:
         frac_pos, mean_pred, counts = reliability_curve(y_true, y_prob, n_bins=5)
         assert len(frac_pos) <= 5
         assert len(mean_pred) <= 5
+
+    def test_quantile_zero_variance_predictions(self):
+        y_true = np.zeros(100)
+        y_prob = np.zeros(100)
+
+        frac_pos, mean_pred, counts = reliability_curve(y_true, y_prob, strategy="quantile")
+
+        np.testing.assert_allclose(frac_pos, np.array([0.0]))
+        np.testing.assert_allclose(mean_pred, np.array([0.0]))
+        np.testing.assert_array_equal(counts, np.array([100]))
+
+    def test_quantile_duplicate_edges_returns_single_bin(self):
+        y_true = np.array([1, 0, 1, 0])
+        y_prob = np.array([0.5, 0.5, 0.5, 0.5])
+
+        frac_pos, mean_pred, counts = reliability_curve(y_true, y_prob, strategy="quantile")
+
+        np.testing.assert_allclose(frac_pos, np.array([0.5]))
+        np.testing.assert_allclose(mean_pred, np.array([0.5]))
+        np.testing.assert_array_equal(counts, np.array([4]))
