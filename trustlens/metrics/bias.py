@@ -21,6 +21,16 @@ from typing import Optional
 import numpy as np
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, recall_score
 
+__all__ = [
+    "class_imbalance_report",
+    "subgroup_performance",
+    "equalized_odds",
+]
+
+
+def _as_python_label(label):
+    return label.item() if hasattr(label, "item") else label
+
 
 def class_imbalance_report(y_true: np.ndarray) -> dict:
     """
@@ -52,13 +62,15 @@ def class_imbalance_report(y_true: np.ndarray) -> dict:
     classes, counts = np.unique(y_true, return_counts=True)
     n = len(y_true)
 
-    class_counts = {int(cls): int(cnt) for cls, cnt in zip(classes, counts)}
-    class_frequencies = {int(cls): round(float(cnt / n), 4) for cls, cnt in zip(classes, counts)}
+    class_counts = {_as_python_label(cls): int(cnt) for cls, cnt in zip(classes, counts)}
+    class_frequencies = {
+        _as_python_label(cls): round(float(cnt / n), 4) for cls, cnt in zip(classes, counts)
+    }
 
     min_count = int(counts.min())
     max_count = int(counts.max())
-    minority_class = int(classes[counts.argmin()])
-    majority_class = int(classes[counts.argmax()])
+    minority_class = _as_python_label(classes[counts.argmin()])
+    majority_class = _as_python_label(classes[counts.argmax()])
     imbalance_ratio = round(max_count / min_count, 4) if min_count > 0 else float("inf")
 
     return {
@@ -174,9 +186,24 @@ def equalized_odds(
     """
     Compute Equalized Odds fairness metrics broken down by sensitive subgroups.
 
-    Equalized Odds requires that TPR (True Positive Rate) and FPR (False
-    Positive Rate) are equal across all subgroups. Large gaps indicate that
-    the model treats certain groups systematically differently.
+    What it measures
+    ----------------
+    Whether the True Positive Rate (TPR) and False Positive Rate (FPR) are equal
+    across all specified demographic subgroups.
+
+    Why it matters
+    --------------
+    Ensures that the model does not disproportionately harm or benefit specific
+    groups (e.g., ensuring equal opportunity).
+
+    Limitations
+    -----------
+    Requires ground-truth labels and explicitly defined protected attributes.
+    Cannot be optimized simultaneously with calibration if base rates differ across groups.
+
+    Interpretation guidance
+    -----------------------
+    Smaller gaps are better. A gap > 0.15 is generally considered a severe fairness violation.
 
     Reference: Hardt et al., "Equality of Opportunity in Supervised Learning",
     NeurIPS 2016.

@@ -3,12 +3,25 @@ trustlens.core.pipeline
 =======================
 Internal execution engine for the TrustLens analysis pipeline.
 This module is framework-agnostic and operates on standardized prediction data.
+
+Responsibilities
+----------------
+* Iterate through selected analysis modules and execute their respective computations.
+* Handle degraded execution states gracefully (e.g., when probabilities are missing).
+* Aggregate individual module results into a unified dictionary.
+* Instantiate the final `TrustReport` object.
+
+Relationship to other components
+--------------------------------
+Invoked by `trustlens.api.analyze()`. It relies on standardized predictions
+provided by the backend resolvers and delegates the actual metric computation
+to domain-specific modules (`trustlens.metrics.*`).
 """
 
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 import numpy as np
 
@@ -26,6 +39,11 @@ from trustlens.metrics.failure import (
     confidence_gap,
     misclassification_summary,
 )
+from trustlens.metrics.regression import (
+    error_distribution,
+    error_variance_correlation,
+    prediction_interval_coverage,
+)
 from trustlens.metrics.representation import (
     embedding_separability,
 )
@@ -33,6 +51,41 @@ from trustlens.plugins.registry import PluginRegistry
 from trustlens.report import TrustReport
 
 logger = logging.getLogger(__name__)
+
+
+def _as_python_label(label: Any) -> Any:
+    """Return a hashable Python scalar for NumPy scalar labels."""
+    return label.item() if hasattr(label, "item") else label
+
+
+def _encode_labels_for_probability_columns(
+    y_true: np.ndarray,
+    n_classes: int,
+    class_labels: Optional[np.ndarray],
+) -> np.ndarray:
+    """Encode semantic labels into the class-index order used by y_prob columns."""
+    if class_labels is not None:
+        class_labels_array = np.asarray(class_labels)
+        if len(class_labels_array) != n_classes:
+            raise ValueError(
+                "class_labels length "
+                f"({len(class_labels_array)}) does not match probability column shape "
+                f"({n_classes} columns)."
+            )
+
+        label_to_index = {
+            _as_python_label(label): idx for idx, label in enumerate(class_labels_array)
+        }
+        try:
+            encoded_labels: np.ndarray = np.asarray(
+                [_as_python_label(label_to_index[_as_python_label(label)]) for label in y_true],
+                dtype=int,
+            )
+            return encoded_labels
+        except KeyError as exc:
+            raise ValueError("y_true contains labels that are missing from class_labels.") from exc
+
+    return y_true.astype(int)
 
 
 def _run_analysis_pipeline(
@@ -47,6 +100,7 @@ def _run_analysis_pipeline(
     plugins: Optional[list[str]] = None,
     framework: Optional[str] = None,
     backend_metadata: Optional[dict[str, Any]] = None,
+    class_labels: Optional[np.ndarray] = None,
     verbose: bool = True,
 ) -> TrustReport:
     """
@@ -98,7 +152,10 @@ def _run_analysis_pipeline(
 
                 # Multiclass Brier Score: 1/N * sum(sum((p_ic - o_ic)^2))
                 # We can compute this efficiently
-                y_true_one_hot = np.eye(n_classes)[y_true.astype(int)]
+                y_true_indices = _encode_labels_for_probability_columns(
+                    y_true, n_classes, class_labels
+                )
+                y_true_one_hot = np.eye(n_classes)[y_true_indices]
                 mbrier = np.mean(np.sum((y_prob - y_true_one_hot) ** 2, axis=1))
 
                 results["calibration"] = {
@@ -247,5 +304,87 @@ def _run_analysis_pipeline(
         embeddings=embeddings,
         framework=framework,
         backend_metadata=backend_metadata,
+    )
+    return report
+
+
+def _run_regression_pipeline(
+    model: Any,
+    X: np.ndarray,
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+    prediction_intervals: Optional[tuple[np.ndarray, np.ndarray]] = None,
+    predicted_variance: Optional[np.ndarray] = None,
+    confidence_level: float = 0.95,
+    framework: Optional[str] = None,
+    backend_metadata: Optional[dict[str, Any]] = None,
+    verbose: bool = True,
+) -> TrustReport:
+    """Internal orchestrator for the regression analysis path.
+
+    Mirrors :func:`_run_analysis_pipeline` (metrics -> results dict -> report)
+    but routes through the regression reliability metrics. The uncertainty
+    metrics (PICP, error-variance correlation) degrade gracefully to a
+    ``status="skipped"`` dict when their optional inputs are absent.
+
+    As with the classification path, this never calls ``model.predict``; the
+    point predictions (and any intervals / variance) are passed in.
+    """
+    _log = logger.info if verbose else logger.debug
+
+    def _as_single_output(name: str, values: np.ndarray) -> np.ndarray:
+        """Coerce to 1-D: flatten a singleton ``(n, 1)`` column; reject true
+        multi-output. A single-output model emitting ``(n, 1)`` predictions is
+        valid and must not crash the metrics with a shape mismatch."""
+        arr = np.asarray(values)
+        if arr.ndim == 2 and arr.shape[1] == 1:
+            return cast(np.ndarray, arr[:, 0])
+        if arr.ndim != 1:
+            raise ValueError(
+                f"{name} must be 1-D for single-output regression, got shape {arr.shape}."
+            )
+        return cast(np.ndarray, arr)
+
+    y_true = _as_single_output("y_true", y_true)
+    y_pred = _as_single_output("y_pred", y_pred)
+
+    lower = upper = None
+    if prediction_intervals is not None:
+        lower, upper = prediction_intervals
+        lower = _as_single_output("prediction_intervals[0]", lower)
+        upper = _as_single_output("prediction_intervals[1]", upper)
+
+    variance = predicted_variance
+    if variance is not None:
+        variance = _as_single_output("predicted_variance", variance)
+
+    _log("Running regression reliability analysis...")
+    regression_results: dict[str, Any] = {
+        "error_distribution": error_distribution(y_true, y_pred),
+        "interval_coverage": prediction_interval_coverage(
+            y_true, lower, upper, confidence_level=confidence_level
+        ),
+        "error_variance_correlation": error_variance_correlation(y_true, y_pred, variance),
+    }
+
+    results: dict[str, Any] = {"regression": regression_results}
+
+    _log("Assembling regression report …")
+    if backend_metadata is None:
+        backend_metadata = {}
+
+    report = TrustReport(
+        results=results,
+        model=model,
+        X=X,
+        y_true=y_true,
+        y_pred=y_pred,
+        y_prob=None,
+        embeddings=None,
+        framework=framework,
+        backend_metadata=backend_metadata,
+        task_type="regression",
+        prediction_intervals=((lower, upper) if lower is not None and upper is not None else None),
+        predicted_variance=variance,
     )
     return report

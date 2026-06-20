@@ -55,6 +55,7 @@ trust_report/
 *.png
 !docs/assets/*.png
 !assets/*.png
+!docs/assets/research/*.png
 
 # Local demo outputs
 demo_output_*/

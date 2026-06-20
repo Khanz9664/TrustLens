@@ -138,7 +138,7 @@ Record in saved report metadata, e.g. `framework: xgboost`, `xgboost_version`, b
 ## FAQ
 
 **Q: LightGBM / CatBoost?**
-**A:** Often work today via `predict` / `predict_proba`. Add library-specific tests in follow-up PRs; open a dedicated plan only if a quirk requires a new branch.
+**A:** Both are now integrated. `trustlens/backends/lightgbm.py` handles `LGBMClassifier` and raw `Booster` (with regression-objective blocking). `trustlens/backends/catboost.py` handles `CatBoostClassifier`. Both follow the same resolver contract as the XGBoost backend.
 
 **Q: Order relative to Keras / TensorFlow?**
 **A:** Independent once PR A exists. XGBoost is lighter and is a good first optional backend.

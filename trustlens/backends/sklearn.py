@@ -2,6 +2,20 @@
 trustlens.backends.sklearn
 ==========================
 Prediction resolver for scikit-learn models.
+
+Architecture
+------------
+This backend translates sklearn-compatible models into standardized `PredictionBundle`s.
+
+Probability Extraction Strategy
+-------------------------------
+* Tries to call `predict_proba()` on the model.
+* If probabilities are binary (n_samples,), reshapes them to (n_samples, 2) to maintain invariant shape.
+
+Label Mapping Behavior
+----------------------
+* Inspects the `classes_` attribute on the model.
+* Uses these classes to map probability array indices to semantic labels during `y_pred` derivation.
 """
 
 from __future__ import annotations
@@ -18,6 +32,7 @@ def resolve(
     X: np.ndarray,
     y_pred: Optional[np.ndarray] = None,
     y_prob: Optional[np.ndarray] = None,
+    class_labels: Optional[np.ndarray] = None,
 ) -> PredictionBundle:
     """
     Resolve predictions and probabilities from a scikit-learn model.
@@ -72,6 +87,8 @@ def resolve(
 
             # Defensive label mapping
             classes = getattr(model, "classes_", None)
+            if classes is None:
+                classes = class_labels
             if classes is not None:
                 classes_arr = np.asarray(classes)
                 if len(classes_arr) == y_prob.shape[1]:
@@ -89,9 +106,13 @@ def resolve(
             )
 
     # 5. Metadata & Labels
-    class_labels = getattr(model, "classes_", None)
-    if class_labels is not None:
-        class_labels = np.asarray(class_labels)
+    model_class_labels = getattr(model, "classes_", None)
+    if model_class_labels is not None:
+        resolved_class_labels = np.asarray(model_class_labels)
+    elif class_labels is not None:
+        resolved_class_labels = np.asarray(class_labels)
+    else:
+        resolved_class_labels = None
 
     metadata = {
         "resolver": "sklearn",
@@ -103,6 +124,6 @@ def resolve(
         y_pred=y_pred,
         y_prob=y_prob,
         framework="sklearn",
-        class_labels=class_labels,
+        class_labels=resolved_class_labels,
         metadata=metadata,
     )

@@ -26,6 +26,12 @@ from __future__ import annotations
 
 import numpy as np
 
+__all__ = [
+    "brier_score",
+    "expected_calibration_error",
+    "reliability_curve",
+]
+
 # ---------------------------------------------------------------------------
 # Brier Score
 # ---------------------------------------------------------------------------
@@ -38,9 +44,23 @@ def brier_score(
     r"""
     Compute the Brier Score for a binary probabilistic classifier.
 
-    The Brier Score is the mean squared difference between predicted
-    probabilities and actual outcomes. Lower is better; a perfect
-    forecaster scores 0.0, a random coin-flip scores ~0.25.
+    What it measures
+    ----------------
+    The mean squared difference between predicted probabilities and actual outcomes.
+
+    Why it matters
+    --------------
+    A model must not only be accurate but its probabilities should reflect true likelihood.
+    Brier score penalizes both overconfidence and underconfidence.
+
+    Limitations
+    -----------
+    Heavily influenced by class imbalance. A model predicting the majority class base rate
+    for all instances will yield a deceptively low Brier Score.
+
+    Interpretation guidance
+    -----------------------
+    Lower is better. A perfect forecaster scores 0.0, a random coin-flip scores ~0.25.
 
     .. math::
       \\text{BS} = \\frac{1}{N} \\sum_{i=1}^{N}
@@ -77,7 +97,12 @@ def brier_score(
     y_prob = np.asarray(y_prob, dtype=float)
 
     if y_true.shape != y_prob.shape:
-        raise ValueError(f"Shape mismatch: y_true {y_true.shape} vs y_prob {y_prob.shape}.")
+        raise ValueError(
+            "Invalid input shapes for brier_score: "
+            f"y_true has shape {y_true.shape}, but y_prob has shape {y_prob.shape}. "
+            "Both arrays must be 1D and have the same length, for example "
+            "y_true shape (n_samples,) and y_prob shape (n_samples,)."
+        )
 
     unique_labels = np.unique(y_true)
     if not set(unique_labels.tolist()).issubset({0.0, 1.0}):
@@ -102,8 +127,23 @@ def expected_calibration_error(
     r"""
     Compute the Expected Calibration Error (ECE).
 
-    ECE measures the weighted average absolute difference between
-    predicted confidence and actual accuracy across probability bins.
+    What it measures
+    ----------------
+    The weighted average absolute difference between predicted confidence and actual accuracy
+    across probability bins.
+
+    Why it matters
+    --------------
+    Directly quantifies how much you can trust the model's confidence scores.
+
+    Limitations
+    -----------
+    Sensitive to the number of bins and binning strategy. Uniform bins can be noisy in sparse regions.
+
+    Interpretation guidance
+    -----------------------
+    Lower is better. A score of 0.0 means perfect calibration. Scores > 0.1 often indicate
+    dangerous overconfidence.
 
     .. math::
       \\text{ECE} = \\sum_{b=1}^{B}
@@ -222,6 +262,13 @@ def reliability_curve(
         raise ValueError(f"Unknown strategy '{strategy}'. Use 'uniform' or 'quantile'.")
 
     n_bins_actual = len(bin_edges) - 1
+    if n_bins_actual == 0:
+        return (
+            np.array([float(np.mean(y_true))]),
+            np.array([float(np.mean(y_prob))]),
+            np.array([len(y_true)], dtype=int),
+        )
+
     bin_idx = np.clip(np.digitize(y_prob, bin_edges[1:-1]), 0, n_bins_actual - 1)
 
     counts = np.bincount(bin_idx, minlength=n_bins_actual)

@@ -21,7 +21,7 @@ graph TD
 
     subgraph "Prediction Resolution Layer"
         Registry --> Detect[Framework Detection]
-        Detect --> Resolver[Framework Resolver: Sklearn/XGBoost]
+        Detect --> Resolver["Framework Resolver: Sklearn / XGBoost / LightGBM / CatBoost"]
         Resolver --> Bundle[PredictionBundle: y_pred, y_prob, metadata]
     end
 
@@ -44,7 +44,7 @@ graph TD
     Report --> Output[Console / Plots / Saved Files]
 ```
 
-**Implementation note**: `analyze()` uses the `Backend Registry` to automatically detect the framework and resolve predictions into a standardized `PredictionBundle`. This ensures the core metrics pipeline remains 100% framework-agnostic.
+**Implementation note**: `analyze()` uses the `Backend Registry` to automatically detect the framework and resolve predictions into a standardized `PredictionBundle`. Supported frameworks include scikit-learn, XGBoost, LightGBM, and CatBoost. This ensures the core metrics pipeline remains 100% framework-agnostic.
 
 ## Component Interactions
 

@@ -10,17 +10,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Regression Metrics**: Added `trustlens/metrics/regression.py` with `error_distribution` (MedAE, 90th-percentile error, max, MAE, RMSE + histogram data), `prediction_interval_coverage` (PICP vs. nominal confidence, with graceful skip when intervals are absent), and `error_variance_correlation` (Pearson/Spearman between predicted uncertainty and actual error). A metrics-only first step toward regression support; `analyze()` auto-dispatch and visualization to follow. (refs #82)
 - **Model Zoo Benchmark**: Introduced a comprehensive scientific validation notebook (`examples/trustlens_model_zoo_benchmark.ipynb`) that systematically evaluates TrustLens across 6 model architectures and multiple data corruption scenarios with statistical aggregation.
-
-
-### Improved
-
+- **Centralized Visualization Styling**: Introduced an internal `trustlens/visualization/style.py` as the single source of truth for color palettes, semantic colors (severity, deployment verdict, grade, direction), typography, grid, and figure defaults. Added an `apply_style()` context manager that scopes `matplotlib.rcParams` mutations to a `with` block, preventing global state leakage when TrustLens is used inside notebooks or larger ML pipelines. Existing plotting modules are being migrated to the centralized system without changing visual output (so far: `calibration_plots.py`, `failure_plots.py`, `bias_plots.py`, `representation_plots.py`, `fairness.py`, `summary_plot.py`). (refs #57) Thanks @komoike-oss28-ui
+- **Deployment Recommendation Explanations**: Added `TrustReport.deployment_explanation` and `TrustReport.deployment_summary` to provide structured deployment verdict explanations, identify primary risks, and surface actionable recommendations based on Trust Score penalties and sub-scores.
+- **Deployment Recommendation UX**: Deployment recommendations are now surfaced directly in `TrustReport.show()`, text exports, and HTML report views. Users now receive deployment verdicts, primary risk identification, and actionable recommendations without needing to access `deployment_summary` manually.
+- **Native LightGBM & CatBoost Backends**: Added automatic backend detection and prediction resolution for the LightGBM (LGBMClassifier, Booster) and CatBoost (CatBoostClassifier) models, including probability extraction, classification validation, and integration with the standard PredictionBundle pipeline. Thanks @vaishnavidesai09
 
 ### Fixed
+- Fixed `reliability_curve(strategy="quantile")` for collapsed quantile bin edges, returning a valid single-bin curve for zero-variance probability distributions instead of raising `ValueError`. (fixes #144)
+- **XGBoost Booster String Label Mapping**: Fixed an issue where raw `xgboost.Booster` models in multiclass classification returned ordinal prediction indices instead of semantic class labels when `y_true` contained string labels. TrustLens now correctly maps probability-column indices back to user-provided class labels, preventing downstream metric distortion and label-type mismatches. Added validation to ensure `class_labels` match the probability matrix shape and introduced regression tests covering raw Booster multiclass workflows. (fixes #117) Thanks @nanookclaw
+- Fixed incorrect `top_mistake_indices` in `misclassification_summary()` to return **global dataset indices** instead of local filtered subset positions, improving downstream EDA and debugging workflows for high-confidence model errors. (PR #104) Thanks @dicnunz 🙌
+- Fixed `Security Audit` CI failures caused by newly published upstream dependency vulnerabilities by updating `pip-audit` handling and ignore rules for unresolved ecosystem CVEs/PYSEC advisories. (PR #105)
+- Fixed the visual narrative of the **Accuracy vs Trust (“Decoupling”)** analysis to more clearly communicate the relationship between predictive performance and trustworthiness in the benchmark notebook. (PR #100)
 
+### Documentation
+- **Core Architecture Documentation**: Improved module-level and class-level docstrings for `api.py`, `report.py`, `trust_score.py`, and `pipeline.py`.
+- **Backend Architecture Documentation**: Documented the internal backend architecture in `trustlens/backends/`, detailing the `PredictionBundle` lifecycle, resolver architecture, probability extraction, and label mapping strategies.
+- **Metrics Documentation**: Enhanced public docstrings for major metrics (`brier_score`, `expected_calibration_error`, `confidence_gap`, `equalized_odds`, `embedding_separability`) with clear explanations of what they measure, why they matter, their limitations, and how to interpret them.
+- **Visualization Architecture Documentation**: Documented the centralized visualization architecture in `trustlens/visualization/style.py`, providing rules for maintaining visual parity and using semantic colors.
+- **Developer Experience**: Updated `CONTRIBUTING.md` to formally outline documentation expectations, including a mandate for NumPy-style docstrings and a high-level architecture reference for new contributors.
+- **Research & Validation Layer**: Added a comprehensive, research-grade documentation section (`docs/research/`) featuring empirical benchmark results, scientific trust score validation, robustness under distribution shift, metric limitations, and explicitly outlined failure modes.
+- **Methodology & Threats to Validity**: Introduced a brutally honest `methodology.md` page detailing benchmark experimental setup and transparently acknowledging limitations such as reliance on synthetic datasets and binary classification constraints.
+- **Why TrustLens**: Added a `why_trustlens.md` page to directly compare TrustLens against traditional metrics (like Accuracy and ROC-AUC) using tangible failure case studies.
+- Generated publication-quality (300 DPI) visual assets demonstrating TrustLens's behavior under noise, calibration degradation, and severe class imbalance, inheriting the project's centralized visual styling.
+- Added a complete, copy-paste runnable example to the analyze() docstring that demonstrates: Dataset creation using make_classification, Train/test split, Training a RandomForestClassifier, Predicting probabilities, Running analyze(), Displaying results with report.show(). Thanks @q404365631
+- Added hosted TrustLens documentation website integration across the repository, including README links, package metadata (`pyproject.toml`), and documentation navigation improvements. (PR #101)
 
-### Compatibility / Migration
+### Improvements
+- Improved validation feedback in `brier_score()` with clearer and more beginner-friendly error messages for invalid input shape mismatches, making debugging easier for users. (PR #106) Thanks @JavadTe 🙌
+- Improved macOS CI reliability by resolving `xgboost.core.XGBoostError` related to missing `libomp.dylib` discovery during GitHub Actions execution. (PR #96)
+- Improved cross-platform CI stability and macOS workflow reliability. (PR #97)
 
+### Changed
+- Added explicit `__all__` exports to metrics modules (`calibration`, `failure`, `bias`, `representation`) to improve API clarity and consistency. Thanks @JavadTe 🙌
+
+### Maintenance
+- Added a temporary CI trigger workflow to validate and debug macOS GitHub Actions behavior during infrastructure stabilization. (PR #98, later superseded and closed)
 
 ---
 

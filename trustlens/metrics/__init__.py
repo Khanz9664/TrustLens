@@ -17,6 +17,11 @@ from trustlens.metrics.failure import (
     confidence_gap,
     misclassification_summary,
 )
+from trustlens.metrics.regression import (
+    error_distribution,
+    error_variance_correlation,
+    prediction_interval_coverage,
+)
 from trustlens.metrics.representation import (
     centered_kernel_alignment,
     embedding_separability,
@@ -28,6 +33,9 @@ __all__ = [
     "reliability_curve",
     "misclassification_summary",
     "confidence_gap",
+    "error_distribution",
+    "prediction_interval_coverage",
+    "error_variance_correlation",
     "class_imbalance_report",
     "subgroup_performance",
     "embedding_separability",

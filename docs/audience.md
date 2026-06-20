@@ -17,4 +17,4 @@ Focused on safety, fairness, and regulatory compliance (like the EU AI Act). Sub
 ---
 
 ## Prerequisites
-TrustLens is designed to be **zero-friction**. If you have a model with a `.predict()` and `.predict_proba()` method (like `scikit-learn`, `XGBoost`, `LightGBM`), you're ready to go.
+TrustLens is designed to be **zero-friction**. If you have a model with a `.predict()` and `.predict_proba()` method (like `scikit-learn`, `XGBoost`, `LightGBM`, or `CatBoost`), you're ready to go.

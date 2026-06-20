@@ -15,6 +15,15 @@ from __future__ import annotations
 
 import numpy as np
 
+__all__ = [
+    "misclassification_summary",
+    "confidence_gap",
+]
+
+
+def _as_python_label(label):
+    return label.item() if hasattr(label, "item") else label
+
 
 def misclassification_summary(
     y_true: np.ndarray,
@@ -66,7 +75,7 @@ def misclassification_summary(
 
     summary: dict = {}
     for cls in classes:
-        cls_mask = y_true == int(cls)
+        cls_mask = y_true == cls
         cls_incorrect = cls_mask & incorrect_mask
 
         n_support = int(cls_mask.sum())
@@ -87,7 +96,7 @@ def misclassification_summary(
         else:
             top_mistake_indices = []
 
-        summary[int(cls)] = {
+        summary[_as_python_label(cls)] = {
             "support": n_support,
             "n_misclassified": n_misclassified,
             "error_rate": round(error_rate, 4),
@@ -112,6 +121,24 @@ def confidence_gap(
     """
     Measure the *confidence gap* — how much more confident is the model
     on correct predictions than on incorrect ones?
+
+    What it measures
+    ----------------
+    The difference in mean confidence between correct and incorrect predictions.
+
+    Why it matters
+    --------------
+    A model should "know what it doesn't know." High confidence on incorrect predictions
+    (low gap) is a major deployment risk.
+
+    Limitations
+    -----------
+    Does not capture the full distribution shape, only the means.
+
+    Interpretation guidance
+    -----------------------
+    Higher gap is better. A large positive gap indicates the model lowers its confidence
+    when making mistakes.
 
     Returns
     -------

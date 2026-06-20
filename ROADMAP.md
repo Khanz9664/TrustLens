@@ -89,7 +89,9 @@ The minimal set of features required to be genuinely useful to practitioners.
 - [ ] **Intrinsic Dimensionality** estimation for embeddings
 
 ### Framework Support
-- [x] **XGBoost Integration** — Native `analyze()` support for `XGBClassifier`
+- [x] **XGBoost Integration** — Native `analyze()` support for `XGBClassifier` and raw `Booster`
+- [x] **LightGBM Integration** — Native `analyze()` support for `LGBMClassifier` and raw `Booster`
+- [x] **CatBoost Integration** — Native `analyze()` support for `CatBoostClassifier`
 - [~] **Keras Experimental** — Sequential and functional model support
 - [~] **TensorFlow Experimental** — SavedModel loading and lazy import hygiene
 
