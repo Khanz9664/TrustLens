@@ -19,7 +19,7 @@
 
 <br/>
 
-[**Quickstart**](#quickstart) · [**How It Works**](#how-it-works) · [**Demo Video**](https://youtu.be/lZo7aWg6efI) · [**Docs**](https://khanz9664.github.io/trustlensdocs/) · [**Project Showcase**](https://khanz9664.github.io/portfolio/projects/trustlens.html)
+[**Why TrustLens**](#-why-traditional-evaluation-fails) · [**Visual Evidence**](#-visual-evidence-trustlens-in-action) · [**How It Works**](#-how-trustlens-works) · [**Architecture & Evolution**](#-community--project-evolution) · [**Quickstart**](#-quickstart) · [**Docs**](https://khanz9664.github.io/trustlensdocs/)
 
 </div>
 
@@ -27,211 +27,96 @@
 
 > **Your model has 92% accuracy. It's still not safe for deployment.**
 >
-> Accuracy measures what went right. TrustLens measures what can go wrong — in production, on subgroups, and at high confidence.
+> Standard evaluation stops at accuracy. Accuracy measures what went *right*. TrustLens measures what can go *wrong* — in production, on underrepresented subgroups, and at high confidence.
 
 ---
 
-## Why TrustLens
+## Why Traditional Evaluation Fails
 
-Standard evaluation stops at accuracy. Silent failures happen when:
+You train a model. The test set reports 92% Accuracy and a 0.95 ROC-AUC. By all traditional metrics, it is ready to ship. 
 
-- A model is **overconfident** — "90% sure" but right only 60% of the time
-- Performance **collapses on subgroups** — gender, age, or region hidden inside a good aggregate score
-- The model is **confidently wrong** — high-confidence errors that indicate systemic risk
-- **Latent representations overlap** — classes bleed together where the model can't tell them apart
+But behind those numbers, silent failures are lurking:
+* **Overconfidence**: The model is "90% sure" about its predictions, but it's only right 60% of the time.
+* **Subgroup Collapse**: The aggregate accuracy is 92%, but for a specific demographic, performance drops to 40%.
+* **Latent Bleed**: In the embedding space, the model cannot distinguish between critical classes, leading to unpredictable edge-case behavior.
+* **Confidently Wrong**: The model's most severe mistakes are made with >99% confidence, bypassing human-in-the-loop safety nets.
 
-TrustLens surfaces all four with a single audit, and outputs a machine-readable deployment verdict.
+### TrustLens vs. Traditional Metrics
 
----
+| Traditional Metrics | TrustLens Diagnostics | What It Tells You |
+| :--- | :--- | :--- |
+| **Accuracy, F1, Precision** | **Calibration (ECE, Brier)** | *Does the model know when it's guessing?* |
+| **Aggregate ROC-AUC** | **Fairness & Bias** | *Are minority groups experiencing higher failure rates?* |
+| **Loss Curve** | **Latent Space Health** | *Are the internal embeddings stable and separated?* |
+| **Manual Error Analysis** | **Failure Diagnostics** | *Are the errors concentrated at high confidence?* |
+| **"Looks good to me"** | **Deployment Verdict** | *Is this model mathematically safe to deploy?* |
 
-## Supported Frameworks
-
-TrustLens uses a **Prediction Resolver Architecture** to automatically handle different ML frameworks:
-
-- **scikit-learn** — Full support for all `ClassifierMixin` estimators.
-- **XGBoost** — Native support for `XGBClassifier` and raw `Booster` objects.
-- **LightGBM** — Native support for `LGBMClassifier` and raw `Booster` objects.
-- **CatBoost** — Native support for `CatBoostClassifier`.
-- **Planned** — PyTorch, TensorFlow/Keras.
-
-TrustLens **automatically detects** your model's framework. You don't need to change your code when switching from sklearn to XGBoost.
+TrustLens surfaces all these hidden risks with a single, statistically grounded audit, outputting a machine-readable deployment verdict.
 
 ---
 
-## Documentation
+## Visual Evidence: TrustLens in Action
 
-Explore the full TrustLens documentation:
-
-- 🚀 [Getting Started](https://khanz9664.github.io/trustlensdocs/getting_started.html)
-- 🏛️ [Architecture Guide](https://khanz9664.github.io/trustlensdocs/architecture.html)
-- 📖 [API Reference](https://khanz9664.github.io/trustlensdocs/api_reference.html)
-- 🧪 [Real-world Use Cases](https://khanz9664.github.io/trustlensdocs/use_cases.html)
-- ⚖️ [Trust Score Explained](https://khanz9664.github.io/trustlensdocs/trust_score_explained.html)
-
----
-
-## Quickstart
-
-```bash
-pip install trustlens
-# Extended visualization support
-pip install trustlens[full]
-```
-
-Run a one-line audit to see why 94% accuracy isn't the full story:
-
-```python
-from trustlens import quick_analyze
-
-quick_analyze(dataset="breast_cancer")
-```
-
-```
-TRUST SCORE: 68/100 [D]
-Assessment : Low Trust — Blocked by high diagnostic risk
-
-  Base Score        : 76
-  Penalties Applied : -7.7 (Failure Risk)
-  Final Score       : 68
-
-→ Model shows high failure risk and is NOT ready for deployment.
-```
-
----
-
-## How It Works
-
-TrustLens runs four diagnostic modules and combines them into a single **Trust Score (0–100)** with a CI/CD-ready deployment verdict.
-
-| Module | What It Catches |
-|---|---|
-|  **Calibration** | Confidence vs. correctness mismatch, overconfidence, ECE |
-|  **Fairness** | Subgroup performance gaps, equalized-odds violations |
-|  **Representation** | Latent space health, class separation, overlap detection |
-|  **Decision Engine** | Composite Trust Score + `Ready` / `Blocked` verdict |
-
----
-
-## Scientific Validation
-
-TrustLens is more than a visualization tool—it is a statistically grounded diagnostic framework. We have systematically validated its behavior across 6 model architectures and multiple data corruption scenarios (noise, imbalance, bias).
-
-**Key Finding**: TrustLens empirically decouples **Accuracy** from **Trust**, flagging high-accuracy models that exhibit high reliability risks (the "Overconfidence Zone").
-
-**[View the Model Zoo Benchmark](examples/trustlens_model_zoo_benchmark.ipynb)**
-
----
-
-## Full Audit
-
-### Automatic Detection (scikit-learn / XGBoost / LightGBM / CatBoost)
-
-```python
-from trustlens import analyze
-
-# Works the same way for XGBClassifier, LGBMClassifier, or CatBoostClassifier
-from xgboost import XGBClassifier
-# from lightgbm import LGBMClassifier
-# from catboost import CatBoostClassifier
-
-model = XGBClassifier().fit(X_train, y_train)
-
-# TrustLens automatically detects the framework and resolves predictions
-report = analyze(
-    model=model,
-    X=X_test,
-    y_true=y_test,
-    sensitive_features={"gender": gender_test}
-)
-
-report.show()
-```
-
-### Manual Prediction Override
-
-For external inference systems or unsupported frameworks, you can pass predictions directly:
-
-```python
-report = analyze(
-    model=None, # optional when passing y_pred/y_prob
-    X=X_test,
-    y_true=y_test,
-    y_pred=external_preds,
-    y_prob=external_probs
-)
-```
-
-### Audit Metadata & Provenance
-
-Every report tracks its own backend provenance for auditability:
-
-```python
-print(report.metadata["framework"])  # "xgboost" | "lightgbm" | "catboost" | "sklearn"
-print(report.metadata["backend"])    # {'resolver': 'xgboost', 'framework_version': '2.0.3', ...}
-```
-
-### Save & Export
-
-```python
-# Save as a unified JSON artifact (best for experiment trackers)
-report.save("report.json")
-
-# Save as a full directory bundle (best for human review)
-report.save("trust_report/")
-```
-
-### Output artifacts (Directory Bundle)
-
-```
-trust_report/
-├── trust_score.json    ← deployment verdict & composite score
-├── report.json         ← raw diagnostic metrics
-├── metadata.json       ← environment, version, backend provenance
-├── report.txt          ← human-readable summary
-└── visuals/            ← per-module diagnostic plots (PNG)
-```
-
-### CI/CD gating
-
-Gate model promotion on `trust_score.json` — no custom scripting needed:
-
-```json
-{
-  "score": 68,
-  "grade": "D",
-  "verdict": "Low Trust — Blocked by high failure risk",
-  "is_blocked": true
-}
-```
-
----
-
-## Diagnostics in Practice
+TrustLens diagnostics are powered by visual evidence. We don't just give you a score; we show you exactly *why* a model is failing.
 
 <div align="center">
 <table width="100%">
   <tr>
-    <td width="50%" align="center">
-      <b>Calibration</b><br/>
-      <img src="assets/calibration_plot.png" width="90%" /><br/>
-      <sub>Does confidence align with correctness?</sub>
+    <td width="33%" align="center">
+      <b>The Deployment Verdict</b><br/>
+      <img src="assets/summary_dashboard.png" width="100%" /><br/>
+      <div align="left">
+      <sub><b>What it is:</b> The composite Trust Score.</sub><br/>
+      <sub><b>Why it matters:</b> Gives a CI/CD-ready grade.</sub><br/>
+      <sub><b>Risk:</b> Blocks shipping unsafe models.</sub>
+      </div>
     </td>
-    <td width="50%" align="center">
-      <b>Fairness & Bias</b><br/>
-      <img src="assets/fairness_gap_region.png" width="90%" /><br/>
-      <sub>Are subgroups treated equally?</sub>
+    <td width="33%" align="center">
+      <b>Calibration</b><br/>
+      <img src="assets/calibration_plot.png" width="100%" /><br/>
+      <div align="left">
+      <sub><b>What it is:</b> Reliability diagram.</sub><br/>
+      <sub><b>Why it matters:</b> Shows if the model is overconfident.</sub><br/>
+      <sub><b>Risk:</b> High-confidence wrong answers.</sub>
+      </div>
+    </td>
+    <td width="33%" align="center">
+      <b>Subgroup Fairness Gaps</b><br/>
+      <img src="assets/fairness_gap_region.png" width="100%" /><br/>
+      <div align="left">
+      <sub><b>What it is:</b> Error rates across demographics.</sub><br/>
+      <sub><b>Why it matters:</b> Uncovers hidden biases.</sub><br/>
+      <sub><b>Risk:</b> Regulatory failure and harm.</sub>
+      </div>
     </td>
   </tr>
   <tr>
-    <td width="50%" align="center">
+    <td width="33%" align="center">
       <b>Latent Space Health</b><br/>
-      <img src="assets/representation_embedding_2d.png" width="90%" /><br/>
-      <sub>Is class separation clean?</sub>
+      <img src="assets/representation_embedding_2d.png" width="100%" /><br/>
+      <div align="left">
+      <sub><b>What it is:</b> UMAP/t-SNE projection.</sub><br/>
+      <sub><b>Why it matters:</b> Visualizes class separability.</sub><br/>
+      <sub><b>Risk:</b> Feature collapse and instability.</sub>
+      </div>
     </td>
-    <td width="50%" align="center">
-      <b>Deployment Verdict</b><br/>
-      <img src="assets/summary_dashboard.png" width="90%" /><br/>
-      <sub>Is this model safe to ship?</sub>
+    <td width="33%" align="center">
+      <b>Equalized Odds Violations</b><br/>
+      <img src="assets/equalized_odds_region.png" width="100%" /><br/>
+      <div align="left">
+      <sub><b>What it is:</b> True vs False Positive Rates.</sub><br/>
+      <sub><b>Why it matters:</b> Ensures equitable outcomes.</sub><br/>
+      <sub><b>Risk:</b> Systemic discrimination.</sub>
+      </div>
+    </td>
+    <td width="33%" align="center">
+      <b>Failure Analysis</b><br/>
+      <img src="assets/failure_plot.png" width="100%" /><br/>
+      <div align="left">
+      <sub><b>What it is:</b> Confidence distribution of errors.</sub><br/>
+      <sub><b>Why it matters:</b> Spots systemic failure modes.</sub><br/>
+      <sub><b>Risk:</b> Unpredictable production behavior.</sub>
+      </div>
     </td>
   </tr>
 </table>
@@ -239,46 +124,132 @@ Gate model promotion on `trust_score.json` — no custom scripting needed:
 
 ---
 
-## Demo
+## How TrustLens Works
 
-[![Watch the demo](https://img.youtube.com/vi/lZo7aWg6efI/mqdefault.jpg)](https://youtu.be/lZo7aWg6efI)
+TrustLens evaluates your model through four distinct diagnostic modules, combining the findings into a **Trust Score (0–100)**.
 
-15-minute walkthrough: diagnostics, trust scoring, fairness analysis, and visual dashboards.
+1.  **Calibration Engine**: Computes Expected Calibration Error (ECE) and Brier Score to detect confidence mismatch.
+2.  **Fairness Engine**: Evaluates Equalized Odds and Subgroup Performance gaps across sensitive features.
+3.  **Representation Engine**: Analyzes latent embedding separability (Silhouette, CKA) to ensure stable decision boundaries.
+4.  **Decision Engine**: Synthesizes the risks into a penalty-based Trust Score and a `Ready` / `Blocked` deployment verdict.
 
-Want a deeper look at the architecture and design decisions? → [**Interactive Project Showcase**](https://khanz9664.github.io/portfolio/projects/trustlens.html)
+### The Prediction Resolver Architecture
+
+You don't need to write boilerplate to extract probabilities. TrustLens features a **Prediction Resolver Architecture** that automatically detects your framework and standardizes the output.
+
+We natively support:
+*   **scikit-learn** (`ClassifierMixin` estimators)
+*   **XGBoost** (`XGBClassifier`, `Booster`)
+*   **LightGBM** (`LGBMClassifier`, `Booster`)
+*   **CatBoost** (`CatBoostClassifier`)
 
 ---
 
-## Run the Full Demo
+## Scientific Validation
+
+TrustLens is more than a visualization package—it is a statistically grounded diagnostic framework. We have systematically validated its behavior across 6 model architectures and multiple data corruption scenarios (noise, imbalance, bias).
+
+**Key Finding**: TrustLens empirically decouples **Accuracy** from **Trust**, accurately flagging high-accuracy models that exhibit high reliability risks (the "Overconfidence Zone").
+
+---
+
+## Community & Project Evolution
+
+TrustLens is an actively evolving framework driven by robust engineering discussions and RFCs (Request for Comments). We treat evaluation as a first-class architectural problem.
+
+**Active Architectural Debates & Milestones:**
+*   **[RFC #145: Regression Trust Score](https://github.com/Khanz9664/TrustLens/issues/145)** — Proposing the scoring framework for regression models.
+*   **[PR #147: Implements RFC #145 (Regression Trust Score)](https://github.com/Khanz9664/TrustLens/pull/147)** — Core engine execution for regression contexts.
+*   **[PR #102: Centralize plotting style](https://github.com/Khanz9664/TrustLens/pull/102)** — Unifying visual identity across the framework.
+*   **[PR #68: Fairness multi-feature support](https://github.com/Khanz9664/TrustLens/pull/68)** — Scaling bias detection across complex datasets.
+
+**The Evolution:**
+*   **v0.1**: MVP — Core metrics and visualizations.
+*   **v0.4 (Current)**: Framework-Agnostic Core — Native support for XGBoost, LightGBM, CatBoost.
+*   **v0.5**: *In Progress* — Policy Profiles, Regression Support, TrustComparison.
+*   **v1.0**: *Planned* — CI/CD enterprise integration and Web Dashboards.
+
+---
+
+## Quickstart
+
+Install TrustLens (use `[full]` for extended plotting and framework support):
 
 ```bash
-python demo.py
+pip install trustlens
+pip install trustlens[full]
 ```
 
-Generates multi-model comparisons, fairness deep-dives, latent space projections, JSON audits, and visual dashboards across all modules.
+Run a one-line audit on a built-in dataset to see why high accuracy isn't the full story:
+
+```python
+from trustlens import quick_analyze
+
+quick_analyze(dataset="breast_cancer")
+```
+
+Or run a comprehensive audit on your own model:
+
+```python
+from trustlens import analyze
+from xgboost import XGBClassifier
+
+model = XGBClassifier().fit(X_train, y_train)
+
+# TrustLens auto-detects the XGBoost model and extracts probabilities
+report = analyze(
+    model=model,
+    X=X_test,
+    y_true=y_test,
+    sensitive_features={"gender": gender_test}
+)
+
+# Render the rich HTML dashboard or visual plots
+report.show()
+
+# Gate your CI/CD pipeline
+report.save("trust_report/")
+```
 
 ---
 
-## Contributing
+## Deep Dive Documentation
 
-All contributions welcome — new metrics, diagnostic plugins, and visualizations.
+The README is just the tip of the iceberg. Explore the full TrustLens documentation site for methodology, API references, and architectural deep-dives:
 
-→ [**Contributing Guide**](CONTRIBUTING.md) · [**Open an Issue**](https://github.com/Khanz9664/TrustLens/issues) · [**Docs**](https://khanz9664.github.io/trustlensdocs/)
+*   🌐 **[Documentation Home](https://khanz9664.github.io/trustlensdocs/)**
+*   🏛️ **[Architecture Guide](https://khanz9664.github.io/trustlensdocs/architecture.html)**
+*   📖 **[API Reference](https://khanz9664.github.io/trustlensdocs/api_reference.html)**
 
-<br/>
+---
+
+## 🤝 Contributing
+
+TrustLens is an open ecosystem. We welcome contributions—whether it's new diagnostic plugins, better visualizers, or core engine improvements. 
+
+→ [**Contributing Guide**](CONTRIBUTING.md) · [**Open an Issue**](https://github.com/Khanz9664/TrustLens/issues)
+
+**A massive thank you to our contributors:**
 
 <a href="https://github.com/Khanz9664"><img src="https://github.com/Khanz9664.png" width="36" style="border-radius:50%" /></a>
-<a href="https://github.com/jayssSmm"><img src="https://github.com/jayssSmm.png" width="36" style="border-radius:50%" /></a>
-<a href="https://github.com/WeiGuang-2099"><img src="https://github.com/WeiGuang-2099.png" width="36" style="border-radius:50%" /></a>
-<a href="https://github.com/CrepuscularIRIS"><img src="https://github.com/CrepuscularIRIS.png" width="36" style="border-radius:50%" /></a>
 <a href="https://github.com/komoike-oss28-ui"><img src="https://github.com/komoike-oss28-ui.png" width="36" style="border-radius:50%" /></a>
-<a href="https://github.com/sidharth-vijayan"><img src="https://github.com/sidharth-vijayan.png" width="36" style="border-radius:50%" /></a>
-<a href="https://github.com/MustansirNisar"><img src="https://github.com/MustansirNisar.png" width="36" style="border-radius:50%" /></a>
-<a href="https://github.com/dicnunz"><img src="https://github.com/dicnunz.png" width="36" style="border-radius:50%" /></a>
+<a href="https://github.com/Whatsonyourmind"><img src="https://github.com/Whatsonyourmind.png" width="36" style="border-radius:50%" /></a>
+<a href="https://github.com/WeiGuang-2099"><img src="https://github.com/WeiGuang-2099.png" width="36" style="border-radius:50%" /></a>
+<a href="https://github.com/claude"><img src="https://github.com/claude.png" width="36" style="border-radius:50%" /></a>
+<a href="https://github.com/jayssSmm"><img src="https://github.com/jayssSmm.png" width="36" style="border-radius:50%" /></a>
 <a href="https://github.com/JavadTe"><img src="https://github.com/JavadTe.png" width="36" style="border-radius:50%" /></a>
-<a href="https://github.com/q404365631"><img src="https://github.com/q404365631.png" width="36" style="border-radius:50%" /></a>
-<a href="https://github.com/nanookclaw"><img src="https://github.com/nanookclaw.png" width="36" style="border-radius:50%" /></a>
+<a href="https://github.com/gaoflow"><img src="https://github.com/gaoflow.png" width="36" style="border-radius:50%" /></a>
 <a href="https://github.com/vaishnavidesai09"><img src="https://github.com/vaishnavidesai09.png" width="36" style="border-radius:50%" /></a>
+<a href="https://github.com/nanookclaw"><img src="https://github.com/nanookclaw.png" width="36" style="border-radius:50%" /></a>
+<a href="https://github.com/llamapreview[bot]"><img src="https://github.com/llamapreview[bot].png" width="36" style="border-radius:50%" /></a>
+<a href="https://github.com/q404365631"><img src="https://github.com/q404365631.png" width="36" style="border-radius:50%" /></a>
+<a href="https://github.com/dicnunz"><img src="https://github.com/dicnunz.png" width="36" style="border-radius:50%" /></a>
+<a href="https://github.com/MustansirNisar"><img src="https://github.com/MustansirNisar.png" width="36" style="border-radius:50%" /></a>
+<a href="https://github.com/sidharth-vijayan"><img src="https://github.com/sidharth-vijayan.png" width="36" style="border-radius:50%" /></a>
+<a href="https://github.com/fuchan12040502-innu"><img src="https://github.com/fuchan12040502-innu.png" width="36" style="border-radius:50%" /></a>
+<a href="https://github.com/CrepuscularIRIS"><img src="https://github.com/CrepuscularIRIS.png" width="36" style="border-radius:50%" /></a>
+
+<br/>
 
 ---
 
@@ -295,7 +266,5 @@ All contributions welcome — new metrics, diagnostic plugins, and visualization
 
 <div align="center">
 <br/>
-Built by <a href="https://github.com/Khanz9664"><b>Shahid Ul Islam</b></a> &nbsp;·&nbsp;
-<a href="https://khanz9664.github.io/portfolio/">Portfolio</a> &nbsp;·&nbsp;
-<a href="https://www.linkedin.com/in/shahid-ul-islam-13650998/">LinkedIn</a>
+Built by <a href="https://github.com/Khanz9664"><b>Shahid Ul Islam</b></a>
 </div>
