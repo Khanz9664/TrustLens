@@ -241,7 +241,7 @@ TrustLens is an open ecosystem. We welcome contributions—whether it's new diag
 <a href="https://github.com/gaoflow"><img src="https://github.com/gaoflow.png" width="36" style="border-radius:50%" /></a>
 <a href="https://github.com/vaishnavidesai09"><img src="https://github.com/vaishnavidesai09.png" width="36" style="border-radius:50%" /></a>
 <a href="https://github.com/nanookclaw"><img src="https://github.com/nanookclaw.png" width="36" style="border-radius:50%" /></a>
-<a href="https://github.com/llamapreview[bot]"><img src="https://github.com/llamapreview[bot].png" width="36" style="border-radius:50%" /></a>
+<a href="https://github.com/apps/llamapreview"><img src="https://avatars.githubusercontent.com/ml/19365?s=82&v=4" width="36" style="border-radius:50%" /></a>
 <a href="https://github.com/q404365631"><img src="https://github.com/q404365631.png" width="36" style="border-radius:50%" /></a>
 <a href="https://github.com/dicnunz"><img src="https://github.com/dicnunz.png" width="36" style="border-radius:50%" /></a>
 <a href="https://github.com/MustansirNisar"><img src="https://github.com/MustansirNisar.png" width="36" style="border-radius:50%" /></a>
