@@ -33,7 +33,7 @@
 
 ## Why Traditional Evaluation Fails
 
-You train a model. The test set reports 92% Accuracy and a 0.95 ROC-AUC. By all traditional metrics, it is ready to ship. 
+You train a model. The test set reports 92% Accuracy and a 0.95 ROC-AUC. By all traditional metrics, it is ready to ship.
 
 But behind those numbers, silent failures are lurking:
 * **Overconfidence**: The model is "90% sure" about its predictions, but it's only right 60% of the time.
@@ -225,7 +225,7 @@ The README is just the tip of the iceberg. Explore the full TrustLens documentat
 
 ## 🤝 Contributing
 
-TrustLens is an open ecosystem. We welcome contributions—whether it's new diagnostic plugins, better visualizers, or core engine improvements. 
+TrustLens is an open ecosystem. We welcome contributions—whether it's new diagnostic plugins, better visualizers, or core engine improvements.
 
 → [**Contributing Guide**](CONTRIBUTING.md) · [**Open an Issue**](https://github.com/Khanz9664/TrustLens/issues)
 
