@@ -19,7 +19,7 @@
 
 <br/>
 
-[**Why TrustLens**](#-why-traditional-evaluation-fails) · [**Visual Evidence**](#-visual-evidence-trustlens-in-action) · [**How It Works**](#-how-trustlens-works) · [**Architecture & Evolution**](#-community--project-evolution) · [**Quickstart**](#-quickstart) · [**Docs**](https://khanz9664.github.io/trustlensdocs/)
+[**Why TrustLens**](#why-traditional-evaluation-fails) · [**Visual Evidence**](#visual-evidence-trustlens-in-action) · [**How It Works**](#how-trustlens-works) · [**Architecture & Evolution**](#community--project-evolution) · [**Quickstart**](#quickstart) · [**Docs**](https://khanz9664.github.io/trustlensdocs/) . [**Project WriteUp**](https://khanz9664.github.io/portfolio/projects/trustlens.html)
 
 </div>
 
@@ -151,6 +151,8 @@ TrustLens is more than a visualization package—it is a statistically grounded 
 
 **Key Finding**: TrustLens empirically decouples **Accuracy** from **Trust**, accurately flagging high-accuracy models that exhibit high reliability risks (the "Overconfidence Zone").
 
+>**[View the Model Zoo Benchmark](examples/trustlens_model_zoo_benchmark.ipynb)**
+
 ---
 
 ## Community & Project Evolution
@@ -231,7 +233,7 @@ TrustLens is an open ecosystem. We welcome contributions—whether it's new diag
 
 **A massive thank you to our contributors:**
 
-<a href="https://github.com/Khanz9664"><img src="https://github.com/Khanz9664.png" width="36" style="border-radius:50%" /></a>
+><a href="https://github.com/Khanz9664"><img src="https://github.com/Khanz9664.png" width="36" style="border-radius:50%" /></a>
 <a href="https://github.com/komoike-oss28-ui"><img src="https://github.com/komoike-oss28-ui.png" width="36" style="border-radius:50%" /></a>
 <a href="https://github.com/Whatsonyourmind"><img src="https://github.com/Whatsonyourmind.png" width="36" style="border-radius:50%" /></a>
 <a href="https://github.com/WeiGuang-2099"><img src="https://github.com/WeiGuang-2099.png" width="36" style="border-radius:50%" /></a>
@@ -264,7 +266,24 @@ TrustLens is an open ecosystem. We welcome contributions—whether it's new diag
 }
 ```
 
-<div align="center">
-<br/>
-Built by <a href="https://github.com/Khanz9664"><b>Shahid Ul Islam</b></a>
-</div>
+---
+
+<p align="center">
+  Engineering Design © 2026 Shahid Ul Islam. <br />
+  Built with passion for Mathematical Rigor and Technical Excellence.
+</p>
+
+<p align="center">
+  <a href="https://khanz9664.github.io/portfolio">
+    <img src="https://img.shields.io/badge/Portfolio-255E00?style=for-the-badge&logo=google-chrome&logoColor=white" alt="Portfolio">
+  </a>
+  <a href="https://github.com/khanz9664">
+    <img src="https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white" alt="GitHub">
+  </a>
+  <a href="https://www.linkedin.com/in/shahid-ul-islam-13650998/">
+    <img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn">
+  </a>
+  <a href="https://www.kaggle.com/shaddy9664">
+    <img src="https://img.shields.io/badge/Kaggle-20BEFF?style=for-the-badge&logo=Kaggle&logoColor=white" alt="Kaggle">
+  </a>
+</p>
