@@ -16,6 +16,8 @@ Covers the converged v1 spec:
 
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 import pytest
 
@@ -322,3 +324,67 @@ def test_constant_target_imperfect_fit_zero_skill_not_blocked():
     assert not r.is_blocked  # skill 0.0 is not < 0 → not a blocker
     assert r.sub_scores["accuracy"] == pytest.approx(0.0)
     assert r.grade == "D"
+
+
+# ---------------------------------------------------------------------------
+# Persisted target_variance — recompute a regression Trust Score from a stored
+# report without the original y_true (issue #150)
+# ---------------------------------------------------------------------------
+
+
+def test_stored_variance_recompute_equals_y_true():
+    """A score recomputed from a persisted target_variance is identical to the
+    score computed from y_true."""
+    res = _results(_ed(0.9), _cov(0.0), _corr(0.9))
+    from_y_true = regression_trust_score(res, Y)
+    res["regression"]["target_variance"] = VAR_Y  # what the pipeline persists
+    from_stored = regression_trust_score(res)  # no y_true in memory
+    assert from_stored.score == from_y_true.score
+    assert from_stored.grade == from_y_true.grade
+    assert from_stored.sub_scores == from_y_true.sub_scores
+    assert from_stored.breakdown == from_y_true.breakdown
+
+
+def test_missing_both_y_true_and_stored_variance_raises():
+    """Neither y_true nor a persisted variance → explicit error, never a silent
+    0.0 that would masquerade as a constant target."""
+    res = _results(_ed(0.9))  # no target_variance persisted
+    with pytest.raises(ValueError, match="target variance"):
+        regression_trust_score(res)  # and no y_true
+
+
+def test_stored_zero_variance_is_honoured_not_treated_as_missing():
+    """A genuine constant target persists as target_variance == 0.0 and must be
+    used (constant-target branch), not rejected as 'missing'."""
+    ed = _ed(0.0)
+    ed["rmse"] = 0.0  # perfect fit on a constant target
+    res = {
+        "regression": {
+            "error_distribution": ed,
+            "interval_coverage": _cov_skipped(),
+            "error_variance_correlation": _corr_skipped(),
+            "target_variance": 0.0,
+        }
+    }
+    r = regression_trust_score(res)  # no y_true; 0.0 must be used, not rejected
+    assert r.task_type == "regression"
+    assert r.sub_scores["accuracy"] == pytest.approx(100.0)  # perfect constant-target fit
+
+
+def test_y_true_wins_and_warns_on_mismatch_with_stored():
+    """When both are present and disagree, y_true wins and a warning fires."""
+    res = _results(_ed(0.9), _cov(0.0), _corr(0.9))
+    res["regression"]["target_variance"] = VAR_Y * 4.0  # deliberately wrong
+    with pytest.warns(UserWarning, match="disagrees with the persisted"):
+        mismatched = regression_trust_score(res, Y)
+    clean = regression_trust_score(_results(_ed(0.9), _cov(0.0), _corr(0.9)), Y)
+    assert mismatched.score == clean.score  # y_true wins → stored value ignored
+
+
+def test_matching_stored_variance_does_not_warn():
+    """A persisted variance equal to Var(y_true) must not warn."""
+    res = _results(_ed(0.9), _cov(0.0), _corr(0.9))
+    res["regression"]["target_variance"] = VAR_Y
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")  # any warning becomes a test failure
+        regression_trust_score(res, Y)

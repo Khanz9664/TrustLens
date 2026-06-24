@@ -365,6 +365,10 @@ def _run_regression_pipeline(
             y_true, lower, upper, confidence_level=confidence_level
         ),
         "error_variance_correlation": error_variance_correlation(y_true, y_pred, variance),
+        # Persist Var(y) (population variance, ddof=0 — identical to the on-the-fly
+        # computation in regression_trust_score) so the regression Trust Score can
+        # be recomputed from a stored report without the original y_true (issue #150).
+        "target_variance": float(np.var(np.asarray(y_true, dtype=float))),
     }
 
     results: dict[str, Any] = {"regression": regression_results}

@@ -76,6 +76,7 @@ References
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -581,6 +582,9 @@ def _regression_accuracy_score(error_dist: dict, target_variance: float) -> dict
     else:
         # Constant target: a mean-predictor is already exact, so skill "over the
         # mean" is undefined. Treat a perfect fit as full skill, else none.
+        # NB: a 0.0 here unambiguously means a genuine constant target — callers
+        # resolve a *missing* variance to a ValueError upstream, never to 0.0
+        # (issue #150), so this branch is never reached for absent ground truth.
         skill = 1.0 if mse <= 1e-12 else 0.0
 
     base = 100.0 * float(np.clip(skill, 0.0, 1.0))
@@ -635,7 +639,7 @@ def _reg_metric_present(metric: dict | None) -> bool:
 
 def regression_trust_score(
     results: dict,
-    y_true: np.ndarray,
+    y_true: np.ndarray | None = None,
     weights: dict[str, float] | None = None,
 ) -> TrustScoreResult:
     """
@@ -655,8 +659,14 @@ def regression_trust_score(
       Expected keys: ``error_distribution`` (always present) plus the optional
       ``interval_coverage`` / ``error_variance_correlation`` (which may be
       ``status="skipped"`` dicts when their inputs were absent).
-    y_true : np.ndarray
-      Ground-truth targets, used to compute ``Var(y)`` for the skill score.
+    y_true : np.ndarray, optional
+      Ground-truth targets, used to compute ``Var(y)`` for the skill score. May
+      be omitted **only** when ``results`` carries a persisted
+      ``regression["target_variance"]`` (as emitted by the regression pipeline,
+      issue #150), which is then used as the fallback so a regression Trust Score
+      can be recomputed from a stored report alone. If both are supplied, the
+      explicitly-passed ``y_true`` wins and a mismatch beyond tolerance warns. If
+      neither is available a ``ValueError`` is raised.
     weights : dict, optional
       Custom dimension weights (keys: ``"accuracy"``, ``"interval_calibration"``,
       ``"uncertainty_informativeness"``). Defaults to ``0.30 / 0.40 / 0.30``.
@@ -678,8 +688,34 @@ def regression_trust_score(
     coverage = reg.get("interval_coverage", {})
     corr = reg.get("error_variance_correlation", {})
 
-    y_true_arr = np.asarray(y_true, dtype=float)
-    target_variance = float(np.var(y_true_arr)) if y_true_arr.size else 0.0
+    # Resolve Var(y) for the skill denominator. Priority (issue #150):
+    #   1. explicit y_true → np.var (population, ddof=0), no behaviour change;
+    #   2. else a persisted results["regression"]["target_variance"];
+    #   3. else raise — never silently fall through to 0.0, which would route a
+    #      missing variance through the genuine "constant target" branch and
+    #      yield a misleading skill score.
+    stored_variance = reg.get("target_variance")
+    if y_true is not None:
+        y_true_arr = np.asarray(y_true, dtype=float)
+        target_variance = float(np.var(y_true_arr)) if y_true_arr.size else 0.0
+        if stored_variance is not None and not np.isclose(
+            target_variance, float(stored_variance), rtol=1e-6, atol=1e-9
+        ):
+            warnings.warn(
+                "regression_trust_score: Var(y) from the supplied y_true "
+                f"({target_variance:.6g}) disagrees with the persisted "
+                f"target_variance ({float(stored_variance):.6g}); using y_true.",
+                stacklevel=2,
+            )
+    elif stored_variance is not None:
+        target_variance = float(stored_variance)
+    else:
+        raise ValueError(
+            "regression_trust_score needs the target variance Var(y) to compute "
+            "the skill score, but neither was available: pass y_true, or use a "
+            "report whose regression results carry a persisted 'target_variance' "
+            "(emitted by the regression pipeline; see issue #150)."
+        )
 
     w = dict(_REGRESSION_DEFAULT_WEIGHTS)
     if weights:
