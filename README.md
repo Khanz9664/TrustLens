@@ -16,10 +16,11 @@
 [![Coverage](https://img.shields.io/badge/coverage-75%25-brightgreen)](https://github.com/Khanz9664/TrustLens)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-237%20passing-success)](https://github.com/Khanz9664/TrustLens/actions)
+[![Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg?style=flat)](https://khanz9664.github.io/trustlensdocs/)
 
 <br/>
 
-[**Why TrustLens**](#why-traditional-evaluation-fails) · [**Visual Evidence**](#visual-evidence-trustlens-in-action) · [**How It Works**](#how-trustlens-works) · [**Architecture & Evolution**](#community--project-evolution) · [**Quickstart**](#quickstart) · [**Docs**](https://khanz9664.github.io/trustlensdocs/) . [**Project WriteUp**](https://khanz9664.github.io/portfolio/projects/trustlens.html)
+[**Why TrustLens**](#why-traditional-evaluation-fails) · [**Visual Evidence**](#visual-evidence-trustlens-in-action) · [**How It Works**](#how-trustlens-works) · [**Architecture & Evolution**](#community--project-evolution) · [**Quickstart**](#quickstart) · [**Project WriteUp**](https://khanz9664.github.io/portfolio/projects/trustlens.html)
 
 </div>
 
