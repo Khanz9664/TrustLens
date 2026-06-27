@@ -17,7 +17,7 @@ Calibration metrics test whether that assumption is true.
 
 - `y_true`: ground-truth labels
 - `y_prob`: predicted probabilities
-- **Multiclass Support**: TrustLens v0.4.0 supports multiclass calibration using top-label ECE and Multiclass Brier Score.
+- **Multiclass Support**: TrustLens v0.5.0 supports multiclass calibration using top-label ECE and Multiclass Brier Score.
 
 ## Output and Interpretation
 

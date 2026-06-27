@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/banner1.png" alt="TrustLens" width="100%" />
+<img src="https://raw.githubusercontent.com/Khanz9664/TrustLens/refs/heads/main/assets/banner1.png" alt="TrustLens" width="100%" />
 
 <br/>
 
@@ -65,7 +65,7 @@ TrustLens diagnostics are powered by visual evidence. We don't just give you a s
   <tr>
     <td width="33%" align="center">
       <b>The Deployment Verdict</b><br/>
-      <img src="assets/summary_dashboard.png" width="100%" /><br/>
+      <img src="https://raw.githubusercontent.com/Khanz9664/TrustLens/refs/heads/main/assets/summary_dashboard.png" width="100%" /><br/>
       <div align="left">
       <sub><b>What it is:</b> The composite Trust Score.</sub><br/>
       <sub><b>Why it matters:</b> Gives a CI/CD-ready grade.</sub><br/>
@@ -74,7 +74,7 @@ TrustLens diagnostics are powered by visual evidence. We don't just give you a s
     </td>
     <td width="33%" align="center">
       <b>Calibration</b><br/>
-      <img src="assets/calibration_plot.png" width="100%" /><br/>
+      <img src="https://raw.githubusercontent.com/Khanz9664/TrustLens/refs/heads/main/assets/calibration_plot.png" width="100%" /><br/>
       <div align="left">
       <sub><b>What it is:</b> Reliability diagram.</sub><br/>
       <sub><b>Why it matters:</b> Shows if the model is overconfident.</sub><br/>
@@ -83,7 +83,7 @@ TrustLens diagnostics are powered by visual evidence. We don't just give you a s
     </td>
     <td width="33%" align="center">
       <b>Subgroup Fairness Gaps</b><br/>
-      <img src="assets/fairness_gap_region.png" width="100%" /><br/>
+      <img src="https://raw.githubusercontent.com/Khanz9664/TrustLens/refs/heads/main/assets/fairness_gap_region.png" width="100%" /><br/>
       <div align="left">
       <sub><b>What it is:</b> Error rates across demographics.</sub><br/>
       <sub><b>Why it matters:</b> Uncovers hidden biases.</sub><br/>
@@ -94,7 +94,7 @@ TrustLens diagnostics are powered by visual evidence. We don't just give you a s
   <tr>
     <td width="33%" align="center">
       <b>Latent Space Health</b><br/>
-      <img src="assets/representation_embedding_2d.png" width="100%" /><br/>
+      <img src="https://raw.githubusercontent.com/Khanz9664/TrustLens/refs/heads/main/assets/representation_embedding_2d.png" width="100%" /><br/>
       <div align="left">
       <sub><b>What it is:</b> UMAP/t-SNE projection.</sub><br/>
       <sub><b>Why it matters:</b> Visualizes class separability.</sub><br/>
@@ -103,7 +103,7 @@ TrustLens diagnostics are powered by visual evidence. We don't just give you a s
     </td>
     <td width="33%" align="center">
       <b>Equalized Odds Violations</b><br/>
-      <img src="assets/equalized_odds_region.png" width="100%" /><br/>
+      <img src="https://raw.githubusercontent.com/Khanz9664/TrustLens/refs/heads/main/assets/equalized_odds_region.png" width="100%" /><br/>
       <div align="left">
       <sub><b>What it is:</b> True vs False Positive Rates.</sub><br/>
       <sub><b>Why it matters:</b> Ensures equitable outcomes.</sub><br/>
@@ -112,7 +112,7 @@ TrustLens diagnostics are powered by visual evidence. We don't just give you a s
     </td>
     <td width="33%" align="center">
       <b>Failure Analysis</b><br/>
-      <img src="assets/failure_plot.png" width="100%" /><br/>
+      <img src="https://raw.githubusercontent.com/Khanz9664/TrustLens/refs/heads/main/assets/failure_plot.png" width="100%" /><br/>
       <div align="left">
       <sub><b>What it is:</b> Confidence distribution of errors.</sub><br/>
       <sub><b>Why it matters:</b> Spots systemic failure modes.</sub><br/>

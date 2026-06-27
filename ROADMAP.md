@@ -5,7 +5,7 @@
 
 ---
 
-## Current State (v0.4.0)
+## Current State (v0.5.0)
 
 - ✅ Stable ML evaluation pipeline (calibration, failure, bias, representation)
 - ✅ Head-to-head model comparison API (`trustlens.compare`)
@@ -24,7 +24,7 @@
 
 ---
 
-## Active Work (v0.5.0)
+## Active Work (v0.6.0)
 
 These are high-priority items currently being developed or targeted for the next release.
 
@@ -62,7 +62,7 @@ The minimal set of features required to be genuinely useful to practitioners.
 
 ## Phase 2: Core Expansion — *Going Deeper*
 
-**Status: COMPLETE (v0.4.0)**
+**Status: COMPLETE (v0.5.0)**
 
 > **Focus:** High-impact ML features that integrate directly into the `analyze()` pipeline.
 
@@ -121,7 +121,7 @@ Methods primarily of interest to ML researchers pushing state-of-the-art and pro
 
 ## Phase 4: Community Growth — *Scaling Impact*
 
-**Target: v0.4.0**
+**Target: v0.5.0**
 
 Making TrustLens a community standard.
 

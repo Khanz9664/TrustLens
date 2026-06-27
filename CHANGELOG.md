@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [v0.5.0] - 2026-06-27
+
 ### Added
 - **Regression Metrics**: Added `trustlens/metrics/regression.py` with `error_distribution` (MedAE, 90th-percentile error, max, MAE, RMSE + histogram data), `prediction_interval_coverage` (PICP vs. nominal confidence, with graceful skip when intervals are absent), and `error_variance_correlation` (Pearson/Spearman between predicted uncertainty and actual error). A metrics-only first step toward regression support; `analyze()` auto-dispatch and visualization to follow. (refs #82) Thanks @Whatsonyourmind
 - **Regression Analysis Pipeline & TrustReport Integration:** Added automatic regression-task detection and dispatch within `trustlens.analyze()`. Continuous targets are now routed through a dedicated regression evaluation pipeline with support for regression report rendering, serialization, export, and integration with `TrustReport`. (#142) (refs #82) Thanks @Whatsonyourmind
@@ -222,7 +226,9 @@ This release marks the transition of TrustLens from a scikit-learn-specific libr
 - GitHub Actions CI workflow (linting, testing, and formatting)
 - Complete documentation: README (with logo), CONTRIBUTING, ROADMAP, this CHANGELOG
 
-[Unreleased]: https://github.com/Khanz9664/TrustLens/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/Khanz9664/TrustLens/compare/v0.5.0...HEAD
+[v0.5.0]: https://github.com/Khanz9664/TrustLens/compare/v0.4.0...v0.5.0
+[v0.4.0]: https://github.com/Khanz9664/TrustLens/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Khanz9664/TrustLens/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Khanz9664/TrustLens/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/Khanz9664/TrustLens/compare/v0.1.1...v0.1.2

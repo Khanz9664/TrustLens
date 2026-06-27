@@ -11,7 +11,7 @@ TrustLens currently targets classification reliability workflows. Regression sup
 Calibration and several failure diagnostics require valid probability outputs.
 
 - If your model has no `predict_proba`, you must provide `y_prob` manually to access full diagnostics.
-- **Degraded Mode**: TrustLens v0.4.0 now allows running without probabilities. In this case, confidence-based metrics (Calibration, ECE) are skipped, and the report is labeled as "Degraded".
+- **Degraded Mode**: TrustLens v0.5.0 now allows running without probabilities. In this case, confidence-based metrics (Calibration, ECE) are skipped, and the report is labeled as "Degraded".
 - Low-quality probability estimates reduce the quality of trust conclusions.
 
 ## Dataset Size Effects
