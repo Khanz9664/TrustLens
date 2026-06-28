@@ -8,6 +8,14 @@ import numpy as np
 from trustlens.visualization.style import apply_style, get_categorical_colors
 
 
+def _get_shared_dimensions(metrics_dict: dict[str, dict[str, float]]) -> list[str] | None:
+    ref = list(next(iter(metrics_dict.values())).keys())
+    for model in metrics_dict.values():
+        if list(model.keys()) != ref:
+            return None
+    return ref
+
+
 def plot_radar_comparison(
     metrics_dict: dict[str, dict[str, float]],
     title: str = "Model Comparison",
@@ -25,8 +33,8 @@ def plot_radar_comparison(
     metrics_dict : dict[str, dict[str, float]]
       Mapping of model name to metric scores, e.g.
       ``{"Random Forest": {"calibration": 82.4, "failure": 76.1}}``.
-      All models should share the same metric keys; axis labels are taken
-      from the first model entry.
+      Every model must use the same metric keys in the same order; axis
+      labels are taken from the first model entry.
     title : str
       Plot title.
     save_path : str, optional
@@ -41,13 +49,19 @@ def plot_radar_comparison(
     Raises
     ------
     ValueError
-        When ``metrics_dict`` is empty.
+        If ``metrics_dict`` is empty.
+    ValueError
+        If any model uses different metric keys or key order than the first
+        model entry.
     """
     if not metrics_dict:
         raise ValueError("metrics_dict must not be empty")
 
-    labels = list(next(iter(metrics_dict.values())).keys())
-    angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False)
+    dimensions = _get_shared_dimensions(metrics_dict)
+    if dimensions is None:
+        raise ValueError("every model should use the same dimensions")
+
+    angles = np.linspace(0, 2 * np.pi, len(dimensions), endpoint=False)
     angles = np.concatenate([angles, angles[:1]])
 
     with apply_style() as theme:
@@ -60,14 +74,14 @@ def plot_radar_comparison(
         colors = get_categorical_colors(len(metrics_dict), theme=theme)
 
         for (model_name, scores), color in zip(metrics_dict.items(), colors):
-            values = [scores[label] for label in labels]
+            values = [scores[label] for label in dimensions]
             values = values + values[:1]
 
             ax.plot(angles, values, color=color, label=model_name, linewidth=2)
             ax.fill(angles, values, color=color, alpha=0.2)
 
         ax.set_xticks(angles[:-1])
-        ax.set_xticklabels(labels)
+        ax.set_xticklabels(dimensions)
         ax.set_title(title, fontweight="bold")
         ax.grid(True, alpha=theme.grid["alpha"])
         ax.legend(loc="upper right", bbox_to_anchor=(1.2, 1.1))

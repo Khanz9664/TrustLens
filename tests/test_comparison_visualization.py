@@ -19,7 +19,25 @@ class TestPlotComparisonDiagramValidation:
         with pytest.raises(ValueError, match="metrics_dict must not be empty"):
             plot_radar_comparison(empty_dict, save_path=None, show=False)
 
-    def test_radar(self):
+    def test_models_share_dimensions(self) -> None:
+        metrics_dict = {
+            "Random Forest": {
+                "calibration": 82.4,
+                "failure": 76.1,
+                "bias": 91.0,
+                "representation": 68.5,
+            },
+            "Logistic Regression": {
+                "diff_calibration": 71.2,
+                "diff_failure": 84.3,
+                "diff_bias": 88.5,
+                "diff_representation": 55.0,
+            },
+        }
+        with pytest.raises(ValueError, match="every model should use the same dimensions"):
+            plot_radar_comparison(metrics_dict, save_path=None, show=False)
+
+    def test_successful_figure_generation(self):
         metrics_dict = {
             "Random Forest": {
                 "calibration": 82.4,
