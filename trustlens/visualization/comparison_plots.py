@@ -14,6 +14,35 @@ def plot_radar_comparison(
     save_path: str | None = None,
     show: bool = True,
 ) -> plt.Figure:
+    """
+    Plot a radar chart comparing dimensions across multiple models.
+
+    Each model is drawn as a filled polygon on a polar axis. Axes correspond
+    to metric names (e.g., calibration, failure, bias) and values are scores.
+
+    Parameters
+    ----------
+    metrics_dict : dict[str, dict[str, float]]
+      Mapping of model name to metric scores, e.g.
+      ``{"Random Forest": {"calibration": 82.4, "failure": 76.1}}``.
+      All models should share the same metric keys; axis labels are taken
+      from the first model entry.
+    title : str
+      Plot title.
+    save_path : str, optional
+      If provided, saves the figure to this path.
+    show : bool
+      If True, calls ``plt.show()`` on interactive backends.
+
+    Returns
+    -------
+    matplotlib.figure.Figure
+
+    Raises
+    ------
+    ValueError
+        When ``metrics_dict`` is empty.
+    """
     if not metrics_dict:
         raise ValueError("metrics_dict must not be empty")
 
