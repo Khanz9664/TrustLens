@@ -71,7 +71,7 @@ def plot_radar_comparison(
             constrained_layout=True,
         )
 
-        colors = get_categorical_colors(len(metrics_dict), theme=theme)
+        colors = get_categorical_colors(len(metrics_dict))
 
         for (model_name, scores), color in zip(metrics_dict.items(), colors):
             values = [scores[label] for label in dimensions]
