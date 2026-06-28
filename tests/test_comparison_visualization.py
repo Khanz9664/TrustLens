@@ -15,7 +15,7 @@ class TestPlotComparisonDiagramValidation:
     """Validate input checks for plot_radar_comparison."""
 
     def test_empty_data(self) -> None:
-        empty_dict = {}
+        empty_dict: dict[str, dict[str, float]] = {}
         with pytest.raises(ValueError, match="metrics_dict must not be empty"):
             plot_radar_comparison(empty_dict, save_path=None, show=False)
 
@@ -37,7 +37,7 @@ class TestPlotComparisonDiagramValidation:
         with pytest.raises(ValueError, match="every model should use the same dimensions"):
             plot_radar_comparison(metrics_dict, save_path=None, show=False)
 
-    def test_successful_figure_generation(self):
+    def test_successful_figure_generation(self) -> None:
         metrics_dict = {
             "Random Forest": {
                 "calibration": 82.4,
