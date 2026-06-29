@@ -40,11 +40,12 @@ It also exposes:
 
 from __future__ import annotations
 
-import warnings
 from collections.abc import Iterator
+from copy import deepcopy
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Any
+import warnings
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -157,6 +158,25 @@ SPACING: dict[str, Any] = {
     "bar_alpha": 0.85,
 }
 
+COLORBLIND_PALETTE: list[str] = [
+    "#0072B2",
+    "#E69F00",
+    "#009E73",
+    "#CC79A7",
+    "#56B4E9",
+    "#D55E00",
+    "#F0E442",
+]
+
+COLORBLIND_SEMANTIC_COLORS: dict[str, dict[str, str]] = {
+    "severity": {
+        "acceptable": "#0072B2",
+        "moderate": "#E69F00",
+        "severe": "#D55E00",
+        "unknown": "#999999",
+    }
+}
+
 # ---------------------------------------------------------------------------
 # Theme — frozen dataclass bundling everything above for future extensibility
 # ---------------------------------------------------------------------------
@@ -171,28 +191,6 @@ class Theme:
     that future themes (``"dark"``, ``"colorblind"``, ``"publication"``) can be
     added by registering a new :class:`Theme` instance without touching
     plotting code.
-
-    Attributes
-    ----------
-    name : str
-        Identifier (e.g. ``"default"``).
-    base_style : str
-        Matplotlib base style sheet applied inside :func:`apply_style`.
-    palette : list[str]
-        Categorical palette as ordered hex strings.
-    brand : dict[str, str]
-        Named brand colors.
-    semantic : dict[str, dict[str, str]]
-        Semantic color groups (``severity``, ``verdict``, ``grade``,
-        ``direction``, ``neutral``).
-    typography : dict[str, Any]
-        Font family and size settings.
-    grid : dict[str, Any]
-        Grid alpha and linewidth.
-    fig_defaults : dict[str, Any]
-        Default figure size, facecolor, and DPI.
-    spacing : dict[str, Any]
-        Padding, alpha, and bar styling.
     """
 
     name: str = "default"
@@ -210,6 +208,12 @@ class Theme:
 
 DEFAULT_THEME: Theme = Theme()
 
+COLORBLIND_THEME: Theme = Theme(
+    name="colorblind",
+    palette=list(COLORBLIND_PALETTE),
+    semantic=deepcopy(COLORBLIND_SEMANTIC_COLORS),
+)
+
 
 # ---------------------------------------------------------------------------
 # Context manager — scoped rcParams mutations
@@ -220,29 +224,6 @@ DEFAULT_THEME: Theme = Theme()
 def apply_style(theme: Theme | None = None) -> Iterator[Theme]:
     """
     Apply a TrustLens theme inside a ``with`` block, restoring state on exit.
-
-    This context manager scopes all ``matplotlib.rcParams`` mutations and base
-    style sheet changes to the ``with`` block. On exit, the previous rcParams
-    are restored. This avoids leaking TrustLens styling into the user's
-    matplotlib session — important when TrustLens runs inside notebooks or
-    larger ML pipelines.
-
-    Parameters
-    ----------
-    theme : Theme, optional
-        Theme to apply. Defaults to :data:`DEFAULT_THEME`.
-
-    Yields
-    ------
-    Theme
-        The active theme, so the caller can read its constants without a
-        separate import.
-
-    Examples
-    --------
-    >>> with apply_style() as theme:
-    ...     fig, ax = plt.subplots()
-    ...     ax.plot([0, 1], [0, 1], color=theme.brand["blue"])
     """
     active = theme if theme is not None else DEFAULT_THEME
     previous = mpl.rcParams.copy()
@@ -290,27 +271,6 @@ def styled_figure(
 ) -> tuple[plt.Figure, Any]:
     """
     Create a figure and axes pre-configured with TrustLens styling.
-
-    Parameters
-    ----------
-    figsize : tuple of float, optional
-        Figure size. Defaults to ``theme.fig_defaults["figsize"]``.
-    nrows : int
-        Number of subplot rows.
-    ncols : int
-        Number of subplot columns.
-    theme : Theme, optional
-        Theme to source defaults from. Defaults to :data:`DEFAULT_THEME`.
-    grid : bool
-        Whether to enable the themed grid on the axes.
-    **subplots_kwargs
-        Forwarded to :func:`matplotlib.pyplot.subplots`.
-
-    Returns
-    -------
-    fig : matplotlib.figure.Figure
-    ax : matplotlib.axes.Axes or array of Axes
-        Same shape as :func:`matplotlib.pyplot.subplots` returns.
     """
     active = theme if theme is not None else DEFAULT_THEME
     size = figsize if figsize is not None else active.fig_defaults["figsize"]
@@ -335,26 +295,6 @@ def styled_figure(
 def get_categorical_colors(n: int, theme: Theme | None = None) -> list[str]:
     """
     Return ``n`` categorical colors from the active theme palette.
-
-    Cycles through the palette when ``n`` exceeds its length, so callers can
-    request any positive ``n`` without bounds checking.
-
-    Parameters
-    ----------
-    n : int
-        Number of colors requested. Must be non-negative.
-    theme : Theme, optional
-        Theme whose palette to draw from. Defaults to :data:`DEFAULT_THEME`.
-
-    Returns
-    -------
-    list of str
-        ``n`` hex color strings.
-
-    Raises
-    ------
-    ValueError
-        When ``n < 0`` or when the theme's palette is empty.
     """
     if n < 0:
         raise ValueError(f"n must be non-negative, got {n}")
@@ -363,3 +303,20 @@ def get_categorical_colors(n: int, theme: Theme | None = None) -> list[str]:
     if not palette:
         raise ValueError("theme palette must be non-empty")
     return [palette[i % len(palette)] for i in range(n)]
+
+
+__all__ = [
+    "BRAND_COLORS",
+    "PALETTE",
+    "SEMANTIC_COLORS",
+    "TYPOGRAPHY",
+    "GRID",
+    "FIG_DEFAULTS",
+    "SPACING",
+    "Theme",
+    "DEFAULT_THEME",
+    "COLORBLIND_THEME",
+    "apply_style",
+    "styled_figure",
+    "get_categorical_colors",
+]
