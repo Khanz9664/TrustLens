@@ -145,8 +145,13 @@ def test_multilevel_show_renders(regression_data, capsys):
     X, y_true, y_pred = regression_data
     intervals = {0.8: (y_pred - 1.3, y_pred + 1.3), 0.95: (y_pred - 2.0, y_pred + 2.0)}
     rep = analyze(
-        model=None, X=X, y_true=y_true, y_pred=y_pred, task="regression",
-        prediction_intervals=intervals, verbose=False,
+        model=None,
+        X=X,
+        y_true=y_true,
+        y_pred=y_pred,
+        task="regression",
+        prediction_intervals=intervals,
+        verbose=False,
     )
     capsys.readouterr()
     rep.show(verbose=False)

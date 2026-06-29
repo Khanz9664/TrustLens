@@ -314,7 +314,9 @@ def _run_regression_pipeline(
     X: np.ndarray,
     y_true: np.ndarray,
     y_pred: np.ndarray,
-    prediction_intervals: Optional[tuple[np.ndarray, np.ndarray]] = None,
+    prediction_intervals: Optional[
+        tuple[np.ndarray, np.ndarray] | dict[float, tuple[np.ndarray, np.ndarray]]
+    ] = None,
     predicted_variance: Optional[np.ndarray] = None,
     confidence_level: float = 0.95,
     framework: Optional[str] = None,
@@ -356,15 +358,18 @@ def _run_regression_pipeline(
     # level for the multi-level case) feeds the legacy single-interval report
     # field / calibration plot unchanged.
     representative_intervals: tuple[np.ndarray, np.ndarray] | None = None
-    if isinstance(prediction_intervals, dict) and prediction_intervals:
+    if isinstance(prediction_intervals, dict):
         levels: dict[float, tuple[np.ndarray, np.ndarray]] = {}
         for level, bounds in prediction_intervals.items():
             lo, hi = bounds
             lo = _as_single_output(f"prediction_intervals[{level}][0]", lo)
             hi = _as_single_output(f"prediction_intervals[{level}][1]", hi)
             levels[float(level)] = (lo, hi)
-        interval_coverage_result = multilevel_interval_coverage(y_true, levels)
-        representative_intervals = levels[max(levels)]
+        if levels:
+            interval_coverage_result = multilevel_interval_coverage(y_true, levels)
+            representative_intervals = levels[max(levels)]
+        else:
+            interval_coverage_result = prediction_interval_coverage(y_true, None, None)
     elif prediction_intervals is not None:
         lower, upper = prediction_intervals
         lower = _as_single_output("prediction_intervals[0]", lower)
