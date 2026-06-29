@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Radar Comparison Visualization**: Added `plot_radar_comparison()` for visually comparing multiple models across TrustLens dimensions (e.g., Calibration, Failure, Bias, Representation) using a publication-quality radar (spider) chart. Built on the centralized visualization styling system with themed colors, scoped styling, input validation, and support for saving figures. (closes #121, implemented in #156) Thanks @devanprigent
+
+### Fixed
+
+## Documentation
+
+## Changed
+
+### Improvements
+
 ---
 
 ## [v0.5.0] - 2026-06-27

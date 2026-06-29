@@ -168,8 +168,9 @@ TrustLens is an actively evolving framework driven by robust engineering discuss
 
 **The Evolution:**
 *   **v0.1**: MVP — Core metrics and visualizations.
-*   **v0.4 (Current)**: Framework-Agnostic Core — Native support for XGBoost, LightGBM, CatBoost.
-*   **v0.5**: *In Progress* — Policy Profiles, Regression Support, TrustComparison.
+*   **v0.4**: Framework-Agnostic Core — Native support for XGBoost, LightGBM, CatBoost.
+*   **v0.5 (Current)**: Regression Support, Model Zoo Benchmark, Multiclass Calibration.
+*   **v0.6**: *In Progress* — Policy Profiles, TrustComparison, Deep Learning Backends.
 *   **v1.0**: *Planned* — CI/CD enterprise integration and Web Dashboards.
 
 ---
@@ -251,6 +252,7 @@ TrustLens is an open ecosystem. We welcome contributions—whether it's new diag
 <a href="https://github.com/sidharth-vijayan"><img src="https://github.com/sidharth-vijayan.png" width="36" style="border-radius:50%" /></a>
 <a href="https://github.com/fuchan12040502-innu"><img src="https://github.com/fuchan12040502-innu.png" width="36" style="border-radius:50%" /></a>
 <a href="https://github.com/CrepuscularIRIS"><img src="https://github.com/CrepuscularIRIS.png" width="36" style="border-radius:50%" /></a>
+<a href="https://github.com/devanprigent"><img src="https://github.com/devanprigent.png" width="36" style="border-radius:50%" /></a>
 
 <br/>
 
