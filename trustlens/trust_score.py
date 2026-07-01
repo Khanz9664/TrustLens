@@ -542,8 +542,21 @@ _REGRESSION_DEFAULT_WEIGHTS: dict[str, float] = {
     "uncertainty_informativeness": 0.30,
 }
 
-# Interval-calibration sub-score: the |calibration_error| at which the sub-score
-# reaches 0. A ±0.10 miss → 50/100; ±0.20 → 0/100.
+# Interval-calibration sub-score: the |calibration_error| (or ICE) at which the
+# sub-score reaches 0. A ±0.10 miss → 50/100; ±0.20 → 0/100.
+#
+# NB: this SCORING tolerance (0.20) is deliberately distinct from — and looser
+# than — the 0.05 calibration GATE in metrics/regression.py
+# (``multilevel_interval_coverage``'s ``tolerance``). They answer different
+# questions and should NOT be unified:
+#   * 0.05 (metric layer) is a strict binary gate: which levels are calibrated
+#     *enough* to be admitted into the sharpness proxy, so over-confident
+#     intervals cannot be rewarded for looking "sharp". A hard pass/fail per level.
+#   * 0.20 (here) is a smooth ramp mapping the continuous ICE / |calibration_error|
+#     onto the 0–100 sub-score, so calibration quality degrades gracefully rather
+#     than cliff-edging. A gradient, not a gate.
+# Using 0.05 for the ramp would turn the sub-score into a cliff; using 0.20 for
+# the gate would let materially miscalibrated levels inflate the sharpness proxy.
 _REG_CALIBRATION_TOLERANCE = 0.20
 
 # Heavy-tail penalty (docks the Accuracy/Skill dimension). The p90/median
