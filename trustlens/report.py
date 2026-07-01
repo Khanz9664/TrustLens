@@ -499,10 +499,30 @@ class TrustReport:
 
         pic = reg.get("interval_coverage", {})
         if pic:
-            print("\nPrediction Interval Coverage (PICP):")
             if pic.get("status") == "skipped":
+                print("\nPrediction Interval Coverage:")
                 print(f"  skipped — {pic.get('details', pic.get('reason', 'no intervals'))}")
+            elif pic.get("ice") is not None:
+                # Multi-level interval calibration (RFC #155): ICE + sharpness proxy.
+                print("\nInterval Calibration (multi-level):")
+                print(
+                    f"  ICE                : {pic.get('ice'):.4f}  "
+                    f"({pic.get('n_calibrated_levels')}/{pic.get('n_levels')} levels calibrated)"
+                )
+                ss = pic.get("sharpness_skill")
+                print(
+                    "  Sharpness skill    : "
+                    + (
+                        f"{ss:+.4f}  (vs climatology, calibrated levels)"
+                        if ss is not None
+                        else "n/a (no calibrated level)"
+                    )
+                )
+                print(f"  Worst level gap    : {pic.get('worst_calibration_error'):+.4f}")
+                print(f"  Mean interval width: {pic.get('mean_interval_width'):.4f}")
+                print(f"  Verdict            : {pic.get('verdict')}")
             else:
+                print("\nPrediction Interval Coverage (PICP):")
                 print(
                     f"  Coverage (PICP)    : {pic.get('picp'):.4f}  "
                     f"(target {pic.get('target_coverage')})"

@@ -518,10 +518,14 @@ def compute_trust_score(
 #   Accuracy / Skill            0.30   skill S = 1 − MSE/Var(y)  (= R² vs the
 #                                      mean-predictor baseline), docked by a
 #                                      p90/median heavy-tail penalty.
-#   Interval Calibration        0.40   PICP |calibration_error| through a
-#                                      tolerance (the regression analog of ECE).
-#   Uncertainty Informativeness 0.30   max(pearson, spearman) of predicted
-#                                      uncertainty vs realised error.
+#   Interval Calibration        0.40   ICE (mean |emp(tau)-tau| across levels)
+#                                      when multi-level intervals are supplied,
+#                                      else single-level PICP |calibration_error|,
+#                                      through a tolerance (regression analog of ECE).
+#   Uncertainty Informativeness 0.30   calibration-conditioned sharpness proxy vs a
+#                                      climatology reference (RFC #155) when multi-
+#                                      level intervals are supplied, else max(pearson,
+#                                      spearman) of predicted uncertainty vs error.
 #
 # Point-prediction-only reports score on Accuracy alone (the other two are
 # redistributed away), exactly as a no-embeddings classification report drops
@@ -538,8 +542,21 @@ _REGRESSION_DEFAULT_WEIGHTS: dict[str, float] = {
     "uncertainty_informativeness": 0.30,
 }
 
-# Interval-calibration sub-score: the |calibration_error| at which the sub-score
-# reaches 0. A ±0.10 miss → 50/100; ±0.20 → 0/100.
+# Interval-calibration sub-score: the |calibration_error| (or ICE) at which the
+# sub-score reaches 0. A ±0.10 miss → 50/100; ±0.20 → 0/100.
+#
+# NB: this SCORING tolerance (0.20) is deliberately distinct from — and looser
+# than — the 0.05 calibration GATE in metrics/regression.py
+# (``multilevel_interval_coverage``'s ``tolerance``). They answer different
+# questions and should NOT be unified:
+#   * 0.05 (metric layer) is a strict binary gate: which levels are calibrated
+#     *enough* to be admitted into the sharpness proxy, so over-confident
+#     intervals cannot be rewarded for looking "sharp". A hard pass/fail per level.
+#   * 0.20 (here) is a smooth ramp mapping the continuous ICE / |calibration_error|
+#     onto the 0–100 sub-score, so calibration quality degrades gracefully rather
+#     than cliff-edging. A gradient, not a gate.
+# Using 0.05 for the ramp would turn the sub-score into a cliff; using 0.20 for
+# the gate would let materially miscalibrated levels inflate the sharpness proxy.
 _REG_CALIBRATION_TOLERANCE = 0.20
 
 # Heavy-tail penalty (docks the Accuracy/Skill dimension). The p90/median
@@ -612,11 +629,16 @@ def _regression_accuracy_score(error_dist: dict, target_variance: float) -> dict
 
 def _interval_calibration_score(coverage: dict) -> float:
     """
-    Interval-calibration sub-score (0–100) from the PICP ``calibration_error``.
+    Interval-calibration sub-score (0–100).
 
-    ``100 × (1 − clip(|calibration_error| / T, 0, 1))`` — the regression analog
-    of how :func:`_calibration_score` maps ECE for classification.
+    Uses the multi-level ICE (``mean |emp(tau) - tau|``) when present —
+    ``100 × (1 − clip(ICE / T, 0, 1))`` — otherwise the single-level PICP
+    ``|calibration_error|`` through the same tolerance. Both are the regression
+    analog of how :func:`_calibration_score` maps ECE for classification (RFC #155).
     """
+    if coverage.get("ice") is not None:
+        ice = float(coverage["ice"])
+        return 100.0 * (1.0 - float(np.clip(ice / _REG_CALIBRATION_TOLERANCE, 0.0, 1.0)))
     cal_err = float(coverage.get("calibration_error", 0.0))
     return 100.0 * (1.0 - float(np.clip(abs(cal_err) / _REG_CALIBRATION_TOLERANCE, 0.0, 1.0)))
 
@@ -630,6 +652,20 @@ def _uncertainty_informativeness_score(corr: dict) -> float:
     """
     strongest = max(float(corr.get("pearson", 0.0)), float(corr.get("spearman", 0.0)))
     return 100.0 * float(np.clip(strongest, 0.0, 1.0))
+
+
+def _informativeness_from_sharpness(coverage: dict) -> float:
+    """
+    Uncertainty-informativeness sub-score (0–100) from the calibration-conditioned
+    sharpness proxy (RFC #155).
+
+    ``100 × clip(sharpness_skill, 0, 1)`` — rewards intervals sharper than the
+    climatology baseline *among the levels that pass calibration*, the
+    CRPS-Resolution analog of the correlation-based score. Preferred over the
+    error-variance correlation when multi-level intervals are available.
+    """
+    skill = float(coverage.get("sharpness_skill") or 0.0)
+    return 100.0 * float(np.clip(skill, 0.0, 1.0))
 
 
 def _reg_metric_present(metric: dict | None) -> bool:
@@ -731,19 +767,29 @@ def regression_trust_score(
     sub_scores["accuracy"] = accuracy["score"]
     skill = accuracy["skill"]
 
-    interval_present = _reg_metric_present(coverage) and "calibration_error" in coverage
+    coverage_present = _reg_metric_present(coverage)
+    interval_present = coverage_present and ("ice" in coverage or "calibration_error" in coverage)
     calibration_error: float | None = None
     if interval_present:
-        calibration_error = float(coverage.get("calibration_error", 0.0))
+        # Multi-level reports carry the worst per-level gap (most over-confident);
+        # single-level PICP reports carry calibration_error. Either drives the
+        # severe-miscoverage blocker below.
+        calibration_error = float(
+            coverage.get("worst_calibration_error", coverage.get("calibration_error", 0.0))
+        )
         sub_scores["interval_calibration"] = _interval_calibration_score(coverage)
 
-    informativeness_present = _reg_metric_present(corr) and (
-        "pearson" in corr or "spearman" in corr
-    )
+    # Uncertainty Informativeness: prefer the calibration-conditioned sharpness
+    # proxy (multi-level intervals, RFC #155); fall back to the error-variance
+    # correlation when only predicted variance is available.
+    sharpness_skill = coverage.get("sharpness_skill") if coverage_present else None
     strongest_corr: float | None = None
-    if informativeness_present:
+    if sharpness_skill is not None:
+        sub_scores["uncertainty_informativeness"] = _informativeness_from_sharpness(coverage)
+    elif _reg_metric_present(corr) and ("pearson" in corr or "spearman" in corr):
         strongest_corr = max(float(corr.get("pearson", 0.0)), float(corr.get("spearman", 0.0)))
         sub_scores["uncertainty_informativeness"] = _uncertainty_informativeness_score(corr)
+    informativeness_present = "uncertainty_informativeness" in sub_scores
 
     # ------------------------------------------------------------------
     # 2. Redistribute weights across the dimensions actually present

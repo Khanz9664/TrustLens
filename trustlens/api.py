@@ -137,7 +137,9 @@ def analyze(
     plugins: Optional[list[str]] = None,
     class_labels: Optional[np.ndarray] = None,
     task: str = "auto",
-    prediction_intervals: Optional[tuple[np.ndarray, np.ndarray]] = None,
+    prediction_intervals: Optional[
+        tuple[np.ndarray, np.ndarray] | dict[float, tuple[np.ndarray, np.ndarray]]
+    ] = None,
     predicted_variance: Optional[np.ndarray] = None,
     confidence_level: float = 0.95,
     verbose: bool = True,
@@ -181,15 +183,20 @@ def analyze(
       or ``'regression'``. Regression routes through the regression reliability
       metrics (error distribution, interval coverage, error-variance
       correlation) instead of the classification modules.
-    prediction_intervals : tuple(np.ndarray, np.ndarray), optional
-      ``(lower, upper)`` per-sample prediction-interval bounds (regression only).
-      Enables Prediction Interval Coverage (PICP); omitted ⇒ that metric is
-      skipped.
+    prediction_intervals : tuple or dict, optional
+      Per-sample prediction-interval bounds (regression only). Either a single
+      ``(lower, upper)`` tuple — enabling single-level Prediction Interval
+      Coverage (PICP) — or a mapping ``{level: (lower, upper)}`` of nominal
+      coverage levels, enabling multi-level Interval Calibration Error (ICE) and
+      the calibration-conditioned sharpness proxy (RFC #155). Omitted ⇒ those
+      metrics are skipped.
     predicted_variance : np.ndarray, optional
       Per-sample predicted variance / uncertainty score (regression only).
       Enables the error-variance correlation metric; omitted ⇒ skipped.
     confidence_level : float, default=0.95
-      Nominal coverage the supplied ``prediction_intervals`` claim (regression).
+      Nominal coverage the supplied single-tuple ``prediction_intervals`` claim
+      (regression). Ignored when ``prediction_intervals`` is a ``{level: ...}``
+      mapping, where each level is its own nominal coverage.
     verbose : bool
       Print progress updates. Default True.
 

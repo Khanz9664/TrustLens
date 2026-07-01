@@ -113,6 +113,53 @@ def test_uncertainty_metrics_populated_when_supplied(regression_data):
     assert corr["verdict"] == "informative"  # variance == error => strong corr
 
 
+def test_multilevel_intervals_route_to_ice(regression_data):
+    # A dict of {level: (lower, upper)} routes to multilevel_interval_coverage
+    # (RFC #155): ICE + the sharpness proxy surface in the report and the trust
+    # score scores from them.
+    X, y_true, y_pred = regression_data
+    intervals = {
+        0.5: (y_pred - 0.7, y_pred + 0.7),
+        0.8: (y_pred - 1.3, y_pred + 1.3),
+        0.95: (y_pred - 2.0, y_pred + 2.0),
+    }
+    rep = analyze(
+        model=None,
+        X=X,
+        y_true=y_true,
+        y_pred=y_pred,
+        task="regression",
+        prediction_intervals=intervals,
+        verbose=False,
+    )
+    cov = rep.results["regression"]["interval_coverage"]
+    assert "ice" in cov and cov["n_levels"] == 3
+    assert "sharpness_skill" in cov and "per_level" in cov
+    # Trust score scored the interval-calibration dimension from the multi-level data.
+    assert "interval_calibration" in rep.trust_score.sub_scores
+    # show() renders the multi-level block without error.
+    rep.show(verbose=False)
+
+
+def test_multilevel_show_renders(regression_data, capsys):
+    X, y_true, y_pred = regression_data
+    intervals = {0.8: (y_pred - 1.3, y_pred + 1.3), 0.95: (y_pred - 2.0, y_pred + 2.0)}
+    rep = analyze(
+        model=None,
+        X=X,
+        y_true=y_true,
+        y_pred=y_pred,
+        task="regression",
+        prediction_intervals=intervals,
+        verbose=False,
+    )
+    capsys.readouterr()
+    rep.show(verbose=False)
+    out = capsys.readouterr().out
+    assert "Interval Calibration (multi-level)" in out
+    assert "ICE" in out
+
+
 def test_uncertainty_metrics_skip_gracefully(regression_data):
     X, y_true, y_pred = regression_data
     rep = analyze(model=None, X=X, y_true=y_true, y_pred=y_pred, task="regression", verbose=False)
