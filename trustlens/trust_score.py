@@ -216,6 +216,16 @@ class TrustScoreResult:
       ``"regression"``. Both share this interface (0–100, A–D, verdicts), but a
       regression ``75`` and a classification ``75`` are **not** directly
       comparable: they aggregate different underlying dimensions.
+    informativeness_status : str or None
+      Regression only (``None`` for classification). Explains how the Uncertainty
+      Informativeness dimension was resolved: ``"present"`` (a sharpness proxy or
+      error-variance correlation was scored), ``"unusable_uncertainty"``
+      (multi-level intervals were supplied but none passed the calibration gate,
+      so the dimension is scored a truthful ``0.0`` rather than dropped), or
+      ``"absent"`` (no uncertainty evidence was supplied and the dimension's
+      weight was redistributed). Lets a downstream consumer tell "0.0 because the
+      supplied uncertainty was unusable" apart from "dropped because none was
+      supplied."
     """
 
     score: int
@@ -228,6 +238,7 @@ class TrustScoreResult:
     base_score: int = 0
     is_blocked: bool = False
     task_type: str = "classification"
+    informativeness_status: str | None = None
 
     def __str__(self) -> str:
         lines = [
@@ -237,6 +248,10 @@ class TrustScoreResult:
         ]
         for dim, score in self.sub_scores.items():
             lines.append(f"  - {dim:<18} {score:5.1f}/100")
+        if self.informativeness_status == "unusable_uncertainty":
+            lines.append(
+                "  (informativeness = 0.0: intervals supplied but none passed the calibration gate)"
+            )
         return "\n".join(lines)
 
     def __repr__(self) -> str:
@@ -783,12 +798,32 @@ def regression_trust_score(
     # proxy (multi-level intervals, RFC #155); fall back to the error-variance
     # correlation when only predicted variance is available.
     sharpness_skill = coverage.get("sharpness_skill") if coverage_present else None
+    n_interval_levels = int(coverage.get("n_levels", 0)) if coverage_present else 0
+    n_calibrated_levels = int(coverage.get("n_calibrated_levels", 0)) if coverage_present else 0
+    corr_present = _reg_metric_present(corr) and ("pearson" in corr or "spearman" in corr)
     strongest_corr: float | None = None
+    informativeness_status = "absent"
     if sharpness_skill is not None:
         sub_scores["uncertainty_informativeness"] = _informativeness_from_sharpness(coverage)
-    elif _reg_metric_present(corr) and ("pearson" in corr or "spearman" in corr):
+        informativeness_status = "present"
+    elif corr_present:
         strongest_corr = max(float(corr.get("pearson", 0.0)), float(corr.get("spearman", 0.0)))
         sub_scores["uncertainty_informativeness"] = _uncertainty_informativeness_score(corr)
+        informativeness_status = "present"
+    elif n_interval_levels >= 2 and n_calibrated_levels == 0:
+        # RFC #155 follow-up (PR #161 review): multi-level intervals WERE
+        # supplied, but the calibration gate rejected every level, so
+        # ``sharpness_skill`` is None because the uncertainty was *unusable*,
+        # not because it was absent — and there is no error-variance-correlation
+        # fallback either. Score a truthful ``Informativeness = 0.0`` instead of
+        # dropping the dimension and redistributing its 0.30 weight: "the
+        # supplied uncertainty delivered zero usable resolution" is a real,
+        # scorable failure, distinct from "no uncertainty was provided at all"
+        # (which stays on the redistribute path). Scoped to the multi-level path
+        # (``n_levels >= 2``): the single-level PICP path has no
+        # "we tried and it was unusable" signal and keeps redistributing.
+        sub_scores["uncertainty_informativeness"] = 0.0
+        informativeness_status = "unusable_uncertainty"
     informativeness_present = "uncertainty_informativeness" in sub_scores
 
     # ------------------------------------------------------------------
@@ -869,4 +904,5 @@ def regression_trust_score(
         base_score=base_score,
         is_blocked=is_blocked,
         task_type="regression",
+        informativeness_status=informativeness_status,
     )

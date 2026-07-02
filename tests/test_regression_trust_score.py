@@ -467,3 +467,61 @@ class TestMultilevelIntervalCalibrationRFC155:
         assert not r.is_blocked
         assert "interval_calibration" in r.sub_scores
         assert "uncertainty_informativeness" in r.sub_scores
+
+    # -- Zero-calibrated-levels handling (PR #161 review follow-up) -----------
+    # Multi-level intervals supplied but NO level passes the calibration gate
+    # (and no correlation fallback): score Informativeness a truthful 0.0
+    # ("unusable uncertainty") instead of dropping the dimension.
+
+    def test_zero_calibrated_multilevel_scores_informativeness_zero(self):
+        # sharpness_skill=None (n_calibrated_levels=0) + corr absent -> the
+        # supplied uncertainty was unusable, not absent: keep the dimension at 0.0.
+        r = regression_trust_score(
+            _results(_ed(0.9), _cov_ml(0.02, sharpness_skill=None, worst=-0.02), corr=None), Y
+        )
+        assert "uncertainty_informativeness" in r.sub_scores
+        assert r.sub_scores["uncertainty_informativeness"] == pytest.approx(0.0)
+        assert r.informativeness_status == "unusable_uncertainty"
+        # Weight is KEPT (a real penalty), not redistributed onto the other dims.
+        assert r.weights_used["uncertainty_informativeness"] == pytest.approx(0.30, abs=1e-9)
+
+    def test_unusable_uncertainty_scores_below_usable(self):
+        # Identical accuracy + interval calibration; only informativeness differs
+        # (usable sharpness vs all-levels-failed). The unusable case must score
+        # strictly lower, confirming 0.0 pulls the weighted score down.
+        usable = regression_trust_score(
+            _results(_ed(0.9), _cov_ml(0.02, sharpness_skill=0.5, worst=-0.02), corr=None), Y
+        )
+        unusable = regression_trust_score(
+            _results(_ed(0.9), _cov_ml(0.02, sharpness_skill=None, worst=-0.02), corr=None), Y
+        )
+        assert unusable.score < usable.score
+        assert usable.informativeness_status == "present"
+        assert unusable.informativeness_status == "unusable_uncertainty"
+
+    def test_zero_calibrated_multilevel_with_correlation_keeps_fallback(self):
+        # Precedence guard: a usable error-variance correlation still wins. The
+        # 0.0 rule only fires when nothing else can score the dimension.
+        r = regression_trust_score(
+            _results(_ed(0.9), _cov_ml(0.02, sharpness_skill=None, worst=-0.02), _corr(0.8)), Y
+        )
+        assert r.sub_scores["uncertainty_informativeness"] == pytest.approx(80.0, abs=0.5)
+        assert r.informativeness_status == "present"
+
+    def test_single_level_no_correlation_still_redistributes(self):
+        # Scope guard: the 0.0 rule is multi-level only (n_levels >= 2). A
+        # single-level PICP dict carries no such signal, so an absent correlation
+        # keeps the old redistribute path (dimension dropped), not a 0.0.
+        r = regression_trust_score(_results(_ed(0.9), _cov(0.0), corr=None), Y)
+        assert "uncertainty_informativeness" not in r.sub_scores
+        assert r.informativeness_status == "absent"
+
+    def test_informativeness_status_present_on_sharpness_path(self):
+        r = regression_trust_score(
+            _results(_ed(0.9), _cov_ml(0.0, sharpness_skill=0.6), corr=None), Y
+        )
+        assert r.informativeness_status == "present"
+
+    def test_informativeness_status_none_for_classification(self):
+        cls = compute_trust_score({"calibration": {"brier_score": 0.0, "ece": 0.0}})
+        assert cls.informativeness_status is None

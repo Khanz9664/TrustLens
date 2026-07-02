@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Documentation
 
 ## Changed
+- **Unusable-uncertainty scoring for the regression Trust Score**: When multi-level prediction intervals are supplied but *no* level passes the calibration gate (and no error-variance correlation fallback exists), the Uncertainty Informativeness dimension is now scored a truthful `0.0` — "the supplied uncertainty delivered zero usable resolution" — instead of being dropped and having its weight redistributed onto the other dimensions. A new `TrustScoreResult.informativeness_status` field (`"present"` / `"unusable_uncertainty"` / `"absent"`, `None` for classification) lets downstream consumers distinguish "0.0 because the intervals were all miscalibrated" from "dropped because none were supplied." Scoped to the multi-level path (`n_levels >= 2`); the single-level PICP path keeps the existing redistribute behavior. (refs #155, #161) Thanks @Whatsonyourmind
 
 ### Improvements
 
