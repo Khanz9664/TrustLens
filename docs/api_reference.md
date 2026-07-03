@@ -10,6 +10,7 @@ This page provides the technical documentation for all public components of Trus
    metrics/calibration
    metrics/failure
    metrics/representation
+   metrics/regression
 ```
 
 ---
