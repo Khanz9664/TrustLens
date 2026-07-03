@@ -13,6 +13,7 @@ from trustlens.metrics import regression
 from trustlens.metrics.regression import (
     error_distribution,
     error_variance_correlation,
+    multilevel_interval_coverage,
     prediction_interval_coverage,
 )
 
@@ -110,6 +111,92 @@ class TestPredictionIntervalCoverage:
             prediction_interval_coverage(y, y - 1.0, y + 1.0, confidence_level=1.5)
 
 
+class TestMultilevelIntervalCoverage:
+    def _well_calibrated_intervals(self, rng, n=4000):
+        """Gaussian targets with exact theoretical central intervals at each level."""
+        from scipy.stats import norm
+
+        y = rng.normal(0.0, 1.0, n)
+        levels = [0.5, 0.8, 0.95]
+        intervals = {}
+        for tau in levels:
+            z = norm.ppf(0.5 + tau / 2.0)
+            intervals[tau] = (np.full(n, -z), np.full(n, z))
+        return y, intervals
+
+    def test_skips_when_no_intervals(self):
+        result = multilevel_interval_coverage(np.arange(10, dtype=float), None)
+        assert result["status"] == "skipped"
+        assert result["reason"] == "missing_intervals"
+
+    def test_well_calibrated_has_low_ice(self):
+        rng = np.random.default_rng(0)
+        y, intervals = self._well_calibrated_intervals(rng)
+        result = multilevel_interval_coverage(y, intervals, tolerance=0.05)
+        assert result["ice"] < 0.05
+        assert result["verdict"] == "well-calibrated"
+        assert result["n_levels"] == 3
+        assert result["n_calibrated_levels"] == 3
+
+    def test_overconfident_levels_raise_ice_and_are_excluded_from_sharpness(self):
+        # Narrow intervals (half the calibrated width) under-cover -> fail the gate.
+        rng = np.random.default_rng(1)
+        y, calibrated = self._well_calibrated_intervals(rng)
+        narrow = {tau: (lo / 2.0, hi / 2.0) for tau, (lo, hi) in calibrated.items()}
+        result = multilevel_interval_coverage(y, narrow, tolerance=0.05)
+        assert result["ice"] > 0.05
+        assert result["verdict"] == "over-confident"
+        assert result["worst_calibration_error"] < -0.05
+        # No level passes calibration -> the sharpness proxy is undefined, so the
+        # artificially-narrow widths cannot inflate it.
+        assert result["n_calibrated_levels"] == 0
+        assert result["sharpness_skill"] is None
+
+    def test_sharpness_skill_positive_when_sharper_than_climatology(self):
+        # Intervals centered on the conditional mean span only the noise, so they
+        # are genuinely tighter than the marginal (signal + noise) spread while
+        # staying calibrated -> robustly positive skill (not a sampling-noise pass).
+        from scipy.stats import norm
+
+        rng = np.random.default_rng(2)
+        n = 4000
+        mu = rng.normal(0.0, 5.0, n)  # signal: wide marginal spread
+        y = mu + rng.normal(0.0, 1.0, n)  # small unit noise around the mean
+        intervals = {}
+        for tau in (0.5, 0.8, 0.95):
+            z = norm.ppf(0.5 + tau / 2.0)
+            intervals[tau] = (mu - z, mu + z)  # width 2z from unit noise -> calibrated
+        result = multilevel_interval_coverage(y, intervals, tolerance=0.05)
+        assert result["sharpness_skill"] is not None
+        assert result["n_calibrated_levels"] == 3
+        # model width (~2z) << climatology width (~2z * 5.1) -> skill ~0.8.
+        assert result["sharpness_skill"] > 0.3
+
+    def test_single_level_emits_backcompat_picp_fields(self):
+        rng = np.random.default_rng(3)
+        y, intervals = self._well_calibrated_intervals(rng)
+        one = {0.95: intervals[0.95]}
+        result = multilevel_interval_coverage(y, one)
+        assert result["n_levels"] == 1
+        assert "picp" in result and "calibration_error" in result
+        assert result["target_coverage"] == 0.95
+
+    def test_shape_mismatch_raises(self):
+        y = np.arange(5, dtype=float)
+        with pytest.raises(ValueError, match="same shape"):
+            multilevel_interval_coverage(y, {0.9: (np.zeros(4), np.ones(4))})
+
+    def test_lower_above_upper_raises(self):
+        y = np.arange(5, dtype=float)
+        with pytest.raises(ValueError, match="lower bound"):
+            multilevel_interval_coverage(y, {0.9: (y + 1.0, y - 1.0)})
+
+    def test_invalid_level_raises(self):
+        y = np.arange(5, dtype=float)
+        with pytest.raises(ValueError, match="level"):
+            multilevel_interval_coverage(y, {1.5: (y - 1.0, y + 1.0)})
+
+
 class TestErrorVarianceCorrelation:
     def test_skips_when_no_variance(self):
         y = np.arange(10, dtype=float)
@@ -155,5 +242,6 @@ def test_regression_module_exports_match_all():
     assert set(regression.__all__) == {
         "error_distribution",
         "prediction_interval_coverage",
+        "multilevel_interval_coverage",
         "error_variance_correlation",
     }

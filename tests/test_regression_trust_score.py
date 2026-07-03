@@ -23,6 +23,7 @@ import pytest
 
 from trustlens.trust_score import (
     TrustScoreResult,
+    _informativeness_from_sharpness,
     _interval_calibration_score,
     _regression_accuracy_score,
     _uncertainty_informativeness_score,
@@ -68,6 +69,21 @@ def _cov(cal_err: float, width: float = 2.0, target: float = 0.95) -> dict:
 
 def _cov_skipped() -> dict:
     return {"status": "skipped", "reason": "missing_intervals", "details": "no intervals"}
+
+
+def _cov_ml(ice: float, sharpness_skill: float | None = 0.4, worst: float | None = None) -> dict:
+    """A multi-level interval_coverage dict (ICE + sharpness proxy), as emitted by
+    ``multilevel_interval_coverage`` (RFC #155)."""
+    return {
+        "ice": round(ice, 4),
+        "sharpness_skill": sharpness_skill,
+        "n_levels": 3,
+        "n_calibrated_levels": 3 if sharpness_skill is not None else 0,
+        "worst_calibration_error": round(worst if worst is not None else -ice, 4),
+        "mean_interval_width": 2.0,
+        "verdict": "well-calibrated" if ice <= 0.05 else "miscalibrated",
+        "n_samples": 100,
+    }
 
 
 def _corr(pearson: float, spearman: float | None = None) -> dict:
@@ -388,3 +404,124 @@ def test_matching_stored_variance_does_not_warn():
     with warnings.catch_warnings():
         warnings.simplefilter("error")  # any warning becomes a test failure
         regression_trust_score(res, Y)
+
+
+# ---------------------------------------------------------------------------
+# Multi-level interval calibration: ICE + sharpness proxy (RFC #155)
+# ---------------------------------------------------------------------------
+
+
+class TestMultilevelIntervalCalibrationRFC155:
+    def test_ice_drives_interval_calibration_subscore(self):
+        # ICE maps through the same tolerance as |calibration_error|.
+        assert _interval_calibration_score({"ice": 0.0}) == 100.0
+        assert _interval_calibration_score({"ice": 0.20}) == 0.0
+        assert _interval_calibration_score({"ice": 0.10}) == pytest.approx(50.0)
+
+    def test_ice_preferred_over_single_picp_when_both_present(self):
+        # A dict carrying both ICE and a (contradictory) calibration_error scores
+        # from ICE — the multi-level summary wins.
+        score = _interval_calibration_score({"ice": 0.0, "calibration_error": -0.2})
+        assert score == 100.0
+
+    def test_sharpness_proxy_drives_informativeness(self):
+        assert _informativeness_from_sharpness({"sharpness_skill": 0.6}) == pytest.approx(60.0)
+        assert _informativeness_from_sharpness({"sharpness_skill": -0.3}) == 0.0
+        assert _informativeness_from_sharpness({"sharpness_skill": None}) == 0.0
+
+    def test_informativeness_uses_proxy_not_correlation_when_intervals_present(self):
+        # sharpness proxy present + a (strong) correlation also present -> proxy wins.
+        r = regression_trust_score(
+            _results(_ed(0.9), _cov_ml(0.0, sharpness_skill=0.6), _corr(0.95)), Y
+        )
+        assert r.sub_scores["uncertainty_informativeness"] == pytest.approx(60.0, abs=0.5)
+
+    def test_proxy_path_suppresses_weak_correlation_penalty(self):
+        # On the proxy path the weak-correlation composite penalty must NOT fire,
+        # even when a weak correlation is also supplied.
+        r = regression_trust_score(
+            _results(_ed(0.9), _cov_ml(0.0, sharpness_skill=0.9), _corr(0.0)), Y
+        )
+        assert "Weak Uncertainty" not in r.penalties_applied
+
+    def test_falls_back_to_correlation_when_no_sharpness(self):
+        # Multi-level intervals with no calibrated level (sharpness_skill=None) ->
+        # Informativeness falls back to the error-variance correlation.
+        r = regression_trust_score(
+            _results(_ed(0.9), _cov_ml(0.0, sharpness_skill=None), _corr(0.8)), Y
+        )
+        assert r.sub_scores["uncertainty_informativeness"] == pytest.approx(80.0, abs=0.5)
+
+    def test_severe_multilevel_miscoverage_blocks(self):
+        # Worst per-level gap below the severe-miscoverage threshold -> grade D.
+        r = regression_trust_score(
+            _results(_ed(0.9), _cov_ml(0.15, sharpness_skill=None, worst=-0.15), _corr(0.9)), Y
+        )
+        assert r.is_blocked
+        assert r.grade == "D"
+
+    def test_multilevel_well_calibrated_not_blocked(self):
+        r = regression_trust_score(
+            _results(_ed(0.9), _cov_ml(0.02, sharpness_skill=0.5, worst=-0.02), _corr(0.9)), Y
+        )
+        assert not r.is_blocked
+        assert "interval_calibration" in r.sub_scores
+        assert "uncertainty_informativeness" in r.sub_scores
+
+    # -- Zero-calibrated-levels handling (PR #161 review follow-up) -----------
+    # Multi-level intervals supplied but NO level passes the calibration gate
+    # (and no correlation fallback): score Informativeness a truthful 0.0
+    # ("unusable uncertainty") instead of dropping the dimension.
+
+    def test_zero_calibrated_multilevel_scores_informativeness_zero(self):
+        # sharpness_skill=None (n_calibrated_levels=0) + corr absent -> the
+        # supplied uncertainty was unusable, not absent: keep the dimension at 0.0.
+        r = regression_trust_score(
+            _results(_ed(0.9), _cov_ml(0.02, sharpness_skill=None, worst=-0.02), corr=None), Y
+        )
+        assert "uncertainty_informativeness" in r.sub_scores
+        assert r.sub_scores["uncertainty_informativeness"] == pytest.approx(0.0)
+        assert r.informativeness_status == "unusable_uncertainty"
+        # Weight is KEPT (a real penalty), not redistributed onto the other dims.
+        assert r.weights_used["uncertainty_informativeness"] == pytest.approx(0.30, abs=1e-9)
+
+    def test_unusable_uncertainty_scores_below_usable(self):
+        # Identical accuracy + interval calibration; only informativeness differs
+        # (usable sharpness vs all-levels-failed). The unusable case must score
+        # strictly lower, confirming 0.0 pulls the weighted score down.
+        usable = regression_trust_score(
+            _results(_ed(0.9), _cov_ml(0.02, sharpness_skill=0.5, worst=-0.02), corr=None), Y
+        )
+        unusable = regression_trust_score(
+            _results(_ed(0.9), _cov_ml(0.02, sharpness_skill=None, worst=-0.02), corr=None), Y
+        )
+        assert unusable.score < usable.score
+        assert usable.informativeness_status == "present"
+        assert unusable.informativeness_status == "unusable_uncertainty"
+
+    def test_zero_calibrated_multilevel_with_correlation_keeps_fallback(self):
+        # Precedence guard: a usable error-variance correlation still wins. The
+        # 0.0 rule only fires when nothing else can score the dimension.
+        r = regression_trust_score(
+            _results(_ed(0.9), _cov_ml(0.02, sharpness_skill=None, worst=-0.02), _corr(0.8)), Y
+        )
+        assert r.sub_scores["uncertainty_informativeness"] == pytest.approx(80.0, abs=0.5)
+        assert r.informativeness_status == "present"
+
+    def test_single_level_no_correlation_still_redistributes(self):
+        # Scope guard: the 0.0 rule is multi-level only (n_levels >= 2). A
+        # single-level PICP dict carries no such signal, so an absent correlation
+        # keeps the old redistribute path (dimension dropped), not a 0.0.
+        r = regression_trust_score(_results(_ed(0.9), _cov(0.0), corr=None), Y)
+        assert "uncertainty_informativeness" not in r.sub_scores
+        assert r.informativeness_status == "absent"
+
+    def test_informativeness_status_present_on_sharpness_path(self):
+        r = regression_trust_score(
+            _results(_ed(0.9), _cov_ml(0.0, sharpness_skill=0.6), corr=None), Y
+        )
+        assert r.informativeness_status == "present"
+
+    def test_informativeness_status_none_for_classification(self):
+        cls = compute_trust_score({"calibration": {"brier_score": 0.0, "ece": 0.0}})
+        assert cls.informativeness_status is None

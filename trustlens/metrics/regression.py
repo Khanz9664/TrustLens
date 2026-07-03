@@ -25,6 +25,7 @@ import numpy as np
 __all__ = [
     "error_distribution",
     "prediction_interval_coverage",
+    "multilevel_interval_coverage",
     "error_variance_correlation",
 ]
 
@@ -226,6 +227,189 @@ def prediction_interval_coverage(
         "verdict": verdict,
         "n_samples": int(y_true.size),
     }
+
+
+def multilevel_interval_coverage(
+    y_true: np.ndarray,
+    intervals: dict[float, tuple[np.ndarray, np.ndarray]] | None = None,
+    tolerance: float = 0.05,
+) -> dict:
+    """
+    Multi-level interval calibration (RFC #155): ICE + a calibration-conditioned
+    sharpness proxy.
+
+    What it measures
+    ----------------
+    Where :func:`prediction_interval_coverage` checks a single nominal level,
+    this evaluates a *set* of prediction-interval levels at once and summarises
+    them with two complementary numbers:
+
+    * **ICE** (Interval Calibration Error) — the mean absolute coverage gap
+      across the supplied levels, ``mean_tau |emp(tau) - tau|``. The multi-level
+      analog of ``|PICP calibration_error|`` (and of ECE for classification):
+      one continuous calibration signal that summarises the whole reliability
+      curve rather than a single point on it.
+    * **sharpness_skill** — a *calibration-conditioned* sharpness proxy in the
+      spirit of the CRPS Resolution component. Among only the levels that
+      actually pass calibration (``|emp(tau) - tau| <= tolerance``), it compares
+      the model's mean interval width against the climatology interval at the
+      same level: ``1 - mean(model_width / climatology_width)``. Higher is
+      better (intervals sharper than the marginal baseline while staying
+      honest). Restricting to calibrated levels is the point: intervals that
+      look "sharp" only because they are over-confident fail the calibration
+      gate and are excluded, so they cannot inflate the score.
+
+    Why two numbers
+    ---------------
+    They isolate distinct properties: ICE answers "are the stated probabilities
+    honest?" while sharpness_skill answers "given honest probabilities, how
+    discriminative is the uncertainty?". Raw CRPS conflates the two (plus
+    accuracy), which is exactly what we avoid by reporting them separately (see
+    RFC #155 — the full CRPS Reliability/Resolution decomposition can later
+    replace this proxy in place, as it measures the same property).
+
+    Parameters
+    ----------
+    y_true : np.ndarray
+      Ground-truth continuous targets, shape ``(n_samples,)``.
+    intervals : dict[float, tuple[np.ndarray, np.ndarray]] or None
+      Maps each nominal coverage level ``tau in (0, 1)`` to its per-sample
+      ``(lower, upper)`` bounds, each shape ``(n_samples,)``. ``None`` or an
+      empty mapping degrades gracefully (returns a ``status="skipped"`` dict).
+      A single-level mapping is valid and additionally emits the back-compatible
+      single-PICP fields (``picp``, ``target_coverage``, ``calibration_error``).
+    tolerance : float, default=0.05
+      Absolute coverage gap within which a level is deemed calibrated — used
+      both for the verdict and as the gate for the sharpness proxy.
+
+    Returns
+    -------
+    dict
+      When intervals are supplied: ``ice``, ``sharpness_skill`` (``None`` if no
+      level passes the calibration gate), ``n_levels``, ``n_calibrated_levels``,
+      ``worst_calibration_error`` (most negative ``emp - tau``; drives the
+      over-confidence blocker downstream), ``mean_interval_width``, a
+      ``per_level`` table, a ``verdict`` and ``n_samples``. A single-level call
+      also includes ``picp`` / ``target_coverage`` / ``calibration_error``.
+      When intervals are missing: ``{"status": "skipped", "reason":
+      "missing_intervals", "details": ...}``.
+
+    Raises
+    ------
+    ValueError
+      If arrays mismatch ``y_true``'s shape, any ``lower > upper``, any level is
+      outside ``(0, 1)``, ``y_true`` is empty, or ``tolerance`` is out of range.
+
+    Examples
+    --------
+    >>> ivs = {0.5: (lo50, hi50), 0.9: (lo90, hi90)}
+    >>> multilevel_interval_coverage(y_true, ivs)["ice"]
+    """
+    if not intervals:
+        return {
+            "status": "skipped",
+            "reason": "missing_intervals",
+            "details": (
+                "Multi-level interval calibration requires a mapping of nominal "
+                "levels to per-sample (lower, upper) bounds. Provide them from a "
+                "quantile/interval model to enable ICE and the sharpness proxy."
+            ),
+        }
+
+    if not 0.0 <= tolerance < 1.0:
+        raise ValueError(f"tolerance must be in [0, 1), got {tolerance}.")
+
+    y_true = np.asarray(y_true, dtype=float)
+    if y_true.size == 0:
+        raise ValueError("y_true must be non-empty.")
+
+    levels = sorted(float(t) for t in intervals)
+    for tau in levels:
+        if not 0.0 < tau < 1.0:
+            raise ValueError(f"each interval level must be in (0, 1), got {tau}.")
+
+    # Climatology reference widths: the marginal central interval of y at each
+    # level, computed once from the raw quantiles (vectorized over levels).
+    lo_q = np.clip([0.5 - t / 2.0 for t in levels], 0.0, 1.0)
+    hi_q = np.clip([0.5 + t / 2.0 for t in levels], 0.0, 1.0)
+    ref_widths = np.asarray(np.quantile(y_true, hi_q)) - np.asarray(np.quantile(y_true, lo_q))
+
+    per_level: list[dict] = []
+    abs_errors: list[float] = []
+    widths: list[float] = []
+    # Raw (unrounded) model_width / climatology_width over calibrated levels — kept
+    # separate from the rounded per_level report values so display rounding never
+    # biases the sharpness proxy.
+    ratios: list[float] = []
+    worst_cal_err = np.inf
+
+    for i, tau in enumerate(levels):
+        lower, upper = intervals[tau]
+        lower = np.asarray(lower, dtype=float)
+        upper = np.asarray(upper, dtype=float)
+        if not (y_true.shape == lower.shape == upper.shape):
+            raise ValueError(
+                "y_true and each (lower, upper) pair must share the same shape; "
+                f"level {tau} got {lower.shape}, {upper.shape} vs {y_true.shape}."
+            )
+        if np.any(lower > upper):
+            raise ValueError(
+                f"each lower bound must be <= its upper bound (violated at level {tau})."
+            )
+
+        emp = float(((y_true >= lower) & (y_true <= upper)).mean())
+        cal_err = emp - tau
+        width = float(np.mean(upper - lower))
+        ref_width = float(ref_widths[i])
+        calibrated = abs(cal_err) <= tolerance
+
+        abs_errors.append(abs(cal_err))
+        widths.append(width)
+        worst_cal_err = min(worst_cal_err, cal_err)
+        if calibrated and ref_width > 0.0:
+            ratios.append(width / ref_width)
+        per_level.append(
+            {
+                "level": round(tau, 4),
+                "emp_coverage": round(emp, 4),
+                "calibration_error": round(cal_err, 4),
+                "mean_interval_width": round(width, 4),
+                "ref_width": round(ref_width, 4),
+                "calibrated": calibrated,
+            }
+        )
+
+    ice = float(np.mean(abs_errors))
+    sharpness_skill = round(1.0 - float(np.mean(ratios)), 4) if ratios else None
+
+    if ice <= tolerance:
+        verdict = "well-calibrated"
+    elif worst_cal_err < -tolerance:
+        verdict = "over-confident"
+    else:
+        verdict = "under-confident"
+
+    result = {
+        "ice": round(ice, 4),
+        "sharpness_skill": sharpness_skill,
+        "n_levels": len(levels),
+        "n_calibrated_levels": len(ratios),
+        "worst_calibration_error": round(float(worst_cal_err), 4),
+        "mean_interval_width": round(float(np.mean(widths)), 4),
+        "per_level": per_level,
+        "verdict": verdict,
+        "n_samples": int(y_true.size),
+    }
+
+    # Back-compatible single-PICP fields when exactly one level was supplied, so
+    # existing single-level consumers keep working unchanged.
+    if len(levels) == 1:
+        tau = levels[0]
+        result["picp"] = per_level[0]["emp_coverage"]
+        result["target_coverage"] = round(tau, 4)
+        result["calibration_error"] = per_level[0]["calibration_error"]
+
+    return result
 
 
 def _safe_corr(a: np.ndarray, b: np.ndarray) -> float:

@@ -11,12 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Radar Comparison Visualization**: Added `plot_radar_comparison()` for visually comparing multiple models across TrustLens dimensions (e.g., Calibration, Failure, Bias, Representation) using a publication-quality radar (spider) chart. Built on the centralized visualization styling system with themed colors, scoped styling, input validation, and support for saving figures. (closes #121, implemented in #156) Thanks @devanprigent
+- **Multi-level Interval Calibration (ICE) & Calibration-Conditioned Sharpness**: Extended the regression Trust Score's uncertainty dimensions per RFC #155. `analyze()` (`prediction_intervals`) now accepts a `{level: (lower, upper)}` mapping alongside the existing single `(lower, upper)` tuple, routing to the new `multilevel_interval_coverage()` which reports the **Interval Calibration Error (ICE)** — the mean coverage gap across nominal levels — and a **calibration-conditioned sharpness proxy** (interval width measured only among the levels that pass calibration, normalized against the climatology spread; the CRPS-Resolution analog). Interval Calibration scores from ICE when multi-level data is present (single-level PICP fallback); Uncertainty Informativeness prefers the sharpness proxy (error-variance correlation fallback), with graceful degradation and weight redistribution preserved. Raw CRPS/CRPSS is intentionally deferred to a report diagnostic so calibration is not double-counted. Fully backward compatible. (closes #155) (refs #82) Thanks @Whatsonyourmind
 
 ### Fixed
 
 ## Documentation
 
 ## Changed
+- **Unusable-uncertainty scoring for the regression Trust Score**: When multi-level prediction intervals are supplied but *no* level passes the calibration gate (and no error-variance correlation fallback exists), the Uncertainty Informativeness dimension is now scored a truthful `0.0` — "the supplied uncertainty delivered zero usable resolution" — instead of being dropped and having its weight redistributed onto the other dimensions. A new `TrustScoreResult.informativeness_status` field (`"present"` / `"unusable_uncertainty"` / `"absent"`, `None` for classification) lets downstream consumers distinguish "0.0 because the intervals were all miscalibrated" from "dropped because none were supplied." Scoped to the multi-level path (`n_levels >= 2`); the single-level PICP path keeps the existing redistribute behavior. (refs #155, #161) Thanks @Whatsonyourmind
 
 ### Improvements
 
