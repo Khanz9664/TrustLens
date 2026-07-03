@@ -141,7 +141,7 @@ source .venv/bin/activate    # Linux/macOS
 ### Install in Editable Mode with Dev Dependencies
 
 ```bash
-pip install -e ".[dev]"
+pip install -e ".[dev, full]"
 ```
 
 ### Install Pre-commit Hooks

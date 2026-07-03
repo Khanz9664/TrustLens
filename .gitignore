@@ -44,6 +44,8 @@ htmlcov/
 # Distribution / Packaging
 MANIFEST
 
+catboost_info/
+
 # Documentation
 docs/_build/
 docs/_static/

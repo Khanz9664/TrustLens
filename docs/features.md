@@ -57,6 +57,16 @@ Representation diagnostics evaluate geometric quality of embeddings when latent 
 
 Representation analysis is optional and only runs when embeddings are provided.
 
+## Regression Module
+
+The regression module evaluates the accuracy of continuous predictions and the reliability of their uncertainty bounds.
+
+- **Accuracy and Skill**: Evaluates point predictions using RMSE, MSE, and R² (Skill Score against a predict-the-mean baseline). Includes heavy-tail penalty diagnostics to catch catastrophic misses.
+- **Interval Calibration**: Checks if prediction intervals are honest. Evaluates single-level PICP and multi-level Interval Calibration Error (ICE).
+- **Uncertainty Informativeness**: Evaluates whether uncertainty bounds are useful. Uses a calibration-conditioned sharpness proxy (to reject artificially narrow, over-confident intervals) or error-variance correlation.
+
+Use these outputs when your continuous target predictions drive risk-sensitive decisions where both the predicted value and the confidence in that value matter.
+
 ## Trust Scoring Engine
 
 The trust scoring engine combines module outputs into one decision support signal.
