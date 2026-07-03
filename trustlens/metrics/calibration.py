@@ -10,7 +10,8 @@ the true likelihood of outcomes. A perfectly calibrated model that predicts
 Metrics implemented
 -------------------
 * ``brier_score``       — proper scoring rule for probabilistic forecasts
-* ``expected_calibration_error`` — binned confidence vs accuracy gap
+* ``expected_calibration_error`` — binned confidence vs accuracy gap (average)
+* ``maximum_calibration_error`` — worst-case binned confidence vs accuracy gap
 * ``reliability_curve``    — data for reliability (calibration) diagrams
 
 References
@@ -20,6 +21,8 @@ References
 * Niculescu-Mizil, A., & Caruana, R. (2005). Predicting good probabilities
   with supervised learning. ICML.
 * Guo, C., et al. (2017). On calibration of modern neural networks. ICML.
+* Naeini, M. P., Cooper, G., & Hauskrecht, M. (2015). Obtaining well
+  calibrated probabilities using Bayesian binning. AAAI.
 """
 
 from __future__ import annotations
@@ -29,6 +32,7 @@ import numpy as np
 __all__ = [
     "brier_score",
     "expected_calibration_error",
+    "maximum_calibration_error",
     "reliability_curve",
 ]
 
@@ -114,6 +118,63 @@ def brier_score(
 
 
 # ---------------------------------------------------------------------------
+# Shared binning core (ECE / MCE)
+# ---------------------------------------------------------------------------
+
+
+def _binned_calibration_gaps(
+    y_true: np.ndarray,
+    y_prob: np.ndarray,
+    n_bins: int,
+    strategy: str,
+) -> tuple[list[float], list[float]]:
+    """
+    Shared binning + sample-assignment core for ECE and MCE.
+
+    Returns, for every **non-empty** confidence bin, the fraction of samples
+    that landed in the bin (``weights``) and the absolute accuracy-confidence
+    gap (``gaps``). Both public metrics are thin aggregations over this table
+    — ECE is the weight-weighted sum of the gaps, MCE is their maximum — so
+    they share one binning implementation by construction and cannot diverge
+    (issue #134's consistency requirement).
+
+    Bin semantics (unchanged from the original ECE implementation): half-open
+    ``[lo, hi)`` bins with the final bin closed ``[lo, hi]``; empty bins are
+    skipped; the quantile strategy deduplicates edges that collapse when many
+    samples share a probability value.
+    """
+    if strategy == "uniform":
+        bin_edges = np.linspace(0.0, 1.0, n_bins + 1)
+    elif strategy == "quantile":
+        bin_edges = np.quantile(y_prob, np.linspace(0.0, 1.0, n_bins + 1))
+        bin_edges = np.unique(bin_edges)  # remove duplicates at extremes
+    else:
+        raise ValueError(f"Unknown strategy '{strategy}'. Use 'uniform' or 'quantile'.")
+
+    weights: list[float] = []
+    gaps: list[float] = []
+    n = len(y_true)
+
+    for lo, hi in zip(bin_edges[:-1], bin_edges[1:]):
+        # Include the right edge in the last bin
+        if hi == bin_edges[-1]:
+            mask = (y_prob >= lo) & (y_prob <= hi)
+        else:
+            mask = (y_prob >= lo) & (y_prob < hi)
+
+        n_bin = mask.sum()
+        if n_bin == 0:
+            continue
+
+        accuracy = y_true[mask].mean()
+        confidence = y_prob[mask].mean()
+        weights.append(n_bin / n)
+        gaps.append(abs(accuracy - confidence))
+
+    return weights, gaps
+
+
+# ---------------------------------------------------------------------------
 # Expected Calibration Error (ECE)
 # ---------------------------------------------------------------------------
 
@@ -176,33 +237,111 @@ def expected_calibration_error(
     y_true = np.asarray(y_true, dtype=float)
     y_prob = np.asarray(y_prob, dtype=float)
 
-    if strategy == "uniform":
-        bin_edges = np.linspace(0.0, 1.0, n_bins + 1)
-    elif strategy == "quantile":
-        bin_edges = np.quantile(y_prob, np.linspace(0.0, 1.0, n_bins + 1))
-        bin_edges = np.unique(bin_edges)  # remove duplicates at extremes
-    else:
-        raise ValueError(f"Unknown strategy '{strategy}'. Use 'uniform' or 'quantile'.")
+    weights, gaps = _binned_calibration_gaps(y_true, y_prob, n_bins, strategy)
 
     ece = 0.0
-    n = len(y_true)
-
-    for lo, hi in zip(bin_edges[:-1], bin_edges[1:]):
-        # Include the right edge in the last bin
-        if hi == bin_edges[-1]:
-            mask = (y_prob >= lo) & (y_prob <= hi)
-        else:
-            mask = (y_prob >= lo) & (y_prob < hi)
-
-        n_bin = mask.sum()
-        if n_bin == 0:
-            continue
-
-        accuracy = y_true[mask].mean()
-        confidence = y_prob[mask].mean()
-        ece += (n_bin / n) * abs(accuracy - confidence)
+    for weight, gap in zip(weights, gaps):
+        ece += weight * gap
 
     return float(ece)
+
+
+# ---------------------------------------------------------------------------
+# Maximum Calibration Error (MCE)
+# ---------------------------------------------------------------------------
+
+
+def maximum_calibration_error(
+    y_true: np.ndarray,
+    y_prob: np.ndarray,
+    n_bins: int = 10,
+    strategy: str = "uniform",
+) -> float:
+    r"""
+    Compute the Maximum Calibration Error (MCE).
+
+    What it measures
+    ----------------
+    The worst-case absolute difference between predicted confidence and actual
+    accuracy across probability bins — the largest single-bin gap that ECE
+    averages away.
+
+    Why it matters
+    --------------
+    A model with a respectable *average* calibration (low ECE) can still be
+    severely miscalibrated inside one narrow confidence range. MCE is the
+    number a safety review cares about: not how bad calibration is on average,
+    but how bad it gets. ECE = 0.04 with MCE = 0.31 means one confidence
+    region is catastrophically wrong even though the average looks fine.
+
+    Limitations
+    -----------
+    As a worst-case statistic MCE is noisier than ECE — a sparsely populated
+    bin can dominate it. Read it together with ECE and the reliability curve,
+    not in isolation.
+
+    Interpretation guidance
+    -----------------------
+    Lower is better. 0.0 means perfect calibration in every bin, and
+    ``MCE >= ECE`` always holds (the maximum of the per-bin gaps is at least
+    their weighted average).
+
+    .. math::
+      \\text{MCE} = \\max_{b \\in 1..B}
+             \\left|\\text{acc}(\\mathcal{B}_b) -
+                 \\text{conf}(\\mathcal{B}_b)\\right|
+
+    Parameters
+    ----------
+    y_true : np.ndarray
+      Binary ground-truth labels (0 or 1), shape (n_samples,).
+    y_prob : np.ndarray
+      Predicted probabilities for the positive class, shape (n_samples,).
+    n_bins : int
+      Number of confidence bins. Default 10.
+    strategy : str
+      Binning strategy — ``"uniform"`` (equal-width) or ``"quantile"``
+      (equal-frequency). Default ``"uniform"``.
+
+    Returns
+    -------
+    float
+      MCE value in [0, 1]. Lower is better.
+
+    Raises
+    ------
+    ValueError
+      If the input arrays are empty, or if ``y_true`` and ``y_prob`` have
+      different shapes.
+
+    Notes
+    -----
+    Shares its binning and sample-assignment logic with
+    :func:`expected_calibration_error` through a common core, so the two
+    metrics are always computed over identical bins (including the
+    deduplicated-edges behavior of the quantile strategy) and cannot diverge.
+
+    Examples
+    --------
+    >>> from trustlens.metrics.calibration import maximum_calibration_error
+    >>> mce = maximum_calibration_error(y_true, y_prob, n_bins=10)
+    """
+    y_true = np.asarray(y_true, dtype=float)
+    y_prob = np.asarray(y_prob, dtype=float)
+
+    if y_true.shape != y_prob.shape:
+        raise ValueError(
+            "Invalid input shapes for maximum_calibration_error: "
+            f"y_true has shape {y_true.shape}, but y_prob has shape {y_prob.shape}. "
+            "Both arrays must be 1D and have the same length, for example "
+            "y_true shape (n_samples,) and y_prob shape (n_samples,)."
+        )
+    if y_true.size == 0:
+        raise ValueError("maximum_calibration_error requires non-empty inputs; got empty arrays.")
+
+    _, gaps = _binned_calibration_gaps(y_true, y_prob, n_bins, strategy)
+
+    return float(max(gaps)) if gaps else 0.0
 
 
 # ---------------------------------------------------------------------------

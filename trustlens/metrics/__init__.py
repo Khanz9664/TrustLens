@@ -11,6 +11,7 @@ from trustlens.metrics.bias import (
 from trustlens.metrics.calibration import (
     brier_score,
     expected_calibration_error,
+    maximum_calibration_error,
     reliability_curve,
 )
 from trustlens.metrics.failure import (
@@ -30,6 +31,7 @@ from trustlens.metrics.representation import (
 __all__ = [
     "brier_score",
     "expected_calibration_error",
+    "maximum_calibration_error",
     "reliability_curve",
     "misclassification_summary",
     "confidence_gap",

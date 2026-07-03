@@ -33,6 +33,7 @@ from trustlens.metrics.bias import (
 from trustlens.metrics.calibration import (
     brier_score,
     expected_calibration_error,
+    maximum_calibration_error,
     reliability_curve,
 )
 from trustlens.metrics.failure import (
@@ -162,6 +163,7 @@ def _run_analysis_pipeline(
                 results["calibration"] = {
                     "brier_score": float(mbrier),
                     "ece": expected_calibration_error(correct_mask, confidences),
+                    "mce": maximum_calibration_error(correct_mask, confidences),
                     "reliability_curve": reliability_curve(correct_mask, confidences),
                 }
             else:
@@ -174,6 +176,7 @@ def _run_analysis_pipeline(
                 results["calibration"] = {
                     "brier_score": brier_score(y_true, y_prob_pos),
                     "ece": expected_calibration_error(y_true, y_prob_pos),
+                    "mce": maximum_calibration_error(y_true, y_prob_pos),
                     "reliability_curve": reliability_curve(y_true, y_prob_pos),
                 }
         else:

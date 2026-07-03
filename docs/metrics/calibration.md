@@ -24,7 +24,8 @@ Calibration metrics test whether that assumption is true.
 Key outputs include:
 
 - **Brier score**: lower values indicate better probabilistic accuracy
-- **ECE**: lower values indicate confidence is better aligned with observed accuracy
+- **ECE**: lower values indicate confidence is better aligned with observed accuracy *on average*
+- **MCE**: the worst-case per-bin confidence gap — a low ECE with a high MCE means one confidence region is severely miscalibrated even though the average looks fine (MCE >= ECE always)
 - **Reliability curve data**: supports visual overconfidence or underconfidence inspection
 
 ## Limitations and Caveats
