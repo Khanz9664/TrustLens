@@ -88,6 +88,7 @@ def _matrix_from_array(arr: np.ndarray, n_classes: int | None) -> np.ndarray:
         raise ValueError(
             f"A membership matrix must be 2D with shape (n_samples, n_classes); got ndim={arr.ndim}."
         )
+    matrix: np.ndarray
     if arr.dtype == bool:
         matrix = arr.astype(bool)
     elif np.issubdtype(arr.dtype, np.number):
@@ -151,7 +152,7 @@ def _matrix_from_label_lists(sets: list, n_classes: int | None) -> np.ndarray:
                 f"Label {max_label} is out of range for n_classes={k} (valid labels are 0..{k - 1})."
             )
 
-    matrix = np.zeros((n, k), dtype=bool)
+    matrix: np.ndarray = np.zeros((n, k), dtype=bool)
     for i, labels in enumerate(parsed):
         for iv in labels:
             matrix[i, iv] = True
@@ -225,7 +226,8 @@ def to_membership_matrix(y_pred_sets, n_classes: int | None = None) -> np.ndarra
     if len(seq) == 0:
         if n_classes is None:
             raise ValueError("Cannot build a membership matrix from empty input without n_classes.")
-        return np.zeros((0, n_classes), dtype=bool)
+        empty: np.ndarray = np.zeros((0, n_classes), dtype=bool)
+        return empty
 
     if not all(_is_sequence(row) for row in seq):
         raise ValueError(
@@ -269,7 +271,7 @@ def _check_y_true(y_true, n: int) -> np.ndarray:
         if not np.all(yt_float == np.round(yt_float)):
             raise ValueError("y_true must contain integer class labels.")
         yt = yt_float
-    yti = yt.astype(int)
+    yti: np.ndarray = yt.astype(int)
     if np.any(yti < 0):
         raise ValueError("y_true labels must be non-negative integers.")
     return yti
@@ -278,7 +280,7 @@ def _check_y_true(y_true, n: int) -> np.ndarray:
 def _coverage_vector(S: np.ndarray, y_true_int: np.ndarray) -> np.ndarray:
     """Per-sample coverage: ``S[i, y_true[i]]``, with out-of-range labels a miss."""
     n, k = S.shape
-    covered = np.zeros(n, dtype=bool)
+    covered: np.ndarray = np.zeros(n, dtype=bool)
     in_range = y_true_int < k
     idx = np.nonzero(in_range)[0]
     if idx.size:
