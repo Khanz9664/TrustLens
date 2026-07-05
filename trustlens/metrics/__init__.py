@@ -14,6 +14,14 @@ from trustlens.metrics.calibration import (
     maximum_calibration_error,
     reliability_curve,
 )
+from trustlens.metrics.conformal import (
+    class_conditional_coverage,
+    conformal_diagnostics,
+    marginal_coverage,
+    set_size_summary,
+    size_stratified_coverage,
+    to_membership_matrix,
+)
 from trustlens.metrics.failure import (
     confidence_gap,
     misclassification_summary,
@@ -33,6 +41,12 @@ __all__ = [
     "expected_calibration_error",
     "maximum_calibration_error",
     "reliability_curve",
+    "to_membership_matrix",
+    "marginal_coverage",
+    "class_conditional_coverage",
+    "size_stratified_coverage",
+    "set_size_summary",
+    "conformal_diagnostics",
     "misclassification_summary",
     "confidence_gap",
     "error_distribution",
