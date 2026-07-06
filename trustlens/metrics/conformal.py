@@ -278,7 +278,14 @@ def _check_y_true(y_true, n: int) -> np.ndarray:
 
 
 def _coverage_vector(S: np.ndarray, y_true_int: np.ndarray) -> np.ndarray:
-    """Per-sample coverage: ``S[i, y_true[i]]``, with out-of-range labels a miss."""
+    """Per-sample coverage ``S[i, y_true[i]]``.
+
+    A true label ``>= K`` (the class span of the prediction sets) is counted as a
+    miss, not an error: if the predictor never places class ``k`` in any set, then
+    ``k`` is genuinely never covered, and surfacing that as 0.0 coverage — rather
+    than raising — is precisely what the conditional diagnostics exist to reveal.
+    ``_check_y_true`` already rejects negative labels.
+    """
     n, k = S.shape
     covered: np.ndarray = np.zeros(n, dtype=bool)
     in_range = y_true_int < k
@@ -432,7 +439,10 @@ def class_conditional_coverage(y_true, pred_sets, n_classes: int | None = None) 
     Limitations
     -----------
     Estimated from however many samples carry each label; rare classes give
-    noisy estimates. Classes with no samples in ``y_true`` are omitted.
+    noisy estimates. Classes with no samples in ``y_true`` are omitted. A class
+    that appears in ``y_true`` but in no prediction set surfaces as 0.0 coverage
+    (its true samples cannot be covered) — intentional, and often the headline
+    failure signal rather than an error.
 
     Parameters
     ----------

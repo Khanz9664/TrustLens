@@ -181,6 +181,16 @@ class TestClassConditionalCoverage:
         with pytest.raises(ValueError, match="Length mismatch"):
             class_conditional_coverage([0, 1, 0], [[0], [1]])
 
+    def test_class_never_in_any_set_is_zero_coverage(self):
+        # Class 2 is a true label but appears in no prediction set (inferred K=2).
+        # Its true samples cannot be covered -> surfaced as 0.0 coverage, not raised.
+        y_true = [0, 1, 2, 2]
+        sets = [[0, 1], [1], [0], [1]]  # ragged -> label lists; no set contains class 2
+        out = class_conditional_coverage(y_true, sets)
+        assert out["per_class"][2] == pytest.approx(0.0)
+        assert out["worst_class"] == 2
+        assert out["worst_coverage"] == pytest.approx(0.0)
+
 
 # ---------------------------------------------------------------------------
 # size_stratified_coverage
