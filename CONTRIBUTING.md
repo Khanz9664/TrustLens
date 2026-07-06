@@ -248,7 +248,13 @@ Create `tests/test_backend_myframework.py`. Ensure it covers:
 
 Here is the step-by-step workflow for adding a new metric.
 
-**Example: Adding Maximum Calibration Error (MCE)**
+**Example: Adding Signed Calibration Bias (SCB)** — a hypothetical metric
+
+> This walkthrough uses a *fictional* metric so it stays forward-looking. SCB
+> is the population-weighted **signed** mean of `(confidence − accuracy)` across
+> bins: unlike ECE/MCE (which are unsigned magnitudes), its sign tells you the
+> *direction* of miscalibration — positive means systematic overconfidence,
+> negative means underconfidence. Swap in whatever metric you're contributing.
 
 ### Step 1 — Write the metric function
 
@@ -257,16 +263,16 @@ Add your function to the appropriate module file (or create a new one):
 ```python
 # trustlens/metrics/calibration.py
 
-def maximum_calibration_error(
+def signed_calibration_bias(
   y_true: np.ndarray,
   y_prob: np.ndarray,
   n_bins: int = 10,
 ) -> float:
   """
-  Compute Maximum Calibration Error (MCE).
+  Compute Signed Calibration Bias (SCB).
 
-  MCE is the worst-case calibration gap across all bins.
-  Lower is better; MCE=0.0 means perfect calibration.
+  SCB is the population-weighted signed mean of (confidence - accuracy) across
+  bins. 0.0 means unbiased; > 0 systematic overconfidence, < 0 underconfidence.
 
   Parameters
   ----------
@@ -280,30 +286,32 @@ def maximum_calibration_error(
   Returns
   -------
   float
-    MCE in [0, 1].
+    SCB in [-1, 1]. 0.0 is unbiased.
   """
   y_true = np.asarray(y_true, dtype=float)
   y_prob = np.asarray(y_prob, dtype=float)
 
   bin_edges = np.linspace(0.0, 1.0, n_bins + 1)
-  max_gap = 0.0
+  n = len(y_true)
+  scb = 0.0
 
   for lo, hi in zip(bin_edges[:-1], bin_edges[1:]):
     mask = (y_prob >= lo) & (y_prob < hi)
-    if mask.sum() == 0:
+    n_bin = mask.sum()
+    if n_bin == 0:
       continue
     accuracy  = y_true[mask].mean()
     confidence = y_prob[mask].mean()
-    max_gap = max(max_gap, abs(accuracy - confidence))
+    scb += (n_bin / n) * (confidence - accuracy)  # signed, not abs
 
-  return float(max_gap)
+  return float(scb)
 ```
 
 ### Step 2 — Export from the metrics `__init__.py`
 
 ```python
 # trustlens/metrics/__init__.py
-from trustlens.metrics.calibration import maximum_calibration_error
+from trustlens.metrics.calibration import signed_calibration_bias
 ```
 
 ### Step 3 — Integrate into `api.py` (optional)
@@ -311,23 +319,23 @@ from trustlens.metrics.calibration import maximum_calibration_error
 If the metric should run automatically, add it to the calibration block in `api.py`:
 
 ```python
-results["calibration"]["mce"] = maximum_calibration_error(y_true, y_prob_pos)
+results["calibration"]["scb"] = signed_calibration_bias(y_true, y_prob_pos)
 ```
 
 ### Step 4 — Write tests
 
 ```python
 # tests/test_calibration.py
-def test_mce_perfect_is_zero():
+def test_scb_perfect_is_zero():
   y_true = np.array([0, 1, 0, 1])
   y_prob = np.array([0.0, 1.0, 0.0, 1.0])
-  assert maximum_calibration_error(y_true, y_prob) == pytest.approx(0.0)
+  assert signed_calibration_bias(y_true, y_prob) == pytest.approx(0.0)
 
-def test_mce_geq_ece(binary_random):
-  y_true, y_prob = binary_random
-  ece = expected_calibration_error(y_true, y_prob)
-  mce = maximum_calibration_error(y_true, y_prob)
-  assert mce >= ece # MCE is always >= ECE
+def test_scb_overconfident_is_positive():
+  # confidence 0.9 everywhere but accuracy 0.5 -> systematic overconfidence
+  y_true = np.array([1, 0, 1, 0])
+  y_prob = np.array([0.9, 0.9, 0.9, 0.9])
+  assert signed_calibration_bias(y_true, y_prob) > 0
 ```
 
 ### Step 5 — Document

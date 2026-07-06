@@ -142,7 +142,26 @@ def _binned_calibration_gaps(
     ``[lo, hi)`` bins with the final bin closed ``[lo, hi]``; empty bins are
     skipped; the quantile strategy deduplicates edges that collapse when many
     samples share a probability value.
+
+    Degenerate binning: when the quantile strategy collapses every edge into a
+    single value (all predictions identical), no ``[lo, hi)`` interval can be
+    formed. Rather than returning an empty table — which would make both ECE and
+    MCE report a misleading ``0.0`` for an arbitrarily miscalibrated constant
+    predictor — the whole dataset is treated as one active bin.
+
+    As the shared core for both public metrics, this helper validates its own
+    inputs (1D arrays, ``n_bins >= 1``) so ECE and MCE cannot silently disagree
+    on malformed input.
     """
+    if y_true.ndim != 1 or y_prob.ndim != 1:
+        raise ValueError(
+            "_binned_calibration_gaps expects 1D arrays; got "
+            f"y_true.ndim={y_true.ndim} and y_prob.ndim={y_prob.ndim}. "
+            "Pass positive-class probabilities of shape (n_samples,)."
+        )
+    if n_bins < 1:
+        raise ValueError(f"n_bins must be >= 1; got {n_bins}.")
+
     if strategy == "uniform":
         bin_edges = np.linspace(0.0, 1.0, n_bins + 1)
     elif strategy == "quantile":
@@ -154,6 +173,14 @@ def _binned_calibration_gaps(
     weights: list[float] = []
     gaps: list[float] = []
     n = len(y_true)
+
+    # Collapsed edges (< 2 leaves no interval to iterate): treat the whole
+    # dataset as a single bin so a miscalibrated constant predictor still
+    # surfaces its true gap instead of a spurious 0.0.
+    if len(bin_edges) < 2:
+        if n == 0:
+            return weights, gaps
+        return [1.0], [abs(float(y_true.mean()) - float(y_prob.mean()))]
 
     for lo, hi in zip(bin_edges[:-1], bin_edges[1:]):
         # Include the right edge in the last bin

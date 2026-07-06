@@ -206,6 +206,37 @@ class TestMaximumCalibrationError:
         assert 0.0 <= mce <= 1.0
         assert mce >= report.results["calibration"]["ece"] - 1e-12
 
+    def test_mce_in_pipeline_results_multiclass(self):
+        """Pipeline wiring on the multiclass (top-label) path exposes MCE too.
+
+        The metric core is shared with the binary path; this covers the
+        separate multiclass branch of the pipeline (n_classes >= 3) so the
+        wiring, not just the metric, is exercised end to end.
+        """
+        from sklearn.datasets import make_classification
+        from sklearn.ensemble import RandomForestClassifier
+        from sklearn.model_selection import train_test_split
+
+        from trustlens import analyze
+
+        X, y = make_classification(
+            n_samples=450,
+            n_features=12,
+            n_informative=6,
+            n_classes=3,
+            n_clusters_per_class=1,
+            random_state=42,
+        )
+        X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.3, random_state=42)
+        clf = RandomForestClassifier(n_estimators=10, random_state=42)
+        clf.fit(X_train, y_train)
+        report = analyze(clf, X_val, y_val, y_prob=clf.predict_proba(X_val), verbose=False)
+
+        mce = report.results["calibration"]["mce"]
+        assert isinstance(mce, float)
+        assert 0.0 <= mce <= 1.0
+        assert mce >= report.results["calibration"]["ece"] - 1e-12
+
     def test_mce_quantile_bin_collapse(self):
         """Quantile binning that collapses to fewer effective bins stays stable.
 
@@ -225,6 +256,37 @@ class TestMaximumCalibrationError:
         mce = maximum_calibration_error(y_true, y_prob, n_bins=10, strategy="quantile")
         assert isinstance(mce, float)
         assert 0.0 <= mce <= 1.0
+
+    def test_mce_collapsed_bins_miscalibrated_constant_predictor(self):
+        """Fully collapsed quantile edges must not hide a miscalibrated constant.
+
+        Every prediction is p=0.5 but every label is 1 (accuracy 1.0), so the
+        true gap is 0.5. When ``np.unique`` collapses all quantile edges to a
+        single value the bin loop iterates zero times; the single-active-bin
+        fallback must still report 0.5 for BOTH metrics rather than a spurious
+        0.0 (regression guard for issue #163 review).
+        """
+        y_true = np.ones(100)
+        y_prob = np.full(100, 0.5)
+        mce = maximum_calibration_error(y_true, y_prob, n_bins=10, strategy="quantile")
+        ece = expected_calibration_error(y_true, y_prob, n_bins=10, strategy="quantile")
+        assert mce == pytest.approx(0.5, abs=1e-12)
+        assert ece == pytest.approx(0.5, abs=1e-12)
+
+    def test_binned_core_rejects_non_1d_and_bad_n_bins(self):
+        """The shared core validates its own inputs so ECE/MCE can't diverge.
+
+        A same-shaped 2D array previously slipped through and corrupted the
+        per-bin weights (``len(y_true)`` as denominator); ``n_bins < 1`` fell
+        into the degenerate-bin path instead of erroring.
+        """
+        y2d = np.full((10, 2), 0.5)
+        with pytest.raises(ValueError, match="1D arrays"):
+            maximum_calibration_error(y2d, y2d)
+        with pytest.raises(ValueError, match="1D arrays"):
+            expected_calibration_error(y2d, y2d)
+        with pytest.raises(ValueError, match="n_bins must be >= 1"):
+            maximum_calibration_error(np.array([0, 1.0]), np.array([0.3, 0.7]), n_bins=0)
 
     def test_mce_empty_input_raises(self):
         with pytest.raises(ValueError, match="non-empty"):
