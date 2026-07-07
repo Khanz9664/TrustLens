@@ -7,6 +7,7 @@ def test_calibration_all_exports_public_metrics():
     assert set(calibration.__all__) == {
         "brier_score",
         "expected_calibration_error",
+        "maximum_calibration_error",
         "reliability_curve",
     }
 
