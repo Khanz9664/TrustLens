@@ -176,11 +176,15 @@ def to_membership_matrix(y_pred_sets, n_classes: int | None = None) -> np.ndarra
 
     Disambiguation
     --------------
-    A rectangular input whose every entry is 0 or 1 is read as a membership
-    matrix. Any ragged input, or a rectangular input containing a value outside
-    ``{0, 1}``, is read as label lists. (Equal-length label lists drawn only
-    from ``{0, 1}`` are therefore treated as a matrix — pass them with an
-    explicit ragged shape if that is not intended.)
+    NumPy arrays are unambiguous: a 2D array is a matrix, a 1D object array is
+    label lists. The only ambiguous case is a **native rectangular list whose
+    every entry is 0/1** — it could be an ``(n, K)`` matrix *or* a list of
+    singleton/binary label lists, and the two give different coverage numbers.
+    Rather than silently guess, this case **raises** unless the caller resolves
+    it with ``n_classes`` (a matrix has exactly ``n_classes`` columns, so
+    ``width == n_classes`` is read as a matrix and any other width as label
+    lists) or by passing a NumPy array. A ragged list, or a rectangular list
+    containing any value outside ``{0, 1}``, is unambiguously label lists.
 
     Parameters
     ----------
@@ -238,11 +242,18 @@ def to_membership_matrix(y_pred_sets, n_classes: int | None = None) -> np.ndarra
     lengths = {len(row) for row in seq}
     if len(lengths) == 1:
         width = next(iter(lengths))
-        # Rectangular and all-0/1: a membership matrix, *unless* an explicit
-        # n_classes is given that the width cannot satisfy — a matrix's width is
-        # by definition n_classes, so a mismatch means these are label lists.
+        # Rectangular and all-0/1 -> genuinely ambiguous (matrix vs. label
+        # lists). Only a native list reaches here (ndarrays are handled above).
         if width > 0 and all(_is_binary_value(v) for row in seq for v in row):
-            if n_classes is None or width == n_classes:
+            if n_classes is None:
+                raise ValueError(
+                    "Ambiguous input: a rectangular list containing only 0/1 values could "
+                    "represent either an (n, K) membership matrix or a list of label lists. "
+                    "Pass n_classes to disambiguate (a matrix has exactly n_classes columns), "
+                    "or pass a NumPy array (2D = matrix, 1D object array = label lists)."
+                )
+            # A matrix has exactly n_classes columns; any other width is label lists.
+            if width == n_classes:
                 return _matrix_from_array(np.asarray(seq), n_classes)
     return _matrix_from_label_lists(seq, n_classes)
 
@@ -275,6 +286,26 @@ def _check_y_true(y_true, n: int) -> np.ndarray:
     if np.any(yti < 0):
         raise ValueError("y_true labels must be non-negative integers.")
     return yti
+
+
+def _enforce_declared_class_space(y_true_int: np.ndarray, n_classes: int | None) -> None:
+    """Enforce an explicitly declared class space against ``y_true``.
+
+    When the caller passes an explicit ``n_classes``, a true label outside
+    ``[0, n_classes)`` contradicts their own declared contract and raises — as
+    opposed to the inferred-``K`` case, where an out-of-span label is a genuine
+    "class never predicted" diagnostic and is counted as a coverage miss (see
+    :func:`_coverage_vector`). No-op when ``n_classes`` is ``None``.
+    """
+    if n_classes is not None:
+        over = y_true_int[y_true_int >= n_classes]
+        if over.size:
+            raise ValueError(
+                f"y_true contains label {int(over.max())}, outside the declared class space "
+                f"n_classes={n_classes} (valid labels are 0..{n_classes - 1}). With an explicit "
+                "n_classes this is a data-consistency error; omit n_classes to treat unseen "
+                "classes as coverage misses instead."
+            )
 
 
 def _coverage_vector(S: np.ndarray, y_true_int: np.ndarray) -> np.ndarray:
@@ -367,7 +398,7 @@ def _size_summary(S: np.ndarray) -> dict:
 # ---------------------------------------------------------------------------
 
 
-def marginal_coverage(y_true, pred_sets) -> float:
+def marginal_coverage(y_true, pred_sets, n_classes: int | None = None) -> float:
     """
     Overall (marginal) coverage of the prediction sets.
 
@@ -394,6 +425,11 @@ def marginal_coverage(y_true, pred_sets) -> float:
       True class labels, shape ``(n_samples,)``.
     pred_sets : np.ndarray or sequence
       Prediction sets in any form accepted by :func:`to_membership_matrix`.
+    n_classes : int or None, default=None
+      Passed through to :func:`to_membership_matrix` for the same validation and
+      matrix/label-list disambiguation as the other entry points. When given, a
+      ``y_true`` label outside ``[0, n_classes)`` raises rather than counting as a
+      miss (an explicit class space is a contract, not a diagnostic).
 
     Returns
     -------
@@ -403,19 +439,20 @@ def marginal_coverage(y_true, pred_sets) -> float:
     Raises
     ------
     ValueError
-      If the inputs are empty or ``len(y_true)`` does not match the number of
-      prediction sets.
+      If the inputs are empty, ``len(y_true)`` does not match the number of
+      prediction sets, or an explicit ``n_classes`` is contradicted by ``y_true``.
 
     Examples
     --------
     >>> marginal_coverage([0, 1, 2], [[0], [1], []])
     0.6666666666666666
     """
-    S = to_membership_matrix(pred_sets)
+    S = to_membership_matrix(pred_sets, n_classes)
     n = S.shape[0]
     if n == 0:
         raise ValueError("marginal_coverage requires non-empty inputs.")
     y_true_int = _check_y_true(y_true, n)
+    _enforce_declared_class_space(y_true_int, n_classes)
     covered = _coverage_vector(S, y_true_int)
     return float(covered.mean())
 
@@ -451,7 +488,9 @@ def class_conditional_coverage(y_true, pred_sets, n_classes: int | None = None) 
     pred_sets : np.ndarray or sequence
       Prediction sets in any form accepted by :func:`to_membership_matrix`.
     n_classes : int or None, default=None
-      Passed through to :func:`to_membership_matrix`.
+      Passed through to :func:`to_membership_matrix`. When given, a ``y_true``
+      label outside ``[0, n_classes)`` raises rather than counting as a miss (an
+      explicit class space is a contract, not a diagnostic).
 
     Returns
     -------
@@ -463,7 +502,8 @@ def class_conditional_coverage(y_true, pred_sets, n_classes: int | None = None) 
     Raises
     ------
     ValueError
-      On empty inputs or a length mismatch.
+      On empty inputs, a length mismatch, or an explicit ``n_classes``
+      contradicted by ``y_true``.
 
     Examples
     --------
@@ -475,11 +515,14 @@ def class_conditional_coverage(y_true, pred_sets, n_classes: int | None = None) 
     if n == 0:
         raise ValueError("class_conditional_coverage requires non-empty inputs.")
     y_true_int = _check_y_true(y_true, n)
+    _enforce_declared_class_space(y_true_int, n_classes)
     covered = _coverage_vector(S, y_true_int)
     return _class_conditional(y_true_int, covered)
 
 
-def size_stratified_coverage(y_true, pred_sets, min_stratum: int = 20) -> dict:
+def size_stratified_coverage(
+    y_true, pred_sets, min_stratum: int = 20, n_classes: int | None = None
+) -> dict:
     """
     Coverage computed separately within each prediction-set-size stratum.
 
@@ -512,6 +555,11 @@ def size_stratified_coverage(y_true, pred_sets, min_stratum: int = 20) -> dict:
     min_stratum : int, default=20
       Minimum stratum size to be treated as reliable (eligible for the
       worst-stratum computation).
+    n_classes : int or None, default=None
+      Passed through to :func:`to_membership_matrix` for the same validation and
+      matrix/label-list disambiguation as the other entry points. When given, a
+      ``y_true`` label outside ``[0, n_classes)`` raises rather than counting as a
+      miss (an explicit class space is a contract, not a diagnostic).
 
     Returns
     -------
@@ -524,18 +572,20 @@ def size_stratified_coverage(y_true, pred_sets, min_stratum: int = 20) -> dict:
     Raises
     ------
     ValueError
-      On empty inputs or a length mismatch.
+      On empty inputs, a length mismatch, or an explicit ``n_classes``
+      contradicted by ``y_true``.
 
     Examples
     --------
     >>> out = size_stratified_coverage(y_true, pred_sets, min_stratum=20)
     >>> out["worst_stratum_coverage"]
     """
-    S = to_membership_matrix(pred_sets)
+    S = to_membership_matrix(pred_sets, n_classes)
     n = S.shape[0]
     if n == 0:
         raise ValueError("size_stratified_coverage requires non-empty inputs.")
     y_true_int = _check_y_true(y_true, n)
+    _enforce_declared_class_space(y_true_int, n_classes)
     covered = _coverage_vector(S, y_true_int)
     return _size_stratified(S, covered, min_stratum)
 
@@ -636,7 +686,8 @@ def conformal_diagnostics(
     Raises
     ------
     ValueError
-      On empty inputs, a length mismatch, or ``nominal_coverage`` outside ``(0, 1]``.
+      On empty inputs, a length mismatch, ``nominal_coverage`` outside ``(0, 1]``,
+      or an explicit ``n_classes`` contradicted by ``y_true``.
 
     Examples
     --------
@@ -651,6 +702,7 @@ def conformal_diagnostics(
     if n == 0:
         raise ValueError("conformal_diagnostics requires non-empty inputs.")
     y_true_int = _check_y_true(y_true, n)
+    _enforce_declared_class_space(y_true_int, n_classes)
     covered = _coverage_vector(S, y_true_int)
 
     marginal = float(covered.mean())

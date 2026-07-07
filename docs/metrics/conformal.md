@@ -18,6 +18,8 @@ Split conformal prediction turns any classifier into a set predictor `C(x)` with
 - `y_pred_sets`: the prediction sets, in either form —
   - an `(n, K)` binary / boolean membership matrix (`S[i, k]` is truthy iff class `k` is in the set for sample `i`), or
   - a ragged sequence of per-sample label lists (converted internally by `to_membership_matrix`).
+  - *Disambiguation*: NumPy arrays are unambiguous (2D → matrix, 1D object array → label lists). A **native rectangular list whose entries are all `0`/`1`** is genuinely ambiguous — it could be either — so it **raises** unless you pass `n_classes` (a matrix has exactly `n_classes` columns) or a NumPy array.
+- `n_classes` (optional): the class space `K`. Every public metric accepts it. It drives the same validation/disambiguation everywhere, and when given it is treated as a **contract**: a `y_true` label outside `[0, n_classes)` raises, rather than being counted as a coverage miss (the miss behavior is reserved for the inferred-`K` case, where an unseen class is a genuine "never predicted" diagnostic).
 - `nominal_coverage` (optional): the target `1 - α` the sets were built for. Coverage and set-size numbers are reported without it; the gap/violation fields require it and are `None` (never a silent `0`) when it is absent.
 - **Method-agnostic**: TrustLens *evaluates* prediction sets; it does not generate them and takes no dependency on any conformal library.
 

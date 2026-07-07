@@ -75,10 +75,30 @@ class TestToMembershipMatrix:
         assert S.dtype == bool
         np.testing.assert_array_equal(S, m)
 
-    def test_rectangular_01_list_is_matrix(self):
-        S = to_membership_matrix([[1, 0], [0, 1]])
+    def test_rectangular_01_native_list_is_ambiguous_and_raises(self):
+        # A rectangular all-0/1 native list could be a matrix OR label lists;
+        # without n_classes (or a numpy array) it must raise rather than guess.
+        with pytest.raises(ValueError, match="Ambiguous input"):
+            to_membership_matrix([[1, 0], [0, 1]])
+
+    def test_rectangular_01_ndarray_is_unambiguously_matrix(self):
+        # A 2D numpy array is unambiguous -> matrix, no n_classes needed.
+        S = to_membership_matrix(np.array([[1, 0], [0, 1]]))
         assert S.shape == (2, 2)
         np.testing.assert_array_equal(S, np.array([[True, False], [False, True]]))
+
+    def test_rectangular_01_list_matrix_via_matching_n_classes(self):
+        # width == n_classes -> read as a matrix.
+        S = to_membership_matrix([[1, 0], [0, 1]], n_classes=2)
+        assert S.shape == (2, 2)
+        np.testing.assert_array_equal(S, np.array([[True, False], [False, True]]))
+
+    def test_rectangular_01_list_label_lists_via_nonmatching_n_classes(self):
+        # width (1) != n_classes (3) -> the same 0/1 list is read as label lists:
+        # sample 0 = {0}, sample 1 = {1}.
+        S = to_membership_matrix([[0], [1]], n_classes=3)
+        assert S.shape == (2, 3)
+        np.testing.assert_array_equal(S, np.array([[True, False, False], [False, True, False]]))
 
     def test_invalid_label_out_of_range_raises(self):
         with pytest.raises(ValueError, match="out of range"):
@@ -134,11 +154,13 @@ class TestMarginalCoverage:
         assert marginal_coverage(y_true, sets) == pytest.approx(0.90)
 
     def test_returns_float(self):
-        assert isinstance(marginal_coverage([0, 1], [[0], [1]]), float)
+        # n_classes=2 disambiguates the 0/1 list as label lists ({0}, {1}).
+        assert isinstance(marginal_coverage([0, 1], [[0], [1]], n_classes=2), float)
 
     def test_shape_mismatch_raises(self):
+        # [[0], [2]] is unambiguously label lists (contains a 2) -> 2 samples.
         with pytest.raises(ValueError, match="Length mismatch"):
-            marginal_coverage([0, 1, 2], [[0], [1]])
+            marginal_coverage([0, 1, 2], [[0], [2]])
 
     def test_empty_input_raises(self):
         with pytest.raises(ValueError):
@@ -179,7 +201,7 @@ class TestClassConditionalCoverage:
 
     def test_shape_mismatch_raises(self):
         with pytest.raises(ValueError, match="Length mismatch"):
-            class_conditional_coverage([0, 1, 0], [[0], [1]])
+            class_conditional_coverage([0, 1, 0], [[0], [2]])
 
     def test_class_never_in_any_set_is_zero_coverage(self):
         # Class 2 is a true label but appears in no prediction set (inferred K=2).
@@ -338,8 +360,55 @@ class TestConformalDiagnostics:
 
     def test_shape_mismatch_raises(self):
         with pytest.raises(ValueError, match="Length mismatch"):
-            conformal_diagnostics([0, 1, 2], [[0], [1]])
+            conformal_diagnostics([0, 1, 2], [[0], [2]])
 
     def test_empty_input_raises(self):
         with pytest.raises(ValueError):
             conformal_diagnostics([], [], n_classes=3)
+
+
+# ---------------------------------------------------------------------------
+# Explicit n_classes: declared class space is a contract, not a diagnostic
+# ---------------------------------------------------------------------------
+
+
+class TestExplicitNClassesContract:
+    """With an explicit n_classes, a y_true label outside [0, n_classes) is a
+    data-consistency error and raises; with inferred K it stays a coverage miss."""
+
+    def test_marginal_raises_on_out_of_range_label(self):
+        with pytest.raises(ValueError, match="outside the declared class space"):
+            marginal_coverage([0, 1, 5], [[0], [1], [1]], n_classes=3)
+
+    def test_class_conditional_raises_on_out_of_range_label(self):
+        with pytest.raises(ValueError, match="outside the declared class space"):
+            class_conditional_coverage([0, 1, 5], [[0], [1], [1]], n_classes=3)
+
+    def test_size_stratified_raises_on_out_of_range_label(self):
+        with pytest.raises(ValueError, match="outside the declared class space"):
+            size_stratified_coverage([0, 1, 5], [[0], [1], [1]], n_classes=3)
+
+    def test_conformal_diagnostics_raises_on_out_of_range_label(self):
+        with pytest.raises(ValueError, match="outside the declared class space"):
+            conformal_diagnostics([0, 1, 5], [[0], [1], [1]], n_classes=3)
+
+    def test_inferred_k_keeps_miss_behavior(self):
+        # Same class-overflow shape, but with inferred K it is a miss (0.0), not
+        # an error: class 2 is simply never predicted (ragged -> unambiguous,
+        # inferred K=2, so true label 2 is out-of-span and counts as a miss).
+        out = class_conditional_coverage([0, 0, 2, 2], [[0, 1], [1], [0], [1]])
+        assert out["per_class"][2] == pytest.approx(0.0)  # class 2 never covered
+
+    def test_marginal_accepts_n_classes_passthrough(self):
+        # n_classes wider than any observed label is a valid, consistent contract.
+        cov = marginal_coverage([0, 1], [[0], [1]], n_classes=5)
+        assert cov == pytest.approx(1.0)
+
+    def test_size_stratified_accepts_n_classes_passthrough(self):
+        out = size_stratified_coverage([0, 1], [[0], [1]], min_stratum=1, n_classes=5)
+        assert out["per_size"][1]["coverage"] == pytest.approx(1.0)
+
+    def test_label_exactly_at_boundary_raises(self):
+        # n_classes=3 -> valid labels 0..2; label 3 is the first illegal one.
+        with pytest.raises(ValueError, match="outside the declared class space"):
+            marginal_coverage([0, 3], [[0], [0]], n_classes=3)
