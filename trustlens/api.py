@@ -141,6 +141,7 @@ def analyze(
         tuple[np.ndarray, np.ndarray] | dict[float, tuple[np.ndarray, np.ndarray]]
     ] = None,
     predicted_variance: Optional[np.ndarray] = None,
+    y_pred_sets: Optional[Any] = None,
     confidence_level: float = 0.95,
     verbose: bool = True,
 ) -> TrustReport:
@@ -193,10 +194,21 @@ def analyze(
     predicted_variance : np.ndarray, optional
       Per-sample predicted variance / uncertainty score (regression only).
       Enables the error-variance correlation metric; omitted ⇒ skipped.
+    y_pred_sets : np.ndarray or sequence, optional
+      Conformal **prediction sets** (classification only). Either an
+      ``(n_samples, n_classes)`` 0/1 membership matrix or a ragged list of
+      per-sample label lists (converted internally). When supplied, activates
+      the method-agnostic conformal diagnostics sub-block under ``calibration``
+      (marginal / class-conditional / size-stratified coverage + set-size
+      informativeness, RFC #157). Coexists with ``y_prob`` — ECE/Brier come from
+      probabilities, conformal coverage from the sets. Omitted ⇒ the block is
+      simply not emitted. Diagnostic-only: it never influences the Trust Score.
     confidence_level : float, default=0.95
-      Nominal coverage the supplied single-tuple ``prediction_intervals`` claim
-      (regression). Ignored when ``prediction_intervals`` is a ``{level: ...}``
-      mapping, where each level is its own nominal coverage.
+      Nominal coverage ``1 - α`` the supplied intervals/sets claim. Used by the
+      single-tuple ``prediction_intervals`` (regression) and by ``y_pred_sets``
+      (classification, as the conformal nominal target for the coverage gaps).
+      Ignored when ``prediction_intervals`` is a ``{level: ...}`` mapping, where
+      each level is its own nominal coverage.
     verbose : bool
       Print progress updates. Default True.
 
@@ -300,5 +312,7 @@ def analyze(
         sensitive_features=sensitive_features,
         modules=modules,
         plugins=plugins,
+        y_pred_sets=y_pred_sets,
+        nominal_coverage=confidence_level,
         verbose=verbose,
     )

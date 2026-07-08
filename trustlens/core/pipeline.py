@@ -36,6 +36,7 @@ from trustlens.metrics.calibration import (
     maximum_calibration_error,
     reliability_curve,
 )
+from trustlens.metrics.conformal import conformal_diagnostics
 from trustlens.metrics.failure import (
     confidence_gap,
     misclassification_summary,
@@ -103,6 +104,8 @@ def _run_analysis_pipeline(
     framework: Optional[str] = None,
     backend_metadata: Optional[dict[str, Any]] = None,
     class_labels: Optional[np.ndarray] = None,
+    y_pred_sets: Optional[Any] = None,
+    nominal_coverage: float = 0.95,
     verbose: bool = True,
 ) -> TrustReport:
     """
@@ -111,6 +114,11 @@ def _run_analysis_pipeline(
     WARNING: This function receives a model reference for plugin support and
     future XAI metrics, but it must NEVER call model methods directly (e.g. predict).
     All prediction data must be passed in via y_pred and y_prob.
+
+    ``y_pred_sets`` (optional) carries conformal prediction sets; when supplied
+    it activates the method-agnostic conformal diagnostics sub-block under
+    ``calibration`` (RFC #157). ``nominal_coverage`` is the target ``1 - α`` the
+    sets claim. Both are diagnostic-only — they never influence the Trust Score.
     """
     _log = logger.info if verbose else logger.debug
 
@@ -187,6 +195,32 @@ def _run_analysis_pipeline(
                 "details": "Calibration requires probabilistic predictions.",
             }
             missing_components.append("calibration_metrics")
+
+        # Conformal prediction diagnostics (RFC #157, PR 2/2).
+        # Method-agnostic: evaluates the supplied prediction SETS, independent
+        # of y_prob (they coexist — ECE/Brier from probabilities, conformal
+        # coverage/informativeness from sets). Emitted iff y_pred_sets is
+        # supplied; strictly diagnostic-only — never wired into the Trust Score.
+        if y_pred_sets is not None:
+            print("Running conformal diagnostics...")
+            if hasattr(pbar, "set_postfix"):
+                pbar.set_postfix(module="conformal")
+            calibration_block = results.setdefault("calibration", {})
+            try:
+                calibration_block["conformal"] = conformal_diagnostics(
+                    y_true, y_pred_sets, nominal_coverage=nominal_coverage
+                )
+            except Exception as e:
+                # Malformed sets (length mismatch, all-empty, ambiguous input)
+                # degrade gracefully to a visible skipped block rather than
+                # aborting the whole analysis — the reason stays surfaced.
+                logger.warning("Skipped conformal diagnostics: %s", e)
+                calibration_block["conformal"] = {
+                    "status": "skipped",
+                    "reason": "invalid_prediction_sets",
+                    "details": str(e)[:200],
+                }
+                missing_components.append("conformal_diagnostics")
 
     # ------------------------------------------------------------------
     # 3. Failure analysis module
