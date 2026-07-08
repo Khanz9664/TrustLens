@@ -133,6 +133,20 @@ class TestConformalReportPanel:
             report.show()
         assert "Conformal Prediction" not in buf.getvalue()
 
+    def test_panel_in_saved_text_report(self, trained_multiclass_clf):
+        # The text report (used by save(".txt")) must include the conformal
+        # panel too, so interactive and saved output stay consistent.
+        clf, X, y, prob, sets = trained_multiclass_clf
+        report = analyze(
+            clf, X, y, y_prob=prob, y_pred_sets=sets, confidence_level=0.9, verbose=False
+        )
+        text = report._generate_text_report()
+        assert "Conformal Prediction (prediction sets)" in text
+        assert "Marginal coverage" in text
+        # And absent when no sets are supplied.
+        base = analyze(clf, X, y, y_prob=prob, verbose=False)
+        assert "Conformal Prediction" not in base._generate_text_report()
+
     def test_panel_labels_over_and_under(self, trained_multiclass_clf):
         clf, X, y, prob, sets = trained_multiclass_clf
         report = analyze(

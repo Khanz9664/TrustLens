@@ -210,10 +210,12 @@ def _run_analysis_pipeline(
                 calibration_block["conformal"] = conformal_diagnostics(
                     y_true, y_pred_sets, nominal_coverage=nominal_coverage
                 )
-            except Exception as e:
-                # Malformed sets (length mismatch, all-empty, ambiguous input)
-                # degrade gracefully to a visible skipped block rather than
-                # aborting the whole analysis — the reason stays surfaced.
+            except (ValueError, TypeError) as e:
+                # Malformed sets (length mismatch, all-empty, ambiguous 0/1 list,
+                # out-of-contract labels) degrade gracefully to a visible skipped
+                # block rather than aborting the whole analysis — the reason stays
+                # surfaced. Narrow to the input-validation errors conformal_diagnostics
+                # / to_membership_matrix raise, so a genuine bug still propagates.
                 logger.warning("Skipped conformal diagnostics: %s", e)
                 calibration_block["conformal"] = {
                     "status": "skipped",

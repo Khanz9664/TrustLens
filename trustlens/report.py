@@ -629,6 +629,13 @@ class TrustReport:
             if line_buf:
                 lines.append(f"\n{module_name.title()} Analysis")
                 lines.extend(line_buf)
+            # Conformal panel — keep the saved text report consistent with show().
+            if (
+                module_name == "calibration"
+                and isinstance(module_data, dict)
+                and "conformal" in module_data
+            ):
+                lines.extend(self._conformal_panel_lines(module_data["conformal"]))
 
         lines.append(f"\nConclusion:\n{self._generate_conclusion()}")
 
@@ -917,8 +924,12 @@ class TrustReport:
             if verbose:
                 print(f"{prefix}- {data}")
 
-    @staticmethod
-    def _cov_gap_label(gap: float | None, over_is_positive: bool) -> str:
+    # A |coverage gap| below this magnitude reads as "on target" in the panel
+    # (rounds to 0.0000 at the 4-decimal display precision).
+    _GAP_ON_TARGET_EPS: float = 5e-5
+
+    @classmethod
+    def _cov_gap_label(cls, gap: float | None, over_is_positive: bool) -> str:
         """Format a coverage gap as an explicit over-/under-coverage annotation.
 
         The conformal block deliberately carries two ``*_gap`` fields with
@@ -930,22 +941,24 @@ class TrustReport:
         """
         if gap is None:
             return ""
-        if abs(gap) < 5e-5:
+        if abs(gap) < cls._GAP_ON_TARGET_EPS:
             return "  (on target)"
         over = (gap > 0) == over_is_positive
         return f"  ({'over' if over else 'under'} by {abs(gap):.4f})"
 
-    def _print_conformal_panel(self, conf: Any) -> None:
-        """Render the conformal-prediction diagnostics sub-block as a panel.
+    def _conformal_panel_lines(self, conf: Any) -> list[str]:
+        """Build the conformal-prediction panel as a list of text lines.
 
-        Diagnostic-only: none of these values influence the Trust Score. Layout
-        follows the signal order — headline marginal coverage vs target, then the
-        two conditional diagnostics (worst-class gap, size-stratified violation),
+        Shared by ``show()`` (printed) and ``_generate_text_report`` (buffered)
+        so the interactive and saved outputs stay identical. Diagnostic-only:
+        none of these values influence the Trust Score. Layout follows the
+        signal order — headline marginal coverage vs target, then the two
+        conditional diagnostics (worst-class gap, size-stratified violation),
         then informativeness (set size, singleton rate, efficiency).
         """
         if not isinstance(conf, dict):
-            return
-        print("\nConformal Prediction (prediction sets)")
+            return []
+        lines = ["\nConformal Prediction (prediction sets)"]
 
         if conf.get("status") == "skipped":
             reason = conf.get("reason", "unknown")
@@ -953,29 +966,29 @@ class TrustReport:
             line = f"  Skipped: {reason}"
             if details:
                 line += f" ({details})"
-            print(line)
-            return
+            lines.append(line)
+            return lines
 
         nominal = conf.get("nominal")
         if nominal is not None:
-            print(f"  Nominal coverage     : {nominal:.4f}")
+            lines.append(f"  Nominal coverage     : {nominal:.4f}")
         else:
-            print("  Nominal coverage     : (not supplied — coverage gaps unavailable)")
+            lines.append("  Nominal coverage     : (not supplied — coverage gaps unavailable)")
 
         marg = conf.get("marginal_coverage")
         if marg is not None:
             label = self._cov_gap_label(conf.get("coverage_gap"), over_is_positive=True)
-            print(f"  Marginal coverage    : {marg:.4f}{label}")
+            lines.append(f"  Marginal coverage    : {marg:.4f}{label}")
 
         wcc = conf.get("worst_class_coverage")
         if wcc is not None:
             label = self._cov_gap_label(conf.get("worst_class_gap"), over_is_positive=False)
-            print(f"  Worst-class coverage : {wcc:.4f}{label}")
+            lines.append(f"  Worst-class coverage : {wcc:.4f}{label}")
 
         ssc = conf.get("ssc_violation")
         if ssc is not None:
             flag = "  (conditionally honest)" if ssc <= 0.0 else ""
-            print(f"  SSC violation        : {ssc:.4f}{flag}")
+            lines.append(f"  SSC violation        : {ssc:.4f}{flag}")
 
         for label, key in (
             ("Avg set size", "avg_set_size"),
@@ -985,11 +998,17 @@ class TrustReport:
         ):
             val = conf.get(key)
             if val is not None:
-                print(f"  {label:<20} : {val:.4f}")
+                lines.append(f"  {label:<20} : {val:.4f}")
 
         n_s, n_c = conf.get("n_samples"), conf.get("n_classes")
         if n_s is not None and n_c is not None:
-            print(f"  (n={n_s}, classes={n_c})")
+            lines.append(f"  (n={n_s}, classes={n_c})")
+        return lines
+
+    def _print_conformal_panel(self, conf: Any) -> None:
+        """Print the conformal-prediction panel (interactive ``show()`` path)."""
+        for line in self._conformal_panel_lines(conf):
+            print(line)
 
     # ------------------------------------------------------------------
     # summary_plot() ← THE WOW FEATURE
