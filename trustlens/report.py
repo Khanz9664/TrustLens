@@ -452,6 +452,15 @@ class TrustReport:
             if out:
                 print(f"\n{module_name.title()} Analysis")
                 print(out)
+            # Conformal prediction sits as a sub-block of calibration; render it
+            # as its own panel (the generic printer hides nested dicts unless
+            # verbose, and the panel adds explicit over/under gap labelling).
+            if (
+                module_name == "calibration"
+                and isinstance(module_data, dict)
+                and "conformal" in module_data
+            ):
+                self._print_conformal_panel(module_data["conformal"])
 
         conclusion = self._generate_conclusion()
         print(f"\nConclusion:\n{conclusion}")
@@ -620,6 +629,13 @@ class TrustReport:
             if line_buf:
                 lines.append(f"\n{module_name.title()} Analysis")
                 lines.extend(line_buf)
+            # Conformal panel — keep the saved text report consistent with show().
+            if (
+                module_name == "calibration"
+                and isinstance(module_data, dict)
+                and "conformal" in module_data
+            ):
+                lines.extend(self._conformal_panel_lines(module_data["conformal"]))
 
         lines.append(f"\nConclusion:\n{self._generate_conclusion()}")
 
@@ -907,6 +923,92 @@ class TrustReport:
         else:
             if verbose:
                 print(f"{prefix}- {data}")
+
+    # A |coverage gap| below this magnitude reads as "on target" in the panel
+    # (rounds to 0.0000 at the 4-decimal display precision).
+    _GAP_ON_TARGET_EPS: float = 5e-5
+
+    @classmethod
+    def _cov_gap_label(cls, gap: float | None, over_is_positive: bool) -> str:
+        """Format a coverage gap as an explicit over-/under-coverage annotation.
+
+        The conformal block deliberately carries two ``*_gap`` fields with
+        opposite sign conventions: ``coverage_gap = marginal − nominal``
+        (positive ⇒ *over*-coverage, ``over_is_positive=True``) and
+        ``worst_class_gap = nominal − worst`` (positive ⇒ *under*-coverage,
+        ``over_is_positive=False``). Spelling the direction out here means a
+        reader never has to remember which field means which.
+        """
+        if gap is None:
+            return ""
+        if abs(gap) < cls._GAP_ON_TARGET_EPS:
+            return "  (on target)"
+        over = (gap > 0) == over_is_positive
+        return f"  ({'over' if over else 'under'} by {abs(gap):.4f})"
+
+    def _conformal_panel_lines(self, conf: Any) -> list[str]:
+        """Build the conformal-prediction panel as a list of text lines.
+
+        Shared by ``show()`` (printed) and ``_generate_text_report`` (buffered)
+        so the interactive and saved outputs stay identical. Diagnostic-only:
+        none of these values influence the Trust Score. Layout follows the
+        signal order — headline marginal coverage vs target, then the two
+        conditional diagnostics (worst-class gap, size-stratified violation),
+        then informativeness (set size, singleton rate, efficiency).
+        """
+        if not isinstance(conf, dict):
+            return []
+        lines = ["\nConformal Prediction (prediction sets)"]
+
+        if conf.get("status") == "skipped":
+            reason = conf.get("reason", "unknown")
+            details = conf.get("details", "")
+            line = f"  Skipped: {reason}"
+            if details:
+                line += f" ({details})"
+            lines.append(line)
+            return lines
+
+        nominal = conf.get("nominal")
+        if nominal is not None:
+            lines.append(f"  Nominal coverage     : {nominal:.4f}")
+        else:
+            lines.append("  Nominal coverage     : (not supplied — coverage gaps unavailable)")
+
+        marg = conf.get("marginal_coverage")
+        if marg is not None:
+            label = self._cov_gap_label(conf.get("coverage_gap"), over_is_positive=True)
+            lines.append(f"  Marginal coverage    : {marg:.4f}{label}")
+
+        wcc = conf.get("worst_class_coverage")
+        if wcc is not None:
+            label = self._cov_gap_label(conf.get("worst_class_gap"), over_is_positive=False)
+            lines.append(f"  Worst-class coverage : {wcc:.4f}{label}")
+
+        ssc = conf.get("ssc_violation")
+        if ssc is not None:
+            flag = "  (conditionally honest)" if ssc <= 0.0 else ""
+            lines.append(f"  SSC violation        : {ssc:.4f}{flag}")
+
+        for label, key in (
+            ("Avg set size", "avg_set_size"),
+            ("Singleton rate", "singleton_rate"),
+            ("Size efficiency", "size_efficiency"),
+            ("Empty rate", "empty_rate"),
+        ):
+            val = conf.get(key)
+            if val is not None:
+                lines.append(f"  {label:<20} : {val:.4f}")
+
+        n_s, n_c = conf.get("n_samples"), conf.get("n_classes")
+        if n_s is not None and n_c is not None:
+            lines.append(f"  (n={n_s}, classes={n_c})")
+        return lines
+
+    def _print_conformal_panel(self, conf: Any) -> None:
+        """Print the conformal-prediction panel (interactive ``show()`` path)."""
+        for line in self._conformal_panel_lines(conf):
+            print(line)
 
     # ------------------------------------------------------------------
     # summary_plot() ← THE WOW FEATURE
