@@ -522,6 +522,10 @@ def crps_from_intervals(
             raise ValueError(
                 f"each lower bound must be <= its upper bound (violated at level {tau})."
             )
+        # Distinct central levels never collide on a quantile key: (1 - tau)/2 is
+        # strictly below 0.5 and strictly decreasing in tau, (1 + tau)/2 strictly
+        # above 0.5 and strictly increasing, so the rounding only stabilises the
+        # float key and cannot silently overwrite a different level's quantiles.
         alpha_values[round((1.0 - tau) / 2.0, 10)] = lower
         alpha_values[round((1.0 + tau) / 2.0, 10)] = upper
 

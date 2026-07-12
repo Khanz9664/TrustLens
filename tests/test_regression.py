@@ -227,6 +227,13 @@ class TestCrpsFromIntervals:
         assert result["status"] == "skipped"
         assert result["reason"] == "missing_intervals"
 
+    def test_skips_when_empty_intervals_dict(self):
+        # Empty mapping degrades like None (guards the `if not intervals` gate
+        # against a refactor to `if intervals is None`).
+        result = crps_from_intervals(np.arange(10, dtype=float), {})
+        assert result["status"] == "skipped"
+        assert result["reason"] == "missing_intervals"
+
     def test_single_level_is_sufficient_to_integrate(self):
         # One central level already supplies two quantiles, enough to integrate.
         y = np.zeros(20, dtype=float)
