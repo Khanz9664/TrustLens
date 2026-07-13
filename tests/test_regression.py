@@ -11,6 +11,7 @@ from sklearn.linear_model import LinearRegression
 
 from trustlens.metrics import regression
 from trustlens.metrics.regression import (
+    crps_from_intervals,
     error_distribution,
     error_variance_correlation,
     multilevel_interval_coverage,
@@ -197,6 +198,136 @@ class TestMultilevelIntervalCoverage:
             multilevel_interval_coverage(y, {1.5: (y - 1.0, y + 1.0)})
 
 
+class TestCrpsFromIntervals:
+    @staticmethod
+    def _gaussian_intervals(mu, sigma, n, levels):
+        """Per-sample constant central intervals for a shared N(mu, sigma) forecast."""
+        from scipy.stats import norm
+
+        intervals = {}
+        for tau in levels:
+            z_lo = norm.ppf((1.0 - tau) / 2.0)
+            z_hi = norm.ppf((1.0 + tau) / 2.0)
+            intervals[float(tau)] = (
+                np.full(n, mu + sigma * z_lo),
+                np.full(n, mu + sigma * z_hi),
+            )
+        return intervals
+
+    @staticmethod
+    def _closed_form_gaussian_crps(mu, sigma, y):
+        """Exact CRPS of N(mu, sigma^2) vs y (Gneiting & Raftery 2007)."""
+        from scipy.stats import norm
+
+        w = (y - mu) / sigma
+        return sigma * (w * (2 * norm.cdf(w) - 1) + 2 * norm.pdf(w) - 1 / np.sqrt(np.pi))
+
+    def test_skips_when_no_intervals(self):
+        result = crps_from_intervals(np.arange(10, dtype=float), None)
+        assert result["status"] == "skipped"
+        assert result["reason"] == "missing_intervals"
+
+    def test_skips_when_empty_intervals_dict(self):
+        # Empty mapping degrades like None (guards the `if not intervals` gate
+        # against a refactor to `if intervals is None`).
+        result = crps_from_intervals(np.arange(10, dtype=float), {})
+        assert result["status"] == "skipped"
+        assert result["reason"] == "missing_intervals"
+
+    def test_single_level_is_sufficient_to_integrate(self):
+        # One central level already supplies two quantiles, enough to integrate.
+        y = np.zeros(20, dtype=float)
+        result = crps_from_intervals(y, self._gaussian_intervals(0.0, 1.0, 20, [0.9]))
+        assert result["n_quantile_levels"] == 2
+        assert np.isfinite(result["mean_crps"])
+
+    def test_matches_closed_form_gaussian_on_dense_grid(self):
+        rng = np.random.default_rng(0)
+        mu, sigma, n = 1.3, 0.8, 3000
+        y = rng.normal(mu, sigma, n)
+        levels = np.round(np.arange(0.05, 0.96, 0.05), 3)  # 19 interval levels
+        result = crps_from_intervals(y, self._gaussian_intervals(mu, sigma, n, levels))
+        expected = float(self._closed_form_gaussian_crps(mu, sigma, y).mean())
+        # 19-level grid is characterised at <1% mean rel. error; allow 2% margin.
+        assert result["mean_crps"] == pytest.approx(expected, rel=0.02)
+        assert result["n_quantile_levels"] == 38
+        assert result["n_samples"] == n
+
+    def test_denser_grid_reduces_truncation_bias(self):
+        rng = np.random.default_rng(1)
+        mu, sigma, n = 1.3, 0.8, 3000
+        y = rng.normal(mu, sigma, n)
+        exact = float(self._closed_form_gaussian_crps(mu, sigma, y).mean())
+        coarse = crps_from_intervals(y, self._gaussian_intervals(mu, sigma, n, [0.5, 0.8, 0.95]))[
+            "mean_crps"
+        ]
+        dense = crps_from_intervals(
+            y, self._gaussian_intervals(mu, sigma, n, np.round(np.arange(0.05, 0.96, 0.05), 3))
+        )["mean_crps"]
+        assert abs(dense - exact) < abs(coarse - exact)
+
+    def test_sharper_forecast_has_lower_crps(self):
+        # Same observations at the forecast mean; the tighter forecast scores lower.
+        rng = np.random.default_rng(2)
+        mu, n = 0.0, 3000
+        y = rng.normal(mu, 0.05, n)  # observations essentially at the mean
+        levels = np.round(np.arange(0.05, 0.96, 0.05), 3)
+        sharp = crps_from_intervals(y, self._gaussian_intervals(mu, 0.5, n, levels))["mean_crps"]
+        broad = crps_from_intervals(y, self._gaussian_intervals(mu, 2.0, n, levels))["mean_crps"]
+        assert sharp < broad
+
+    def test_point_mass_on_truth_scores_near_zero(self):
+        # Degenerate intervals collapsed onto y at every level -> CRPS ~ 0.
+        y = np.linspace(-3.0, 3.0, 50)
+        intervals = {tau: (y.copy(), y.copy()) for tau in (0.5, 0.8, 0.95)}
+        assert crps_from_intervals(y, intervals)["mean_crps"] == pytest.approx(0.0, abs=1e-9)
+
+    def test_quantile_crossing_is_rearranged_not_crashed(self):
+        # Non-nested (crossed) intervals must not crash and must equal the score of
+        # the same quantiles sorted into a valid non-decreasing forecast.
+        n = 200
+        y = np.zeros(n, dtype=float)
+        crossed = {
+            0.5: (np.full(n, 1.0), np.full(n, 2.0)),  # inner band placed *outside*
+            0.9: (np.full(n, -0.5), np.full(n, 0.5)),  # outer band placed *inside*
+        }
+        result = crps_from_intervals(y, crossed)
+        assert np.isfinite(result["mean_crps"])
+        # Rearranged reference: sort the four quantile values ascending per sample.
+        vals = np.sort(np.array([1.0, 2.0, -0.5, 0.5]))
+        rearranged = {
+            0.5: (np.full(n, vals[1]), np.full(n, vals[2])),
+            0.9: (np.full(n, vals[0]), np.full(n, vals[3])),
+        }
+        assert result["mean_crps"] == pytest.approx(crps_from_intervals(y, rearranged)["mean_crps"])
+
+    def test_grid_metadata_reported(self):
+        y = np.zeros(20, dtype=float)
+        result = crps_from_intervals(y, self._gaussian_intervals(0.0, 1.0, 20, [0.5, 0.9]))
+        assert result["n_quantile_levels"] == 4
+        lo, hi = result["quantile_level_span"]
+        assert lo == pytest.approx(0.05) and hi == pytest.approx(0.95)
+
+    def test_shape_mismatch_raises(self):
+        y = np.arange(5, dtype=float)
+        with pytest.raises(ValueError, match="same shape"):
+            crps_from_intervals(y, {0.9: (np.zeros(4), np.ones(4))})
+
+    def test_lower_above_upper_raises(self):
+        y = np.arange(5, dtype=float)
+        with pytest.raises(ValueError, match="lower bound"):
+            crps_from_intervals(y, {0.9: (y + 1.0, y - 1.0)})
+
+    def test_invalid_level_raises(self):
+        y = np.arange(5, dtype=float)
+        with pytest.raises(ValueError, match="level"):
+            crps_from_intervals(y, {1.5: (y - 1.0, y + 1.0)})
+
+    def test_empty_input_raises(self):
+        with pytest.raises(ValueError, match="non-empty"):
+            crps_from_intervals(np.array([]), {0.9: (np.array([]), np.array([]))})
+
+
 class TestErrorVarianceCorrelation:
     def test_skips_when_no_variance(self):
         y = np.arange(10, dtype=float)
@@ -243,5 +374,6 @@ def test_regression_module_exports_match_all():
         "error_distribution",
         "prediction_interval_coverage",
         "multilevel_interval_coverage",
+        "crps_from_intervals",
         "error_variance_correlation",
     }
