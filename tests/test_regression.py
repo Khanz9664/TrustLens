@@ -11,6 +11,7 @@ from sklearn.linear_model import LinearRegression
 
 from trustlens.metrics import regression
 from trustlens.metrics.regression import (
+    crps_decomposition,
     crps_from_intervals,
     error_distribution,
     error_variance_correlation,
@@ -328,6 +329,112 @@ class TestCrpsFromIntervals:
             crps_from_intervals(np.array([]), {0.9: (np.array([]), np.array([]))})
 
 
+class TestCrpsDecomposition:
+    @staticmethod
+    def _conditional_gaussian(rng, n=6000, sd=1.0):
+        """Wide-signal conditional Gaussian: obs ~ N(mu, 1), forecast = N(mu, sd)."""
+        from scipy.stats import norm
+
+        levels = np.round(np.arange(0.05, 0.96, 0.05), 3)
+        mu = rng.normal(0.0, 5.0, n)
+        y = mu + rng.normal(0.0, 1.0, n)
+        intervals = {}
+        for tau in levels:
+            z = norm.ppf((1 + tau) / 2)
+            intervals[float(tau)] = (mu - z * sd, mu + z * sd)
+        return y, intervals
+
+    def test_skips_when_no_intervals(self):
+        result = crps_decomposition(np.arange(10, dtype=float), None)
+        assert result["status"] == "skipped"
+        assert result["reason"] == "missing_intervals"
+
+    def test_identity_reliability_plus_potential_equals_crps(self):
+        rng = np.random.default_rng(0)
+        y, intervals = self._conditional_gaussian(rng)
+        d = crps_decomposition(y, intervals)
+        assert d["reliability"] + d["crps_potential"] == pytest.approx(d["crps"], abs=1e-3)
+
+    def test_three_term_identity_crps_equals_rel_minus_res_plus_unc(self):
+        rng = np.random.default_rng(1)
+        y, intervals = self._conditional_gaussian(rng)
+        d = crps_decomposition(y, intervals)
+        assert d["reliability"] - d["resolution"] + d["uncertainty"] == pytest.approx(
+            d["crps"], abs=1e-3
+        )
+
+    def test_crps_matches_estimator_within_grid_tolerance(self):
+        rng = np.random.default_rng(2)
+        y, intervals = self._conditional_gaussian(rng)
+        d = crps_decomposition(y, intervals)
+        est = crps_from_intervals(y, intervals)["mean_crps"]
+        assert d["crps"] == pytest.approx(est, rel=0.05)
+
+    def test_reliability_nonnegative_and_small_when_calibrated(self):
+        rng = np.random.default_rng(3)
+        y, intervals = self._conditional_gaussian(rng, sd=1.0)  # forecast sd == true sd
+        d = crps_decomposition(y, intervals)
+        assert d["reliability"] >= 0.0
+        assert d["reliability"] < 0.02
+
+    def test_reliability_rises_when_miscalibrated(self):
+        from scipy.stats import norm
+
+        rng = np.random.default_rng(4)
+        n = 6000
+        mu = rng.normal(0.0, 5.0, n)
+        y = mu + rng.normal(0.0, 1.0, n)
+        levels = np.round(np.arange(0.05, 0.96, 0.05), 3)
+
+        def ivs(sd):
+            return {
+                float(t): (mu - norm.ppf((1 + t) / 2) * sd, mu + norm.ppf((1 + t) / 2) * sd)
+                for t in levels
+            }
+
+        rel_calibrated = crps_decomposition(y, ivs(1.0))["reliability"]
+        rel_overconfident = crps_decomposition(y, ivs(0.5))["reliability"]
+        assert rel_overconfident > rel_calibrated
+
+    def test_resolution_positive_for_skillful_forecast(self):
+        rng = np.random.default_rng(5)
+        y, intervals = self._conditional_gaussian(rng, sd=1.0)
+        d = crps_decomposition(y, intervals)
+        assert d["resolution"] > 0.0
+        assert d["uncertainty"] > d["crps_potential"]
+
+    def test_climatology_forecast_has_near_zero_resolution(self):
+        # A forecast equal to climatology (marginal quantiles, constant across
+        # samples) has no skill over climatology -> resolution ~ 0.
+        rng = np.random.default_rng(6)
+        y = rng.normal(0.0, 3.0, 6000)
+        levels = np.round(np.arange(0.05, 0.96, 0.05), 3)
+        clim = {}
+        for tau in levels:
+            lo = float(np.quantile(y, (1 - tau) / 2))
+            hi = float(np.quantile(y, (1 + tau) / 2))
+            clim[float(tau)] = (np.full(y.size, lo), np.full(y.size, hi))
+        d = crps_decomposition(y, clim)
+        assert abs(d["resolution"]) < 0.02
+
+    def test_custom_climatology_wrong_levels_raises(self):
+        rng = np.random.default_rng(7)
+        y, intervals = self._conditional_gaussian(rng)
+        bad_clim = {0.5: (np.full(y.size, -1.0), np.full(y.size, 1.0))}  # different grid
+        with pytest.raises(ValueError, match="same interval levels"):
+            crps_decomposition(y, intervals, climatology=bad_clim)
+
+    def test_shape_mismatch_raises(self):
+        y = np.arange(5, dtype=float)
+        with pytest.raises(ValueError, match="same shape"):
+            crps_decomposition(y, {0.9: (np.zeros(4), np.ones(4))})
+
+    def test_invalid_level_raises(self):
+        y = np.arange(5, dtype=float)
+        with pytest.raises(ValueError, match="level"):
+            crps_decomposition(y, {1.5: (y - 1.0, y + 1.0)})
+
+
 class TestErrorVarianceCorrelation:
     def test_skips_when_no_variance(self):
         y = np.arange(10, dtype=float)
@@ -375,5 +482,6 @@ def test_regression_module_exports_match_all():
         "prediction_interval_coverage",
         "multilevel_interval_coverage",
         "crps_from_intervals",
+        "crps_decomposition",
         "error_variance_correlation",
     }
