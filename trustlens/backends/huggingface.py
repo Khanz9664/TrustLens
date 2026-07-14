@@ -106,7 +106,7 @@ def resolve(
     except ImportError as exc:
         raise ImportError(
             "The 'transformers' package is required to use the huggingface "
-            "resolver. Install it via `pip install trustlens[transformers,torch]`."
+            "resolver. Install it via `pip install trustlens[nlp]`."
         ) from exc
 
     # 1. Pipeline type validation
