@@ -152,3 +152,83 @@ def test_huggingface_non_classification_pipeline_rejection():
 
     with pytest.raises(UnsupportedModelError):
         analyze(model, X, y, verbose=False)
+
+
+def test_huggingface_resolver_no_id2label_fallback():
+    model = _make_text_classification_pipeline(
+        id2label=None,
+        outputs=[
+            [{"label": "joy", "score": 0.6}, {"label": "anger", "score": 0.4}],
+            [{"label": "anger", "score": 0.2}, {"label": "joy", "score": 0.8}],
+            [{"label": "joy", "score": 0.3}, {"label": "anger", "score": 0.7}],
+        ],
+    )
+    X = ["a", "b", "c"]
+
+    resolver = get_resolver(model)
+    bundle = resolver(model, X)
+
+    assert bundle.framework == "huggingface"
+    assert bundle.y_prob.shape == (3, 2)
+    # Column order comes from the first sample: joy=col0, anger=col1.
+    assert list(bundle.class_labels) == ["joy", "anger"]
+    np.testing.assert_allclose(bundle.y_prob, [[0.6, 0.4], [0.8, 0.2], [0.3, 0.7]])
+    assert list(bundle.y_pred) == ["joy", "joy", "anger"]
+
+
+def test_huggingface_resolver_no_id2label_inconsistent_labels_raises():
+    model = _make_text_classification_pipeline(
+        id2label=None,
+        outputs=[
+            [{"label": "joy", "score": 0.6}, {"label": "anger", "score": 0.4}],
+            [{"label": "sadness", "score": 0.5}, {"label": "anger", "score": 0.5}],
+        ],
+    )
+    X = ["a", "b"]
+
+    resolver = get_resolver(model)
+    with pytest.raises(ValueError, match="not present in the canonical label set"):
+        resolver(model, X)
+
+
+def test_huggingface_resolver_explicit_y_prob_2d():
+    class ExplodingPipeline(Exception):
+        pass
+
+    def _boom(*_args, **_kwargs):
+        raise ExplodingPipeline("model(...) should not be called when y_prob is supplied")
+
+    model = _make_text_classification_pipeline(
+        id2label={0: "NEGATIVE", 1: "POSITIVE"},
+        outputs=[],  # unused; __call__ is overridden below to assert it's never hit
+    )
+    model.__class__.__call__ = _boom
+
+    explicit_y_prob = np.array([[0.2, 0.8], [0.9, 0.1]])
+    resolver = get_resolver(model)
+    bundle = resolver(model, ["a", "b"], y_prob=explicit_y_prob)
+
+    assert bundle.framework == "huggingface"
+    np.testing.assert_array_equal(bundle.y_prob, explicit_y_prob)
+    assert list(bundle.class_labels) == ["NEGATIVE", "POSITIVE"]
+    assert list(bundle.y_pred) == ["POSITIVE", "NEGATIVE"]
+
+
+def test_huggingface_resolver_explicit_y_prob_1d_normalized():
+    model = _make_text_classification_pipeline(
+        id2label={0: "NEGATIVE", 1: "POSITIVE"},
+        outputs=[],
+    )
+
+    def _boom(*_args, **_kwargs):
+        raise AssertionError("model(...) should not be called when y_prob is supplied")
+
+    model.__class__.__call__ = _boom
+
+    explicit_y_prob_1d = np.array([0.8, 0.2])
+    resolver = get_resolver(model)
+    bundle = resolver(model, ["a", "b"], y_prob=explicit_y_prob_1d)
+
+    assert bundle.y_prob.shape == (2, 2)
+    np.testing.assert_allclose(bundle.y_prob, [[0.2, 0.8], [0.8, 0.2]])
+    assert list(bundle.y_pred) == ["POSITIVE", "NEGATIVE"]
