@@ -11,7 +11,7 @@ inputs) into a standardized `PredictionBundle`.
 Probability Extraction Strategy
 --------------------------------
 * Calls the pipeline with `top_k=None` to retrieve scores for every class.
-* Parses the resulting list of lists of `{'lab el': str, 'score': float}` dicts into
+* Parses the resulting list of lists of `{'label': str, 'score': float}` dicts into
   a rectangular (n_samples, n_classes) array.
 
 Label Mapping Behavior
@@ -41,7 +41,18 @@ def _get_id2label(model: Any) -> Optional[dict]:
     return id2label
 
 
-def _parse_pipeline_output(model: Any, raw_output: list) -> tuple[np.ndarray, Optional[np.ndarray]]:
+def _ordered_labels_from_id2label(id2label: dict) -> np.ndarray:
+    """
+    Derive the canonical, index-ordered label array from an id2label mapping
+    (e.g. {0: 'NEGATIVE', 1: 'POSITIVE'} -> ['NEGATIVE', 'POSITIVE']).
+    """
+    ordered_ids = sorted(id2label)
+    return np.asarray([id2label[i] for i in ordered_ids])
+
+
+def _parse_pipeline_output(
+    model: Any, raw_output: list
+) -> tuple[np.ndarray, Optional[np.ndarray]]:
     """
     Parse `TextClassificationPipeline(..., top_k=None)` output into a rectangular
     (n_samples, n_classes) probability array plus the ordered class labels.
@@ -49,11 +60,12 @@ def _parse_pipeline_output(model: Any, raw_output: list) -> tuple[np.ndarray, Op
     id2label = _get_id2label(model)
 
     if id2label:
-        ordered_ids = sorted(id2label)
-        ordered_labels = [id2label[i] for i in ordered_ids]
+        ordered_labels_arr = _ordered_labels_from_id2label(id2label)
+        ordered_labels = ordered_labels_arr.tolist()
         label2col = {label: col for col, label in enumerate(ordered_labels)}
     else:
         # No config available (e.g. mocked pipeline) — derive canonical order
+        # from the first sample and require every other sample to match it.
         ordered_labels = None
         label2col = None
 
@@ -89,16 +101,39 @@ def resolve(
     class_labels: Optional[np.ndarray] = None,
 ) -> PredictionBundle:
     """
-    Resolve predictions and probabilities from a Hugging Face
-    `TextClassificationPipeline`.
+    Prediction resolver for Hugging Face text classification pipelines.
 
-    Runs the pipeline over raw string inputs `X` (unless `y_prob` is already
-    supplied), parses per-sample label/score dicts into a stable (n, n_classes)
-    probability matrix, and derives predictions via argmax — mapped back to
-    semantic string labels (via `id2label`) whenever a label mapping is
-    available, so `y_pred` lands in the same space as a typical string-labeled
-    `y_true`. Falls back to raw ordinal indices only when no label mapping
-    exists at all.
+    Supports ``transformers.TextClassificationPipeline``.
+    Non-text-classification pipelines are explicitly blocked.
+
+    Parameters
+    ----------
+    model : Any
+        A fitted Hugging Face text classification pipeline.
+    X : list of str
+        List of input texts to classify.
+    y_pred : np.ndarray, optional
+        Predicted class labels. Derived from ``y_prob`` when not provided.
+    y_prob : np.ndarray, optional
+        Predicted class probabilities. Computed from the model when not provided.
+        Binary outputs are normalized to shape ``(n_samples, 2)``.
+    class_labels : np.ndarray, optional
+        Semantic class labels. Falls back to ``model.classes_`` when available.
+
+    Returns
+    -------
+    PredictionBundle
+        Standardized prediction container with ``y_pred``, ``y_prob``,
+        ``framework='huggingface'``, and resolver metadata.
+
+    Raises
+    ------
+    ImportError
+        If the ``transformers`` package is not installed.
+    UnsupportedModelError
+        If the model is not a text classification pipeline.
+    ValueError
+        If probabilities cannot be resolved from the model.
     """
     try:
         import transformers
@@ -142,10 +177,9 @@ def resolve(
                 y_pred = ordered_labels_arr[y_pred_indices]
             else:
                 y_pred = y_pred_indices
-        elif (
-            resolved_labels_from_output is not None
-            and len(resolved_labels_from_output) == y_prob.shape[1]
-        ):
+        elif resolved_labels_from_output is not None and len(
+            resolved_labels_from_output
+        ) == y_prob.shape[1]:
             y_pred = resolved_labels_from_output[y_pred_indices]
         elif class_labels is not None and len(class_labels) == y_prob.shape[1]:
             y_pred = np.asarray(class_labels)[y_pred_indices]
