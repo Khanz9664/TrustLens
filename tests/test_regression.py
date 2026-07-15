@@ -403,9 +403,14 @@ class TestCrpsDecomposition:
         assert d["resolution"] > 0.0
         assert d["uncertainty"] > d["crps_potential"]
 
-    def test_climatology_forecast_has_near_zero_resolution(self):
+    def test_climatology_forecast_has_zero_resolution(self):
         # A forecast equal to climatology (marginal quantiles, constant across
-        # samples) has no skill over climatology -> resolution ~ 0.
+        # samples) has no skill over climatology -> resolution is exactly 0:
+        # resolution = CRPS_pot_clim - CRPS_pot_forecast, and the two potential
+        # CRPS terms are computed from identical quantiles. (Uncertainty must be
+        # the climatology's *potential* CRPS, not its reconstructed CRPS, for this
+        # to hold; the reconstructed variant leaks the climatology reliability
+        # into resolution.)
         rng = np.random.default_rng(6)
         y = rng.normal(0.0, 3.0, 6000)
         levels = np.round(np.arange(0.05, 0.96, 0.05), 3)
@@ -415,7 +420,7 @@ class TestCrpsDecomposition:
             hi = float(np.quantile(y, (1 + tau) / 2))
             clim[float(tau)] = (np.full(y.size, lo), np.full(y.size, hi))
         d = crps_decomposition(y, clim)
-        assert abs(d["resolution"]) < 0.02
+        assert abs(d["resolution"]) < 1e-9
 
     def test_custom_climatology_wrong_levels_raises(self):
         rng = np.random.default_rng(7)

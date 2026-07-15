@@ -645,9 +645,11 @@ def crps_decomposition(
       0 means perfectly calibrated on this grid.
     * **Resolution** (higher is better) — how much the forecast improves on
       climatology by varying with the case. ``Uncertainty - crps_potential``.
-    * **Uncertainty** — the CRPS of the climatological (marginal) forecast; a
-      property of the data, not the model, and the ceiling a zero-resolution
-      forecast pays.
+    * **Uncertainty** — the *potential* CRPS of the climatological (marginal)
+      forecast; a property of the data, not the model, and the ceiling a
+      zero-resolution forecast pays. (Equals the climatology's full CRPS when the
+      climatology is perfectly reliable; using the potential term makes a
+      climatological forecast reduce to exactly zero resolution.)
 
     How it is estimated
     -------------------
@@ -655,9 +657,9 @@ def crps_decomposition(
     quantiles define intervals with forecast CDF level ``p = alpha``; averaging the
     below/above widths across samples yields ``reliability`` and ``crps_potential``
     with the exact identity ``crps == reliability + crps_potential``. ``uncertainty``
-    is the same construction applied to the climatological forecast (by default the
-    marginal empirical quantiles of ``y_true``), and ``resolution = uncertainty -
-    crps_potential``.
+    is the *potential* CRPS of the same construction applied to the climatological
+    forecast (by default the marginal empirical quantiles of ``y_true``), and
+    ``resolution = uncertainty - crps_potential``.
 
     Limitations
     -----------
@@ -736,7 +738,12 @@ def crps_decomposition(
             raise ValueError(
                 "climatology must be supplied on the same interval levels as intervals."
             )
-    _, _, uncertainty = _hersbach_terms(y_true, alphas, clim_quantiles)
+    # Uncertainty is the *potential* CRPS of the climatological forecast (2nd term),
+    # not its reconstructed CRPS (3rd term). They differ by the climatology's own
+    # reliability, which is ~0 for a well-calibrated climatology but not exactly 0 on
+    # a finite step grid; using the potential CRPS makes resolution reduce to exactly
+    # 0 for a climatological forecast (resolution = CRPS_pot_clim - CRPS_pot_forecast).
+    _, uncertainty, _ = _hersbach_terms(y_true, alphas, clim_quantiles)
     resolution = uncertainty - crps_potential
 
     return {
