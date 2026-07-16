@@ -27,6 +27,7 @@ __all__ = [
     "prediction_interval_coverage",
     "multilevel_interval_coverage",
     "crps_from_intervals",
+    "crps_decomposition",
     "error_variance_correlation",
 ]
 
@@ -413,6 +414,61 @@ def multilevel_interval_coverage(
     return result
 
 
+def _interval_quantile_grid(
+    y_true: np.ndarray,
+    intervals: dict[float, tuple[np.ndarray, np.ndarray]],
+) -> tuple[np.ndarray, list[float], np.ndarray, np.ndarray]:
+    """Validate a multi-level interval mapping and build its shared quantile grid.
+
+    Each central level ``tau`` contributes two quantiles of ``F`` — the lower bound
+    at ``(1 - tau)/2`` and the upper bound at ``(1 + tau)/2``. Returns
+    ``(y_true, levels, alphas, quantiles)`` where ``quantiles[j, i]`` is the
+    ``alphas[j]``-quantile for sample ``i``, sorted ascending per sample so the
+    implied inverse CDF is non-decreasing (repairing any quantile crossing).
+
+    Raises ``ValueError`` on empty ``y_true``, a level outside ``(0, 1)``, a shape
+    mismatch, or an inverted bound. Callers handle the empty-mapping and
+    fewer-than-two-levels skip paths.
+    """
+    y_true = np.asarray(y_true, dtype=float)
+    if y_true.size == 0:
+        raise ValueError("y_true must be non-empty.")
+
+    levels = sorted(float(t) for t in intervals)
+    for tau in levels:
+        if not 0.0 < tau < 1.0:
+            raise ValueError(f"each interval level must be in (0, 1), got {tau}.")
+
+    # Each central level tau contributes two quantiles of F: the lower bound is
+    # the (1 - tau)/2 quantile and the upper bound is the (1 + tau)/2 quantile.
+    alpha_values: dict[float, np.ndarray] = {}
+    for tau in levels:
+        lower, upper = intervals[tau]
+        lower = np.asarray(lower, dtype=float)
+        upper = np.asarray(upper, dtype=float)
+        if not (y_true.shape == lower.shape == upper.shape):
+            raise ValueError(
+                "y_true and each (lower, upper) pair must share the same shape; "
+                f"level {tau} got {lower.shape}, {upper.shape} vs {y_true.shape}."
+            )
+        if np.any(lower > upper):
+            raise ValueError(
+                f"each lower bound must be <= its upper bound (violated at level {tau})."
+            )
+        # Distinct central levels never collide on a quantile key: (1 - tau)/2 is
+        # strictly below 0.5 and strictly decreasing in tau, (1 + tau)/2 strictly
+        # above 0.5 and strictly increasing, so the rounding only stabilises the
+        # float key and cannot silently overwrite a different level's quantiles.
+        alpha_values[round((1.0 - tau) / 2.0, 10)] = lower
+        alpha_values[round((1.0 + tau) / 2.0, 10)] = upper
+
+    alphas = np.array(sorted(alpha_values), dtype=float)
+    # Quantile matrix Q[j, i] = the alphas[j]-quantile for sample i; sorting each
+    # column ascending repairs any quantile crossing so F^{-1} is non-decreasing.
+    quantiles = np.sort(np.vstack([alpha_values[a] for a in alphas]), axis=0)
+    return y_true, levels, alphas, quantiles
+
+
 def crps_from_intervals(
     y_true: np.ndarray,
     intervals: dict[float, tuple[np.ndarray, np.ndarray]] | None = None,
@@ -496,40 +552,7 @@ def crps_from_intervals(
             ),
         }
 
-    y_true = np.asarray(y_true, dtype=float)
-    if y_true.size == 0:
-        raise ValueError("y_true must be non-empty.")
-
-    levels = sorted(float(t) for t in intervals)
-    for tau in levels:
-        if not 0.0 < tau < 1.0:
-            raise ValueError(f"each interval level must be in (0, 1), got {tau}.")
-
-    # Each central level tau contributes two quantiles of F: the lower bound is
-    # the (1 - tau)/2 quantile and the upper bound is the (1 + tau)/2 quantile.
-    # Collect them into a quantile-level -> per-sample-values mapping.
-    alpha_values: dict[float, np.ndarray] = {}
-    for tau in levels:
-        lower, upper = intervals[tau]
-        lower = np.asarray(lower, dtype=float)
-        upper = np.asarray(upper, dtype=float)
-        if not (y_true.shape == lower.shape == upper.shape):
-            raise ValueError(
-                "y_true and each (lower, upper) pair must share the same shape; "
-                f"level {tau} got {lower.shape}, {upper.shape} vs {y_true.shape}."
-            )
-        if np.any(lower > upper):
-            raise ValueError(
-                f"each lower bound must be <= its upper bound (violated at level {tau})."
-            )
-        # Distinct central levels never collide on a quantile key: (1 - tau)/2 is
-        # strictly below 0.5 and strictly decreasing in tau, (1 + tau)/2 strictly
-        # above 0.5 and strictly increasing, so the rounding only stabilises the
-        # float key and cannot silently overwrite a different level's quantiles.
-        alpha_values[round((1.0 - tau) / 2.0, 10)] = lower
-        alpha_values[round((1.0 + tau) / 2.0, 10)] = upper
-
-    alphas = np.array(sorted(alpha_values), dtype=float)
+    y_true, levels, alphas, quantiles = _interval_quantile_grid(y_true, intervals)
     if alphas.size < 2:
         return {
             "status": "skipped",
@@ -539,11 +562,6 @@ def crps_from_intervals(
                 "supply more interval levels."
             ),
         }
-
-    # Quantile matrix Q[j, i] = the alpha_j-quantile for sample i. Sorting each
-    # column ascending repairs any quantile crossing so F^{-1} is non-decreasing.
-    quantiles = np.vstack([alpha_values[a] for a in alphas])
-    quantiles = np.sort(quantiles, axis=0)
 
     y = y_true[np.newaxis, :]
     a = alphas[:, np.newaxis]
@@ -561,6 +579,180 @@ def crps_from_intervals(
         "median_crps": round(float(np.median(crps_per_sample)), 4),
         "n_quantile_levels": int(alphas.size),
         "quantile_level_span": [round(float(alphas[0]), 4), round(float(alphas[-1]), 4)],
+        "n_levels": len(levels),
+        "n_samples": int(y_true.size),
+    }
+
+
+def _hersbach_terms(
+    y_true: np.ndarray, alphas: np.ndarray, quantiles: np.ndarray
+) -> tuple[float, float, float]:
+    """Hersbach (2000) reliability and potential CRPS on a shared quantile grid.
+
+    For each interval between adjacent quantiles (forecast CDF level ``p = alpha_i``)
+    this accumulates, across samples, the mean widths lying below and above the
+    observation (``abar``, ``bbar``). With ``g = abar + bbar`` and the observed
+    above-frequency ``o = bbar / g``:
+
+      * ``reliability     = sum_i g_i (o_i - p_i)^2``  (calibration miss, >= 0)
+      * ``crps_potential  = sum_i g_i o_i (1 - o_i)``  (best CRPS at this resolution)
+      * ``crps_recon      = sum_i (abar_i p_i^2 + bbar_i (1 - p_i)^2)``
+
+    Returns ``(reliability, crps_potential, crps_recon)`` with the exact algebraic
+    identity ``crps_recon == reliability + crps_potential``.
+    """
+    p = alphas[:-1]
+    qi = quantiles[:-1]
+    qip1 = quantiles[1:]
+    y = y_true[np.newaxis, :]
+    below = np.where(y >= qip1, qip1 - qi, np.where(y <= qi, 0.0, y - qi))
+    above = np.where(y >= qip1, 0.0, np.where(y <= qi, qip1 - qi, qip1 - y))
+    abar = below.mean(axis=1)
+    bbar = above.mean(axis=1)
+    g = abar + bbar
+    o = np.divide(bbar, g, out=np.zeros_like(g), where=g > 0.0)
+    reliability = float(np.sum(g * (o - p) ** 2))
+    crps_potential = float(np.sum(g * o * (1.0 - o)))
+    pc = p[:, np.newaxis]
+    crps_recon = float(np.mean(np.sum(below * pc**2 + above * (1.0 - pc) ** 2, axis=0)))
+    return reliability, crps_potential, crps_recon
+
+
+def _empirical_climatology_quantiles(y_true: np.ndarray, alphas: np.ndarray) -> np.ndarray:
+    """Marginal empirical quantiles of ``y_true`` at each alpha, broadcast to (m, n)."""
+    q = np.quantile(y_true, alphas)
+    grid: np.ndarray = np.repeat(q[:, np.newaxis], y_true.size, axis=1)
+    return grid
+
+
+def crps_decomposition(
+    y_true: np.ndarray,
+    intervals: dict[float, tuple[np.ndarray, np.ndarray]] | None = None,
+    climatology: dict[float, tuple[np.ndarray, np.ndarray]] | None = None,
+) -> dict:
+    """CRPS reliability / resolution / uncertainty decomposition (Hersbach 2000, RFC #155).
+
+    What it measures
+    ----------------
+    Splits the aggregate CRPS from :func:`crps_from_intervals` into the three
+    interpretable terms of the Hersbach decomposition, so a change in CRPS can be
+    attributed to *why* it changed:
+
+    ``CRPS = Reliability - Resolution + Uncertainty``
+
+    * **Reliability** (>= 0) — the calibration miss: how far the forecast's stated
+      exceedance probabilities are from the observed frequencies. Lower is better;
+      0 means perfectly calibrated on this grid.
+    * **Resolution** (higher is better) — how much the forecast improves on
+      climatology by varying with the case. ``Uncertainty - crps_potential``.
+    * **Uncertainty** — the *potential* CRPS of the climatological (marginal)
+      forecast; a property of the data, not the model, and the ceiling a
+      zero-resolution forecast pays. (Equals the climatology's full CRPS when the
+      climatology is perfectly reliable; using the potential term makes a
+      climatological forecast reduce to exactly zero resolution.)
+
+    How it is estimated
+    -------------------
+    On the same multi-level interval grid as :func:`crps_from_intervals`. Adjacent
+    quantiles define intervals with forecast CDF level ``p = alpha``; averaging the
+    below/above widths across samples yields ``reliability`` and ``crps_potential``
+    with the exact identity ``crps == reliability + crps_potential``. ``uncertainty``
+    is the *potential* CRPS of the same construction applied to the climatological
+    forecast (by default the marginal empirical quantiles of ``y_true``), and
+    ``resolution = uncertainty - crps_potential``.
+
+    Limitations
+    -----------
+    ``crps`` here is the decomposition-consistent (step-CDF) reconstruction; it
+    agrees with :func:`crps_from_intervals`'s trapezoidal ``mean_crps`` to within
+    the grid-interpolation gap (a few percent at ~19 levels, tightening as the grid
+    densifies). Reliability and resolution are *dataset-level* properties — they
+    need the joint distribution over many forecasts and are not per-sample
+    averageable. ``resolution`` can go slightly negative for a forecast that is
+    worse than climatology.
+
+    Parameters
+    ----------
+    y_true : np.ndarray
+      Ground-truth continuous targets, shape ``(n_samples,)``.
+    intervals : dict[float, tuple[np.ndarray, np.ndarray]] or None
+      Nominal central levels mapped to per-sample ``(lower, upper)`` bounds — the
+      same input :func:`crps_from_intervals` takes. ``None``/empty or fewer than
+      two distinct quantile levels degrades to a ``status="skipped"`` dict.
+    climatology : dict[...] or None
+      Optional reference forecast on the **same** interval levels; when ``None`` the
+      marginal empirical quantiles of ``y_true`` are used.
+
+    Returns
+    -------
+    dict
+      When intervals are supplied: ``reliability``, ``resolution``, ``uncertainty``,
+      ``crps``, ``crps_potential``, ``n_quantile_levels``, ``n_levels`` and
+      ``n_samples``. When missing/degenerate: a ``status="skipped"`` dict.
+
+    Raises
+    ------
+    ValueError
+      If arrays mismatch ``y_true``'s shape, any ``lower > upper``, any level is
+      outside ``(0, 1)``, ``y_true`` is empty, or ``climatology`` is supplied on
+      different levels than ``intervals``.
+
+    Examples
+    --------
+    >>> ivs = {0.5: (lo50, hi50), 0.8: (lo80, hi80), 0.95: (lo95, hi95)}
+    >>> d = crps_decomposition(y_true, ivs)
+    >>> d["reliability"], d["resolution"], d["uncertainty"]
+    """
+    if not intervals:
+        return {
+            "status": "skipped",
+            "reason": "missing_intervals",
+            "details": (
+                "CRPS decomposition requires a mapping of nominal central levels to "
+                "per-sample (lower, upper) bounds. Provide them from a "
+                "quantile/interval model to enable it."
+            ),
+        }
+
+    y_true, levels, alphas, quantiles = _interval_quantile_grid(y_true, intervals)
+    if alphas.size < 2:
+        return {
+            "status": "skipped",
+            "reason": "insufficient_levels",
+            "details": (
+                "CRPS decomposition needs at least two distinct quantile levels; "
+                "supply more interval levels."
+            ),
+        }
+
+    reliability, crps_potential, crps_recon = _hersbach_terms(y_true, alphas, quantiles)
+
+    # Uncertainty = CRPS of the climatological forecast on the same grid. Default
+    # climatology = the marginal empirical quantiles of y_true (constant across
+    # samples); callers may pass an explicit reference distribution.
+    if climatology is None:
+        clim_quantiles = _empirical_climatology_quantiles(y_true, alphas)
+    else:
+        _, _, clim_alphas, clim_quantiles = _interval_quantile_grid(y_true, climatology)
+        if not np.array_equal(np.round(clim_alphas, 10), np.round(alphas, 10)):
+            raise ValueError(
+                "climatology must be supplied on the same interval levels as intervals."
+            )
+    # Uncertainty is the *potential* CRPS of the climatological forecast (2nd term),
+    # not its reconstructed CRPS (3rd term). They differ by the climatology's own
+    # reliability, which is ~0 for a well-calibrated climatology but not exactly 0 on
+    # a finite step grid; using the potential CRPS makes resolution reduce to exactly
+    # 0 for a climatological forecast (resolution = CRPS_pot_clim - CRPS_pot_forecast).
+    _, uncertainty, _ = _hersbach_terms(y_true, alphas, clim_quantiles)
+    resolution = uncertainty - crps_potential
+
+    return {
+        "reliability": round(reliability, 4),
+        "resolution": round(resolution, 4),
+        "uncertainty": round(uncertainty, 4),
+        "crps": round(crps_recon, 4),
+        "crps_potential": round(crps_potential, 4),
+        "n_quantile_levels": int(alphas.size),
         "n_levels": len(levels),
         "n_samples": int(y_true.size),
     }
