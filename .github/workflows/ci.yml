@@ -162,6 +162,8 @@ jobs:
         run: |
           # Upgrade mistune to fix CVEs
           pip install --upgrade mistune>=3.2.1
+          # Upgrade setuptools to fix CVEs
+          pip install --upgrade "setuptools>=83.0.0"
           # Ignore environment-specific pip vulnerabilities (upstream issues)
           pip-audit \
             --ignore-vuln CVE-2025-8869 \
