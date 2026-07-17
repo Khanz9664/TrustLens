@@ -181,9 +181,7 @@ def _run_analysis_pipeline(
                 else:
                     y_prob_pos = y_prob
 
-                y_true_encoded = _encode_labels_for_probability_columns(
-                    y_true, 2, class_labels
-                )
+                y_true_encoded = _encode_labels_for_probability_columns(y_true, 2, class_labels)
 
                 results["calibration"] = {
                     "brier_score": brier_score(y_true_encoded, y_prob_pos),
