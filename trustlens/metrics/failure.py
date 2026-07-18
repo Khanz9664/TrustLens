@@ -138,7 +138,8 @@ def confidence_gap(
     Interpretation guidance
     -----------------------
     Higher gap is better. A large positive gap indicates the model lowers its confidence
-    when making mistakes.
+    when making mistakes. If the model is 100% correct or 0% correct (one of the comparison
+    groups is empty), the gap is defined as 0.0.
 
     Returns
     -------
@@ -172,13 +173,17 @@ def confidence_gap(
     correct_hist, _ = np.histogram(correct_conf, bins=bins)
     incorrect_hist, _ = np.histogram(incorrect_conf, bins=bins)
 
-    gap = float(correct_conf.mean() - incorrect_conf.mean()) if len(incorrect_conf) > 0 else 0.0
+    correct_mean = float(correct_conf.mean()) if len(correct_conf) > 0 else 0.0
+    incorrect_mean = float(incorrect_conf.mean()) if len(incorrect_conf) > 0 else 0.0
+
+    if len(correct_conf) == 0 or len(incorrect_conf) == 0:
+        gap = 0.0
+    else:
+        gap = correct_mean - incorrect_mean
 
     return {
-        "correct_confidence_mean": float(correct_conf.mean()) if len(correct_conf) > 0 else 0.0,
-        "incorrect_confidence_mean": float(incorrect_conf.mean())
-        if len(incorrect_conf) > 0
-        else 0.0,
+        "correct_confidence_mean": correct_mean,
+        "incorrect_confidence_mean": incorrect_mean,
         "gap": round(gap, 4),
         "histogram_bins": bins,
         "correct_hist": correct_hist,
