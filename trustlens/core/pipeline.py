@@ -181,11 +181,13 @@ def _run_analysis_pipeline(
                 else:
                     y_prob_pos = y_prob
 
+                y_true_encoded = _encode_labels_for_probability_columns(y_true, 2, class_labels)
+
                 results["calibration"] = {
-                    "brier_score": brier_score(y_true, y_prob_pos),
-                    "ece": expected_calibration_error(y_true, y_prob_pos),
-                    "mce": maximum_calibration_error(y_true, y_prob_pos),
-                    "reliability_curve": reliability_curve(y_true, y_prob_pos),
+                    "brier_score": brier_score(y_true_encoded, y_prob_pos),
+                    "ece": expected_calibration_error(y_true_encoded, y_prob_pos),
+                    "mce": maximum_calibration_error(y_true_encoded, y_prob_pos),
+                    "reliability_curve": reliability_curve(y_true_encoded, y_prob_pos),
                 }
         else:
             logger.warning("Skipped calibration: y_prob is missing.")
