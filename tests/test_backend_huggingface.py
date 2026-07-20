@@ -192,11 +192,11 @@ def test_huggingface_resolver_no_id2label_inconsistent_labels_raises():
 
 
 def test_huggingface_resolver_explicit_y_prob_2d():
-    class ExplodingPipeline(Exception):
+    class ExplodingPipelineError(Exception):
         pass
 
     def _boom(*_args, **_kwargs):
-        raise ExplodingPipeline("model(...) should not be called when y_prob is supplied")
+        raise ExplodingPipelineError("model(...) should not be called when y_prob is supplied")
 
     model = _make_text_classification_pipeline(
         id2label={0: "NEGATIVE", 1: "POSITIVE"},

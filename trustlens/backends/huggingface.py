@@ -25,7 +25,7 @@ Label Mapping Behavior
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 import numpy as np
 
@@ -35,7 +35,7 @@ from trustlens.backends.types import PredictionBundle, UnsupportedModelError
 def _get_id2label(model: Any) -> Optional[dict]:
     """Best-effort extraction of the pipeline's id2label mapping."""
     config = getattr(getattr(model, "model", None), "config", None)
-    id2label = getattr(config, "id2label", None)
+    id2label = cast(Optional[dict], getattr(config, "id2label", None))
     if not id2label:
         return None
     return id2label
@@ -50,9 +50,7 @@ def _ordered_labels_from_id2label(id2label: dict) -> np.ndarray:
     return np.asarray([id2label[i] for i in ordered_ids])
 
 
-def _parse_pipeline_output(
-    model: Any, raw_output: list
-) -> tuple[np.ndarray, Optional[np.ndarray]]:
+def _parse_pipeline_output(model: Any, raw_output: list) -> tuple[np.ndarray, Optional[np.ndarray]]:
     """
     Parse `TextClassificationPipeline(..., top_k=None)` output into a rectangular
     (n_samples, n_classes) probability array plus the ordered class labels.
@@ -177,9 +175,10 @@ def resolve(
                 y_pred = ordered_labels_arr[y_pred_indices]
             else:
                 y_pred = y_pred_indices
-        elif resolved_labels_from_output is not None and len(
-            resolved_labels_from_output
-        ) == y_prob.shape[1]:
+        elif (
+            resolved_labels_from_output is not None
+            and len(resolved_labels_from_output) == y_prob.shape[1]
+        ):
             y_pred = resolved_labels_from_output[y_pred_indices]
         elif class_labels is not None and len(class_labels) == y_prob.shape[1]:
             y_pred = np.asarray(class_labels)[y_pred_indices]
