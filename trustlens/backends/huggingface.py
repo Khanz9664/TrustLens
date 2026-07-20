@@ -25,9 +25,11 @@ Label Mapping Behavior
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any, Optional, cast
 
 import numpy as np
+import numpy.typing as npt
 
 from trustlens.backends.types import PredictionBundle, UnsupportedModelError
 
@@ -41,13 +43,14 @@ def _get_id2label(model: Any) -> Optional[dict]:
     return id2label
 
 
-def _ordered_labels_from_id2label(id2label: dict) -> np.ndarray:
+def _ordered_labels_from_id2label(id2label: Mapping[Any, Any]) -> npt.NDArray[np.str_]:
     """
     Derive the canonical, index-ordered label array from an id2label mapping
     (e.g. {0: 'NEGATIVE', 1: 'POSITIVE'} -> ['NEGATIVE', 'POSITIVE']).
     """
     ordered_ids = sorted(id2label)
-    return np.asarray([id2label[i] for i in ordered_ids])
+    ordered_labels = [str(id2label[i]) for i in ordered_ids]
+    return np.asarray(ordered_labels, dtype=np.str_)
 
 
 def _parse_pipeline_output(model: Any, raw_output: list) -> tuple[np.ndarray, Optional[np.ndarray]]:
