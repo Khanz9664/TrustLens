@@ -95,3 +95,21 @@ class TestConfidenceGap:
         y_true, y_pred, y_prob = binary_data
         result = confidence_gap(y_true, y_pred, y_prob)
         assert result["n_correct"] + result["n_incorrect"] == len(y_true)
+
+    def test_gap_zero_when_all_correct(self, binary_data):
+        y_true, _, y_prob = binary_data
+        y_pred = y_true.copy()  # 100% accuracy
+        result = confidence_gap(y_true, y_pred, y_prob)
+        assert result["gap"] == 0.0
+        assert not np.isnan(result["gap"])
+        assert result["n_incorrect"] == 0
+        assert result["n_correct"] == len(y_true)
+
+    def test_gap_zero_when_all_incorrect(self, binary_data):
+        y_true, _, y_prob = binary_data
+        y_pred = 1 - y_true  # 0% accuracy
+        result = confidence_gap(y_true, y_pred, y_prob)
+        assert result["gap"] == 0.0
+        assert not np.isnan(result["gap"])
+        assert result["n_correct"] == 0
+        assert result["n_incorrect"] == len(y_true)
