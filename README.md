@@ -253,6 +253,7 @@ TrustLens is an open ecosystem. We welcome contributions—whether it's new diag
 <a href="https://github.com/fuchan12040502-innu"><img src="https://github.com/fuchan12040502-innu.png" width="36" style="border-radius:50%" /></a>
 <a href="https://github.com/CrepuscularIRIS"><img src="https://github.com/CrepuscularIRIS.png" width="36" style="border-radius:50%" /></a>
 <a href="https://github.com/devanprigent"><img src="https://github.com/devanprigent.png" width="36" style="border-radius:50%" /></a>
+<a href="https://github.com/AaronProbha18"><img src="https://github.com/AaronProbha18.png" width="36" style="border-radius:50%" /></a>
 
 <br/>
 
