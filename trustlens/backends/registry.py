@@ -48,6 +48,7 @@ FRAMEWORK_MAPPING = {
     "catboost": "catboost",
     "manual": "manual",
     "lightgbm": "lightgbm",
+    "transformers": "huggingface",
 }
 
 # Frameworks we can theoretically detect/support
@@ -61,6 +62,7 @@ IMPLEMENTED_RESOLVERS = tuple(
             "xgboost",
             "lightgbm",
             "catboost",
+            "huggingface",
             "manual",
         }
     )
@@ -180,6 +182,11 @@ def get_resolver(model: Any, framework: Optional[str] = None) -> Callable[..., P
         from trustlens.backends import catboost
 
         return catboost.resolve
+
+    if detected == "huggingface":
+        from trustlens.backends import huggingface
+
+        return huggingface.resolve
 
     # Note: Future backends will be added here
 
